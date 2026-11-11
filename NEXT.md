@@ -14,3 +14,10 @@
 - Reuse approved configs as few-shot examples for new sources (needs ~20+ approved configs first).
 - Cheap model first, escalate to a stronger one only when validation fails.
 - Re-run both proposals at higher effort for fields the human marks wrong; measure agent accuracy across more reviews.
+
+## Part 3 ideas
+- Rarity-weighted name similarity (IDF over tokens) so "Australia"/"Group" do not carry a match.
+- Hand-check a sample of the REFUSED pairs to measure what the names-conflict rule throws away.
+- LLM adjudicator for the borderline band only (ABN equal, names differ) with the evidence packet; measure vs hand labels.
+- Re-score demo: `rescore` from stored features when the matcher changes (m1.1 variant), to show the "change" answer in practice.
+- QBCC person-under-company-ABN pattern: model as a `nominee_of` relationship instead of a conflict.

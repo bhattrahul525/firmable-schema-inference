@@ -1,0 +1,37 @@
+{
+  "seed": 20261112,
+  "labelling_rule": "(read before starting; one pass, about 20 seconds per row):\n  Y = both records describe the same real-world organisation (same legal entity).\n  N = different organisations. Includes: a person vs a company; two different companies; a company vs\n      its trust, parent or subsidiary (related is NOT the same).\n  U = you cannot tell from what is shown. Do not research for more than a minute; mark U.\n  Judge by NAME and ADDRESS. The ABN shown is what the matcher used, so equal ABNs are the claim being\n  tested, not proof. Same business under a different trading name counts as Y only if the names are\n  plausibly the same business.",
+  "strata": {
+    "accepted": {
+      "threshold": "link_confidence >= 0.80",
+      "sampled": 30,
+      "frame_distinct_units": 42,
+      "yes": 23,
+      "no": 0,
+      "unsure": 7,
+      "precision_excl_unsure": 1.0,
+      "precision_95ci_excl_unsure": [
+        0.857,
+        1
+      ],
+      "precision_unsure_counted_wrong": 0.767,
+      "wrong_links": []
+    },
+    "loose": {
+      "threshold": "0.60 <= link_confidence < 0.80",
+      "sampled": 20,
+      "frame_distinct_units": 27,
+      "yes": 20,
+      "no": 0,
+      "unsure": 0,
+      "precision_excl_unsure": 1.0,
+      "precision_95ci_excl_unsure": [
+        0.839,
+        1
+      ],
+      "precision_unsure_counted_wrong": 1.0,
+      "wrong_links": []
+    }
+  },
+  "at_loose_threshold_0.60_weighted_by_unit_counts": 1.0
+}

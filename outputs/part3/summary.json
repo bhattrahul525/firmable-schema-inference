@@ -1,0 +1,33 @@
+{
+  "matcher_version": "m1.0",
+  "thresholds": {
+    "accept": 0.8,
+    "loose": 0.6
+  },
+  "mentions_by_source": {
+    "asic_credit_licensee": 4313,
+    "qbcc_licensed_contractors": 5000,
+    "qld_health_contracts_2023_24": 433,
+    "wa_tenders_awards_2023_24": 5817,
+    "vic_liquor_licences": 5000,
+    "act_notifiable_invoices": 5000
+  },
+  "links_by_band": {
+    "loose": 119,
+    "accepted": 266
+  },
+  "links_by_tier_and_band": {
+    "T1_abn_equal|accepted": 266,
+    "T3_name_company|loose": 119
+  },
+  "cross_source_entities": 40,
+  "queue_by_reason": {
+    "no_name_or_identifier": 5817,
+    "name_match_without_location_evidence": 7,
+    "identifier_match_but_names_conflict": 23,
+    "name_match_but_different_abns": 2,
+    "similar_name_not_exact": 3
+  },
+  "mentions_with_abn_in_no_accepted_link": 11605,
+  "atf_relationships": 13
+}
