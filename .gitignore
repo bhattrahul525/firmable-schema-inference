@@ -1,0 +1,14 @@
+# secrets
+.env
+
+# environments
+.venv/
+__pycache__/
+*.pyc
+
+# large / re-downloadable raw data (catalogue cache + source files)
+data/raw/
+
+# OS / editor
+.DS_Store
+.vscode/
