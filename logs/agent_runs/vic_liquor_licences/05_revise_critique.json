@@ -1,0 +1,194 @@
+{
+  "record_id": {
+    "columns": [
+      "Licence Number"
+    ],
+    "hash_row": false,
+    "reason": "Licence Number is distinct across all 23169 rows (distinct equals row count) and identifies one current licence per row."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licensee"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Licensee is the named holder of the liquor licence, which is the registered licensee name. Individuals appear as licensees (for example EDWARDS NADIA) and are mapped as legal_name without inferring entity type."
+    },
+    {
+      "source": [
+        "Trading As"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Trading As is the name the premises trades under, as distinct from the licensee's registered name. Single value per row, no splitting observed."
+    },
+    {
+      "source": [
+        "Licensee"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "The source has no explicit entity-type column, so the suffix rule is applied to the Licensee name. Names ending Pty Ltd, Pty Limited or Limited become company; others (persons, incorporated associations, clubs) become unknown. Lower confidence because some Limited names may not be companies."
+    },
+    {
+      "source": [
+        "Suburb"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Suburb is the premises locality, matching the column name and sample values such as MELBOURNE and RICHMOND."
+    },
+    {
+      "source": [
+        "Postcode"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Postcode is the premises postcode. About 266 rows carry the value 0, which is not a valid 4-digit postcode; the postcode transform should reject it rather than emit it."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Street Address",
+      "reason": "Street line only (for example 5 LITTLE RYRIE ST), with no suburb, postcode or state in the same cell. The ontology has no street-level address field. Mapping it to address.full would state a complete address the source does not give, and joining it with Suburb and Postcode still omits state, so it is not emitted as address.full. Suburb and Postcode are mapped separately to address.locality and address.postcode."
+    },
+    {
+      "source": "Licence Category",
+      "reason": "Licence class (for example Restaurant and cafe Licence, General Licence). No canonical licence or classification field exists in this ontology slice."
+    },
+    {
+      "source": "Trading Hours",
+      "reason": "Trading hours class. No canonical field for this in the ontology."
+    },
+    {
+      "source": "Patron Capacity (if applicable)",
+      "reason": "Patron capacity of the premises. No canonical field exists for capacity."
+    },
+    {
+      "source": "Council",
+      "reason": "Local government area name. No canonical address field for council or LGA."
+    },
+    {
+      "source": "Region",
+      "reason": "Liquor Control Victoria regional grouping (for example Metro South). This is an administrative region, not an address.state value, so it is not mapped to state."
+    },
+    {
+      "source": "Metro/Regional",
+      "reason": "Metro or regional classification. No canonical field exists."
+    },
+    {
+      "source": "Latitude",
+      "reason": "Geographic coordinate. No canonical geo field exists in this ontology slice."
+    },
+    {
+      "source": "Longitude",
+      "reason": "Geographic coordinate. No canonical geo field exists in this ontology slice."
+    },
+    {
+      "source": "Postal Address",
+      "reason": "Postal or mailing address, often a PO Box or the regulator's own office, and not the premises. The ontology has no postal address field, and mapping it to address.full would misrepresent the premises location."
+    },
+    {
+      "source": "Postal Suburb",
+      "reason": "Postal suburb, paired with Postal Address. No canonical postal field exists."
+    },
+    {
+      "source": "Postal Postcode",
+      "reason": "Postal postcode, paired with Postal Address. No canonical postal field exists."
+    },
+    {
+      "source": "_blank_7",
+      "reason": "Completely empty column (fill rate 0). Ignored."
+    },
+    {
+      "source": "_blank_8",
+      "reason": "Completely empty column (fill rate 0). Ignored."
+    },
+    {
+      "source": "_blank_13",
+      "reason": "Completely empty column (fill rate 0). Ignored."
+    },
+    {
+      "source": "_blank_14",
+      "reason": "Completely empty column (fill rate 0). Ignored."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.9,
+    "address": 0.85,
+    "classification": 0.7,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "Liquor Control Victoria is the statutory licensing regulator, so its register is highly reliable for licensee identity and premises address at the snapshot date. Classification is lower because licence category describes the licence, not the entity's industry. No contact fields are present, so contact is 0.5 (cannot tell).",
+  "changes": [
+    {
+      "what": "Removed the address.full field mapped from Street Address.",
+      "why": "The reviewer found that Street Address holds only the street line, so emitting it as address.full would claim a complete address. The source has no state column, so joining Suburb and Postcode would still not give a full address. Under the never-guess rule the field is removed rather than approximated."
+    },
+    {
+      "what": "Listed Street Address under unmapped with the reason that the ontology has no street-level field.",
+      "why": "Account for every column: a column that cannot be mapped correctly goes to unmapped with a reason."
+    },
+    {
+      "what": "Kept Suburb and Postcode mapped to address.locality and address.postcode.",
+      "why": "These columns match their canonical meanings and are not affected by the warning. They still carry the premises locality and postcode."
+    }
+  ],
+  "warning_responses": [
+    {
+      "check_id": "address.full_street_only",
+      "action": "changed",
+      "reason": "Street Address contains only the street line. address.full was removed from fields, and Street Address is now listed under unmapped, so the observation no longer claims a complete address the source does not state."
+    }
+  ]
+}

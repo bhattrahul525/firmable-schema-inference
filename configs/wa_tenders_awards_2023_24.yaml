@@ -1,0 +1,291 @@
+source_id: wa_tenders_awards_2023_24
+config_version: 3
+what_it_is: Western Australian government tender contract award register for the 2023-24 financial year, listing
+  public authority procurements with awarded suppliers and UNSPSC classifications.
+one_row_is: One tender or contract award (procurement reference) made by a WA public authority.
+reader:
+  format: csv
+  encoding: utf-8
+  delimiter: ','
+  header_row: 1
+record_id:
+  hash_row: true
+record_id_reason: Reference_Number has 4919 distinct values across 5817 rows, so it is not unique. No verified unique
+  column set exists, so the row is hashed.
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Commencement_Date
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+valid_to:
+  source: Final_Expiry_Date
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: Supplier_Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Supplier_Address is the awarded supplier's address, and the column name and sample values agree.
+  proposal_agreement: agreed
+  field_confidence: 0.9
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Supplier_Address
+  canonical: address.postcode
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: regex_extract
+    arg: (\d{4})\s*$
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Every sample address ends with a 4-digit postcode, so the trailing 4 digits are extracted and normalised.
+  proposal_agreement: agreed
+  field_confidence: 0.85
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 294
+    skipped_not_applicable: 6
+    rejected: 0
+    parse_rate: 1.0
+- source: Supplier_Name
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: The source has no explicit entity-type column, so the suffix rule applies per ontology rule 7. Names ending
+    in Pty Ltd, Limited or Ltd give company; names ending in ')' or with no legal suffix give unknown. Confidence
+    is moderate because a legal suffix is a proxy for entity type.
+  proposal_agreement: resolved_by_revision
+  field_confidence: 0.6
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Public_Authority
+  reason: 'government buyer: the WA public authority is the buyer, not the supplier entity this row describes'
+- source: Public_Authority_Address
+  reason: 'government buyer: address of the public authority, not the supplier'
+- source: Title
+  reason: procurement title describing the contract; no ontology field for contract or tender descriptions
+- source: Reference_Number
+  reason: procurement reference, not unique across rows (4919 distinct / 5817 rows), so it cannot be record_id;
+    no ontology field for it
+- source: Description
+  reason: free-text procurement description; no ontology field
+- source: Type_of_Work
+  reason: procurement category (Goods & Services / Works); no ontology field
+- source: Procurement_Method
+  reason: procurement process method; no ontology field
+- source: Associated_With_Tender
+  reason: reference to a related tender; no ontology field
+- source: UNSPSC_Code_1
+  reason: UNSPSC code describes the goods or services procured under the contract, not the supplier's industry,
+    so it is not mapped to entity.industry_code (which is ANZSIC-oriented)
+- source: UNSPSC_Title_1
+  reason: UNSPSC description of the procured goods or services, not supplier industry
+- source: UNSPSC_Percent_1
+  reason: share of contract allocated to UNSPSC_Code_1; no ontology field
+- source: UNSPSC_Code_2
+  reason: UNSPSC code of the procured goods or services, not supplier industry
+- source: UNSPSC_Title_2
+  reason: UNSPSC description of the procured goods or services, not supplier industry
+- source: UNSPSC_Percent_2
+  reason: share of contract allocated to UNSPSC_Code_2; no ontology field
+- source: UNSPSC_Code_3
+  reason: UNSPSC code of the procured goods or services, not supplier industry
+- source: UNSPSC_Title_3
+  reason: UNSPSC description of the procured goods or services, not supplier industry
+- source: UNSPSC_Percent_3
+  reason: share of contract allocated to UNSPSC_Code_3; no ontology field
+- source: Gascoyne
+  reason: regional delivery flag; no ontology field
+- source: Goldfields_Esperance
+  reason: regional delivery flag; no ontology field
+- source: Great_Southern
+  reason: regional delivery flag; no ontology field
+- source: Kimberley
+  reason: regional delivery flag; no ontology field
+- source: Mid_West
+  reason: regional delivery flag; no ontology field
+- source: Peel
+  reason: regional delivery flag; no ontology field
+- source: Perth_Metropolitan
+  reason: regional delivery flag; no ontology field
+- source: Pilbara
+  reason: regional delivery flag; no ontology field
+- source: South_West
+  reason: regional delivery flag; no ontology field
+- source: Wheatbelt
+  reason: regional delivery flag; no ontology field
+- source: State_Wide
+  reason: regional delivery flag; no ontology field
+- source: Interstate
+  reason: delivery scope flag; not a supplier address state, so it is not mapped to address.state
+- source: International
+  reason: delivery scope flag; no ontology field
+- source: Number_of_Submissions
+  reason: count of tender submissions; no ontology field
+- source: Panel_Contract
+  reason: panel-contract flag; no ontology field
+- source: Contract_Term
+  reason: contract term type; no ontology field
+- source: Closing_Date
+  reason: tender closing date; no ontology field
+- source: Award_Date
+  reason: date of award; the ontology has no award date and date_registered applies only to entity registration
+- source: Initial_Expiry_Date
+  reason: initial contract expiry; no ontology field, and valid_to uses Final_Expiry_Date
+- source: Original_Contract_Value
+  reason: contract value; no ontology field
+- source: Original_Contract_Value_Type
+  reason: contract value basis (estimate or fixed price); no ontology field
+- source: CUA_Number
+  reason: common use arrangement reference; no ontology field
+needs_transform:
+- source: Supplier_Name
+  why: Supplier_Name does not reliably carry the registered name. About 44% of values have no brackets (e.g. 'Peoplebank
+    Australia Limited', 'Shorewater Marine'), and in bracketed values the Pty Ltd registered name may sit outside
+    the brackets (e.g. 'Thermo Fisher Australia Pty Ltd (Thermo Fisher Scientific Australia Pty Ltd)'). Deciding
+    which part is the registered name, and which is the trading name, needs a transform that identifies the registered
+    name from the text. No such transform exists, so entity.legal_name and entity.trading_name are not mapped from
+    this column.
+source_reliability:
+  identity: 0.7
+  address: 0.6
+  classification: 0.4
+  contact: 0.5
+source_reliability_basis: WA Government statutory tender-award disclosure, published by the Department of Treasury
+  and Finance. Strong for the fact that a contract was awarded to a named supplier. Supplier names and addresses
+  are as entered by buying agencies (inconsistent casing, 'Trading (Legal)' mixes), so identity and address are
+  rated below a statutory company register. Classification (UNSPSC) describes goods or services rather than supplier
+  industry and is weak for entity classification. Contact is not provided by the source, so 0.5 is used as an uninformed
+  default.
+meaning_check_responses:
+- check_id: legal_name_extraction
+  action: kept
+  reason: Only proposal 1 mapped the legal name, and its regex matches the parenthetical convention in the samples.
+    The convention is inferred, so mapping_confidence stays at 0.6. Rows without parentheses are not mapped, which
+    is recorded under needs_transform.
+- check_id: trading_name_extraction
+  action: kept
+  reason: Only proposal 1 mapped the trading name, and its regex takes the text before the parenthetical. This matches
+    the same inferred convention, so mapping_confidence stays at 0.5. Rows without parentheses give no trading name.
+- check_id: entity_type_suffix
+  action: changed
+  reason: Only proposal 2 mapped entity type. The suffix rule is permitted by rule 7 because the source has no explicit
+    entity-type column. It is added with mapping_confidence 0.6, and parenthetical cells resolve to unknown.
+- check_id: W1-entity.legal_name-from-Supplier_Name
+  action: changed
+  reason: The bracket-as-legal-name rule was wrong. Brackets are not always the legal name, and many registered
+    names sit outside them. The field is removed from fields and Supplier_Name is listed in needs_transform until
+    a transform can identify the registered name.
+- check_id: W2-entity.trading_name-from-Supplier_Name
+  action: changed
+  reason: The text before the brackets is not reliably a trading name, because the registered name can be outside
+    the brackets and 44% of names have no brackets. The field is removed from fields and Supplier_Name is listed
+    in needs_transform.
+revision_history:
+- round: r1
+  changes:
+  - what: Added entity.entity_type from Supplier_Name via entity_type_from_suffix (mapping_confidence 0.6).
+    why: Proposal 2 mapped this on evidence from its own sample rows. The source has no explicit entity-type column,
+      so rule 7 permits the suffix rule. Parenthetical cells return unknown, so the change does not over-claim.
+  - what: Kept entity.legal_name and entity.trading_name regex extraction unchanged.
+    why: Both proposals agreed on the 'Trading (Legal)' regex pattern. The pattern is consistent in the samples.
+      The two proposals differed only in coverage, not in the regex itself, so no change is justified.
+  - what: Kept all other fields, unmapped entries, needs_transform, observed_at, valid_from, valid_to, record_id
+      and source reliability unchanged.
+    why: The held-out report raises no evidence against them. The report's findings concern only the entity-type
+      and name-extraction coverage.
+- round: human_1
+  changes:
+  - what: Removed the entity.legal_name mapping from Supplier_Name (regex_extract of the parenthetical).
+    why: 'Reviewer found the bracketed text is not always the registered name: the Pty Ltd name can sit outside
+      the brackets, and 44% of names have no brackets. The parenthetical rule therefore assigns the wrong claim
+      to legal_name. Rule 5 requires a consistent pattern before extracting, and none exists.'
+  - what: Removed the entity.trading_name mapping from Supplier_Name (regex_extract of text before the parenthetical).
+    why: 'Same defect: the text before the brackets is not reliably a trading name. Mapping it would publish a wrong
+      trading name for many rows.'
+  - what: Rewrote the needs_transform entry for Supplier_Name.
+    why: The gap is no longer only the missing fallback for unbracketed names. The registered name cannot be identified
+      from the text with the available transforms, so the column is needs_transform, not mapped.
+  - what: Kept entity.entity_type (entity_type_from_suffix), address.full, address.postcode, record_id, observed_at,
+      valid_from, valid_to, and all unmapped entries unchanged.
+    why: The reviewer did not flag these. The entity_type rule depends only on the suffix test, which remains valid
+      for unbracketed names; bracketed names return unknown, which is the conservative default.
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 894
+  abstained: []
+  warnings: []
+  infos: []
+  critique_issues:
+  - field: entity.legal_name and entity.trading_name (Supplier_Name regex_extract)
+    problem: The patterns use a lazy prefix that stops at the first '(', so names containing their own parentheses
+      are split wrongly. 'Jones Lang Lasalle (WA) (Jones Lang Lasalle (WA) Pty Ltd)' yields legal_name 'WA) (Jones
+      Lang Lasalle (WA) Pty Ltd' (a corrupted registered name) and trading_name 'Jones Lang Lasalle' (missing '(WA)').
+    suggested_fix: Anchor on the last parenthetical with a greedy prefix, e.g. legal_name '^(.+)\s*\(([^()]+)\)\s*$'
+      taking group 2 and trading_name taking group 1, or exclude nested parentheses explicitly. Re-test on rows
+      with parentheses inside the name, and lower mapping_confidence until the convention is verified on those rows.
+  - field: entity.entity_type
+    problem: 'The config reason says parenthetical ''Trading (Legal)'' cells end in '')'' and return ''unknown''.
+      The observations contradict this: Integrity Executive, Dale Alcock Homes, Multicam, Hays, Talent International
+      and Jones Lang Lasalle all emit ''company'', while Marty Grant and Mediquip emit ''unknown''. The stated rule
+      and the actual output do not match, so the classification cannot be trusted as documented.'
+    suggested_fix: Decide explicitly whether the suffix test runs on the raw cell or on the extracted legal name.
+      If it is the legal name, correct the reason text and keep the mapping only where the legal name is a company
+      suffix. Otherwise return 'unknown' for parenthetical rows as documented. Lower mapping_confidence accordingly.
+  - field: envelope.valid_to (Final_Expiry_Date) and envelope.valid_from (Commencement_Date)
+    problem: These are contract dates, but the envelope applies them to every observation in the row, including
+      entity.legal_name, trading_name, entity_type and address. For example, the legal-name claim for Multicam carries
+      valid_to 2023-12-06, which reads as the entity's validity end, not the contract's. Rule 10 allows valid_from/valid_to
+      only for when a licence or status started or ended.
+    suggested_fix: Do not use contract commencement and expiry as the validity of entity or address observations.
+      Either leave valid_from/valid_to empty, or scope the dates to a contract-relationship observation type that
+      the ontology supports, and record in the reason that they describe the contract term.
+  proposal_disagreements:
+    only_A:
+    - source:
+      - Supplier_Name
+      canonical: entity.legal_name
+      transforms:
+      - clean_whitespace
+      - regex_extract(^.+?\s*\((.+)\)\s*$)
+    - source:
+      - Supplier_Name
+      canonical: entity.trading_name
+      transforms:
+      - clean_whitespace
+      - regex_extract(^(.+?)\s*\(.+\)\s*$)
+    only_B:
+    - source:
+      - Supplier_Name
+      canonical: entity.entity_type
+      transforms:
+      - entity_type_from_suffix
+generated_by:
+  agent_version: 0.1.0
+  model: claude-haiku-5-5
+  generated_at: '2026-11-11T13:26:08+00:00'

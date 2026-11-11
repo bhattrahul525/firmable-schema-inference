@@ -1,0 +1,248 @@
+{
+  "record_id": {
+    "columns": [
+      "Reference_Number"
+    ],
+    "hash_row": true,
+    "reason": "Reference_Number is not unique (4919 distinct values across 5817 rows), so a full-row hash is used as the record key. Reference_Number is retained as context but does not identify a row alone."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "Tenders WA Contract Award Details 2023-24 Financial Year (CSV, snapshot register)",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Supplier_Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Column is the awarded supplier's address as a single free-text string, matching the ontology's address.full. Address is not the government buyer's address."
+    },
+    {
+      "source": [
+        "Supplier_Address"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "regex_extract",
+          "arg": "(\\d{4})\\s*$"
+        },
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Samples end in a 4-digit postcode after the suburb. The trailing 4 digits are extracted and normalised. No state is stated, so address.state is not mapped."
+    },
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "No explicit entity-type column exists, so the suffix rule on the supplier name column is used. Names ending in a parenthesis are returned as unknown by the rule. Individuals such as Rebecca Jean Martin are not inferred as sole traders."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Public_Authority",
+      "reason": "government buyer: the WA public authority that issued the tender is not the supplier entity"
+    },
+    {
+      "source": "Public_Authority_Address",
+      "reason": "government buyer: address of the public authority, not the supplier"
+    },
+    {
+      "source": "Title",
+      "reason": "tender or contract title describing the procurement, not an attribute of the supplier entity"
+    },
+    {
+      "source": "Description",
+      "reason": "procurement scope description, not an entity claim"
+    },
+    {
+      "source": "Type_of_Work",
+      "reason": "procurement category (Goods & Services / Works), no ontology field"
+    },
+    {
+      "source": "Procurement_Method",
+      "reason": "procurement process attribute, no ontology field"
+    },
+    {
+      "source": "Associated_With_Tender",
+      "reason": "cross-reference to the parent tender title and reference, not an entity claim"
+    },
+    {
+      "source": "UNSPSC_Code_1",
+      "reason": "UNSPSC code describes the procured commodity, not the supplier's industry; mapping it to entity.industry_code would be a false claim"
+    },
+    {
+      "source": "UNSPSC_Title_1",
+      "reason": "title of the procured commodity under UNSPSC, not the supplier's industry"
+    },
+    {
+      "source": "UNSPSC_Percent_1",
+      "reason": "share of the contract attributed to the UNSPSC code, no ontology field"
+    },
+    {
+      "source": "UNSPSC_Code_2",
+      "reason": "procured-commodity code for the contract, not the supplier's industry"
+    },
+    {
+      "source": "UNSPSC_Title_2",
+      "reason": "procured-commodity title, not the supplier's industry"
+    },
+    {
+      "source": "UNSPSC_Percent_2",
+      "reason": "share of the contract attributed to the second UNSPSC code, no ontology field"
+    },
+    {
+      "source": "UNSPSC_Code_3",
+      "reason": "procured-commodity code for the contract, not the supplier's industry"
+    },
+    {
+      "source": "UNSPSC_Title_3",
+      "reason": "procured-commodity title, not the supplier's industry"
+    },
+    {
+      "source": "UNSPSC_Percent_3",
+      "reason": "share of the contract attributed to the third UNSPSC code, no ontology field"
+    },
+    {
+      "source": "Gascoyne",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Goldfields_Esperance",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Great_Southern",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Kimberley",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Mid_West",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Peel",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Perth_Metropolitan",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Pilbara",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "South_West",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "Wheatbelt",
+      "reason": "regional delivery flag for the contract, no ontology field"
+    },
+    {
+      "source": "State_Wide",
+      "reason": "delivery scope flag for the contract, no ontology field"
+    },
+    {
+      "source": "Interstate",
+      "reason": "delivery scope flag for the contract, no ontology field"
+    },
+    {
+      "source": "International",
+      "reason": "delivery scope flag for the contract, no ontology field"
+    },
+    {
+      "source": "Number_of_Submissions",
+      "reason": "procurement attribute (count of bids), no ontology field"
+    },
+    {
+      "source": "Panel_Contract",
+      "reason": "procurement attribute (panel or not), no ontology field"
+    },
+    {
+      "source": "Contract_Term",
+      "reason": "procurement attribute (one-off or period), no ontology field"
+    },
+    {
+      "source": "Closing_Date",
+      "reason": "tender closing date, not an entity claim and not a licence or status start or end"
+    },
+    {
+      "source": "Award_Date",
+      "reason": "contract award date; the ontology has no contract-award field, and valid_from applies only to entity licence or status claims"
+    },
+    {
+      "source": "Commencement_Date",
+      "reason": "contract commencement date; the ontology has no contract-term field and valid_from is reserved for entity licence or status claims"
+    },
+    {
+      "source": "Initial_Expiry_Date",
+      "reason": "contract term date, no ontology field"
+    },
+    {
+      "source": "Final_Expiry_Date",
+      "reason": "contract term date, no ontology field"
+    },
+    {
+      "source": "Original_Contract_Value",
+      "reason": "contract value, no ontology field"
+    },
+    {
+      "source": "Original_Contract_Value_Type",
+      "reason": "contract value basis (estimate or fixed price), no ontology field"
+    },
+    {
+      "source": "CUA_Number",
+      "reason": "common use arrangement reference, no ontology field"
+    }
+  ],
+  "needs_transform": [
+    {
+      "source": "Supplier_Name",
+      "why": "Trading (Legal) style text with no consistent pattern. Sometimes the parenthesis holds the registered name ('Integrity Staffing (Agility Staffing Pty Ltd)'), sometimes a person ('Crafted Comms (Rebecca Jean Martin)'), sometimes a repeated or trading name ('Hays Specialist Recruitment Pty Ltd (Hays Specialist Recruitment (Australia) Pty Ltd)'), and sometimes no parenthesis at all ('NEC Australia Pty Ltd'). Which part is the registered supplier name cannot be determined from the text, so entity.legal_name and entity.trading_name are not mapped. A split or extract transform that resolves the ordering would be needed."
+    }
+  ],
+  "source_reliability": {
+    "identity": 0.6,
+    "address": 0.6,
+    "classification": 0.3,
+    "contact": 0.4
+  },
+  "source_reliability_basis": "Publisher is a WA state government procurement register (Treasury and Finance), which is authoritative on the fact of an award and the awarded supplier as entered by the buyer. Supplier names and addresses are self-reported by the buyer or supplier and are not checked against ASIC or ABR, so identity and address are moderate. Classification is low because UNSPSC codes describe procured goods and services, not supplier industry. Contact is low because no contact data is provided."
+}

@@ -1,0 +1,140 @@
+{
+  "source_id": "qbcc_licensed_contractors",
+  "extractor_version": "qbcc_licensed_contractors@cfg3.16fbc357+engine0.1.0",
+  "rows_in_file": 206548,
+  "rows_extracted": 5000,
+  "sampling": "every 41.3th row",
+  "observations": 28785,
+  "rejects": 28,
+  "licence": "Creative Commons Attribution 4.0",
+  "licence_flag": false,
+  "distinct_source_record_ids": 5000,
+  "field_stats": {
+    "entity.legal_name<-Licensee Name": {
+      "rows": 5000,
+      "blank": 0,
+      "ok": 5000,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.abn<-ABN": {
+      "rows": 5000,
+      "blank": 2237,
+      "ok": 2740,
+      "skip": 0,
+      "reject": 23,
+      "parse_rate": 0.9917,
+      "skip_reasons": {},
+      "reject_reasons": {
+        "abn_checksum_failed": 23
+      },
+      "reject_examples": [
+        {
+          "raw": "82 260 952 641",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "1818"
+        },
+        {
+          "raw": "49 923 352 640",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "6899"
+        },
+        {
+          "raw": "60 184 271 003",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "7519"
+        },
+        {
+          "raw": "26 908 412 986",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "19581"
+        },
+        {
+          "raw": "94 438 612 308",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "20490"
+        }
+      ]
+    },
+    "entity.acn<-ACN": {
+      "rows": 5000,
+      "blank": 3842,
+      "ok": 1153,
+      "skip": 0,
+      "reject": 5,
+      "parse_rate": 0.9957,
+      "skip_reasons": {},
+      "reject_reasons": {
+        "acn_checksum_failed": 5
+      },
+      "reject_examples": [
+        {
+          "raw": "310 253 944",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "14418"
+        },
+        {
+          "raw": "895 281 933",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "51638"
+        },
+        {
+          "raw": "343 943 793",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "59238"
+        },
+        {
+          "raw": "168 846 644",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "83322"
+        },
+        {
+          "raw": "984 939 143",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "103068"
+        }
+      ]
+    },
+    "address.full<-Licensee Business Address": {
+      "rows": 5000,
+      "blank": 0,
+      "ok": 5000,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.state<-Licensee Business Address": {
+      "rows": 5000,
+      "blank": 0,
+      "ok": 4893,
+      "skip": 107,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "regex_no_match": 107
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.postcode<-Licensee Business Address": {
+      "rows": 5000,
+      "blank": 0,
+      "ok": 4999,
+      "skip": 1,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "regex_no_match": 1
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    }
+  }
+}

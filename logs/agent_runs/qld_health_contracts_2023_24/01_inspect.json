@@ -1,0 +1,13 @@
+{
+  "what_it_is": "Queensland Health system procurement contract disclosure report for 2023-24, listing contracts with supplier names, addresses, values and procurement details.",
+  "one_row_is": "one contract award line from the Queensland Health procurement disclosure report (multi-supplier contracts list several suppliers in one cell).",
+  "contains_business_entities": true,
+  "format": "csv",
+  "encoding": "utf-8",
+  "delimiter": ",",
+  "sheet": "",
+  "header_row": 1,
+  "records_path": "",
+  "attempts": 1,
+  "reader_check": "ok: 24 columns, 210 rows"
+}

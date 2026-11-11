@@ -1,30 +1,19 @@
 {
   "source_id": "vic_liquor_licences",
-  "extractor_version": "vic_liquor_licences@cfg2.15269671+engine0.1.0",
+  "extractor_version": "vic_liquor_licences@cfg2.3481e8f0+engine0.1.0",
   "rows_in_file": 23169,
-  "rows_extracted": 1000,
-  "sampling": "every 23.2th row",
-  "observations": 5856,
-  "rejects": 11,
+  "rows_extracted": 5000,
+  "sampling": "every 4.6th row",
+  "observations": 24505,
+  "rejects": 57,
   "licence": "Creative Commons Attribution 4.0 International",
   "licence_flag": false,
-  "distinct_source_record_ids": 1000,
+  "distinct_source_record_ids": 5000,
   "field_stats": {
     "entity.legal_name<-Licensee": {
-      "rows": 1000,
+      "rows": 5000,
       "blank": 0,
-      "ok": 1000,
-      "skip": 0,
-      "reject": 0,
-      "parse_rate": 1.0,
-      "skip_reasons": {},
-      "reject_reasons": {},
-      "reject_examples": []
-    },
-    "entity.entity_type<-Licensee": {
-      "rows": 1000,
-      "blank": 0,
-      "ok": 1000,
+      "ok": 5000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -33,9 +22,9 @@
       "reject_examples": []
     },
     "entity.trading_name<-Trading As": {
-      "rows": 1000,
-      "blank": 10,
-      "ok": 990,
+      "rows": 5000,
+      "blank": 45,
+      "ok": 4955,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -43,10 +32,10 @@
       "reject_reasons": {},
       "reject_examples": []
     },
-    "address.full<-Street Address+Suburb": {
-      "rows": 1000,
-      "blank": 41,
-      "ok": 959,
+    "entity.entity_type<-Licensee": {
+      "rows": 5000,
+      "blank": 0,
+      "ok": 5000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -55,9 +44,9 @@
       "reject_examples": []
     },
     "address.locality<-Suburb": {
-      "rows": 1000,
-      "blank": 41,
-      "ok": 959,
+      "rows": 5000,
+      "blank": 198,
+      "ok": 4802,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -66,41 +55,41 @@
       "reject_examples": []
     },
     "address.postcode<-Postcode": {
-      "rows": 1000,
-      "blank": 41,
-      "ok": 948,
+      "rows": 5000,
+      "blank": 195,
+      "ok": 4748,
       "skip": 0,
-      "reject": 11,
-      "parse_rate": 0.9885,
+      "reject": 57,
+      "parse_rate": 0.9881,
       "skip_reasons": {},
       "reject_reasons": {
-        "postcode_length(1)": 11
+        "postcode_length(1)": 57
       },
       "reject_examples": [
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:b6d5aba03acb2b2a"
+          "source_record_id": "33701150"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:8ec6462d2b36ceec"
+          "source_record_id": "33721621"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:55e063b4d00b8f1c"
+          "source_record_id": "33750109"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:1f27cdb1211c2394"
+          "source_record_id": "33751799"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:ab1763befcfc5c1d"
+          "source_record_id": "33752410"
         }
       ]
     }

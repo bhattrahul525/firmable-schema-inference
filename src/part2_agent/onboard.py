@@ -36,7 +36,6 @@ from src.part2_agent.validate import needs_revision, report_as_text, validate
 MAX_REVISIONS = 2        # validation-driven revise rounds
 INSPECT_ATTEMPTS = 3
 CRITIQUE_ROWS = 10
-PROFILE_ROWS_MAX = 20_000
 DISPUTED_CAP = 0.7       # a field the two proposals disagreed on never exceeds this confidence
 UNVERIFIED_CAP = 0.5     # a field with no judged values in held-out rows never exceeds this
 AGENT_VERSION = "0.1.0"
@@ -178,8 +177,9 @@ def onboard(source_id: str, *, quiet: bool = False) -> dict:
 
     # 2 profile + split
     def do_profile():
-        sample_for_profile = rows if len(rows) <= PROFILE_ROWS_MAX else [rows[i * len(rows) // PROFILE_ROWS_MAX] for i in range(PROFILE_ROWS_MAX)]
-        cols = profile_columns(headers, sample_for_profile)
+        # Profile ALL rows: a capped profile reported "20000 distinct of 206548 rows", which the agent
+        # read as "not unique" and so wrongly gave up on real source keys (found on QBCC/ACT/VIC).
+        cols = profile_columns(headers, rows)
         return {"n_rows": len(rows), "columns": cols, "split": split_rows(source_id, len(rows)),
                 "empty_columns": [c["column"] for c in cols if c["fill_rate"] == 0]}
     prof = run.step("02_profile", do_profile)

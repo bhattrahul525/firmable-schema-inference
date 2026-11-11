@@ -1,6 +1,6 @@
 {
-  "what_it_is": "Register of current Victorian liquor licences by location, published by Liquor Control Victoria as an XLSX snapshot.",
-  "one_row_is": "one current liquor licence held by a licensee at a premises address",
+  "what_it_is": "Current Victorian liquor licences by location, published by Liquor Control Victoria as a snapshot register of licensed premises with licensee, trading name, address and location.",
+  "one_row_is": "one current liquor licence held by a licensee for a premises",
   "contains_business_entities": true,
   "format": "xlsx",
   "encoding": "",

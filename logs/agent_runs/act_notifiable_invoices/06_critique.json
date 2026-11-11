@@ -1,0 +1,351 @@
+{
+  "examples": [
+    {
+      "raw": {
+        ":id": "row-2i8t-f32t_62sc",
+        ":version": "rv-kzjh-s9p2_vmp7",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "SYDNEY NIGHT PATROL AND INQUIRY CO. PTY LTD",
+        "supplier_abn": "11 000 013 098",
+        "reporting_entity": "CMTEDD-ED",
+        "publish_description": "SECURITY COSTS FOR FRANCE V LEBANON RUGBY LEAGUE WORLD CUP MATCH AT GIO STADIUM",
+        "date_invoice_received": "2017-11-08T00:00:00.000",
+        "payment_date": "2017-11-16T00:00:00.000",
+        "payment_amount": "49655.36"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "SYDNEY NIGHT PATROL AND INQUIRY CO. PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "11000013098"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-3m6y.672a.vx5x",
+        ":version": "rv-e7tb_5qc3_ava9",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "SPOTLESS FACILITY SERVICES PTY LTD",
+        "supplier_abn": "83 072 293 880",
+        "reporting_entity": "CSD-Housing",
+        "publish_description": "TOTAL FACILITY MANAGEMENT SERVICES",
+        "payment_date": "2017-06-29T00:00:00.000",
+        "payment_amount": "32181.77"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "SPOTLESS FACILITY SERVICES PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "83072293880"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-5s5i.dxee-8mjv",
+        ":version": "rv-j6ne-iezd.wkbi",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "SKILLED ENGINEERING LTD",
+        "supplier_abn": "66 005 585 811",
+        "reporting_entity": "TAMSD",
+        "publish_description": "CONTRACTORS",
+        "payment_date": "2016-03-31T00:00:00.000",
+        "payment_amount": "80999.52"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "SKILLED ENGINEERING LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "66005585811"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-irws.whgd~v4sc",
+        ":version": "rv-5icf-dy96-3jyf",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "COLIN DAVID JENKINS",
+        "supplier_abn": "57 899 236 874",
+        "reporting_entity": "AHD",
+        "publish_description": "PLANT AND EQUIPMENT",
+        "payment_date": "2016-05-31T00:00:00.000",
+        "payment_amount": "57288.38"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "COLIN DAVID JENKINS"
+        },
+        {
+          "field": "entity.abn",
+          "value": "57899236874"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-vvwu-6d4q-5345",
+        ":version": "rv-vzgf.2g7u_iqrt",
+        ":created_at": "2026-06-18T23:20:42.350Z",
+        ":updated_at": "2026-06-18T23:20:42.350Z",
+        "supplier_name": "TERRA SCHWARTZ PTY LTD",
+        "supplier_abn": "74 616 885 217",
+        "reporting_entity": "DCBR",
+        "publish_description": "ICT-PROFESSIONAL SERVICES EXPENDITURE",
+        "date_invoice_received": "2026-05-18T00:00:00.000",
+        "payment_date": "2026-05-19T00:00:00.000",
+        "payment_amount": "113396.25",
+        "contract_number": "PIDC0010847"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "TERRA SCHWARTZ PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "74616885217"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-zyst-hugy_bpqr",
+        ":version": "rv-i9t9.7acp-6n2s",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "KUNA CONTRACTORS PTY LTD",
+        "supplier_abn": "95 068 758 743",
+        "reporting_entity": "TCCS",
+        "publish_description": "KREFFT ST TRAFFIC ISLAND INSTALLATION",
+        "date_invoice_received": "2021-06-18T00:00:00.000",
+        "payment_date": "2021-06-29T00:00:00.000",
+        "payment_amount": "99693.73"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "KUNA CONTRACTORS PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "95068758743"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-f74j~4vr4_5i8h",
+        ":version": "rv-uyj5-fj2p_j6tr",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "F S SOLUTIONS (ACT) PTY LTD",
+        "supplier_abn": "78 164 228 415",
+        "reporting_entity": "AHD",
+        "publish_description": "IT SYSTEM SUPPORT - CCURE AT UNIVERSITY OF CANBERRA HOSPITAL",
+        "date_invoice_received": "2022-11-02T00:00:00.000",
+        "payment_date": "2022-11-03T00:00:00.000",
+        "payment_amount": "32445.90"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "F S SOLUTIONS (ACT) PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "78164228415"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-4rgb_huw2-kax5",
+        ":version": "rv-h8jx~qfqb~szy6",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "FEENYX PTY LTD",
+        "supplier_abn": "73 130 593 574",
+        "reporting_entity": "CSD-Housing",
+        "publish_description": "SUPPORT AND MAINTENANCE FOR IT SYSTEM",
+        "date_invoice_received": "2023-10-03T00:00:00.000",
+        "payment_date": "2023-10-10T00:00:00.000",
+        "payment_amount": "55000.00"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "FEENYX PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "73130593574"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-9h84_wjk6~3euc",
+        ":version": "rv-bwnc.zvk4-iee4",
+        ":created_at": "2026-04-24T03:25:02.713Z",
+        ":updated_at": "2026-04-24T03:25:02.713Z",
+        "supplier_name": "NORTHROP CONSULTING ENGINEERS",
+        "supplier_abn": "81 094 433 100",
+        "reporting_entity": "AHD",
+        "publish_description": "NGUNNAWAL BUSH HEALTH FARM FEASIBILITY PROGRESS PAYMENT 2",
+        "date_invoice_received": "2022-10-31T00:00:00.000",
+        "payment_date": "2022-11-17T00:00:00.000",
+        "payment_amount": "111499.98"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "NORTHROP CONSULTING ENGINEERS"
+        },
+        {
+          "field": "entity.abn",
+          "value": "81094433100"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        ":id": "row-q355_s8nf.jm4x",
+        ":version": "rv-mi7e_7uc7_qizp",
+        ":created_at": "2026-08-20T23:30:14.966Z",
+        ":updated_at": "2026-08-20T23:30:14.966Z",
+        "supplier_name": "COLDA CONSTRUCTIONS",
+        "supplier_abn": "30 158 882 243",
+        "reporting_entity": "ETD",
+        "publish_description": "LYNEHAM HIGH SCHOOL - WINDOWS UPGRADE - PROGRESS CLAIM 1",
+        "date_invoice_received": "2026-06-18T00:00:00.000",
+        "payment_date": "2026-07-14T00:00:00.000",
+        "payment_amount": "99067.87",
+        "contract_number": "PIED0008453"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "COLDA CONSTRUCTIONS"
+        },
+        {
+          "field": "entity.abn",
+          "value": "30158882243"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-09-30T16:38:33.215070",
+        "valid_from": null,
+        "valid_to": null
+      }
+    }
+  ],
+  "issues": [
+    {
+      "field": "needs_transform",
+      "problem": "The needs_transform entry says the abn transform may reject space-grouped ABNs and a whitespace-stripping transform may be needed. The examples show space-grouped values such as '11 000 013 098' and '83 072 293 880' producing valid entity.abn observations ('11000013098', '83072293880'), so the risk appears to be resolved. The entry is stale and contradicts the working output.",
+      "suggested_fix": "Confirm the abn transform strips internal spaces on a larger sample, then remove the needs_transform entry or change it to a note that spaced values are handled. Keep the non-AU 'International' values unmapped as the config already states."
+    }
+  ],
+  "overall": "No meaning errors in the examples: legal_name comes from supplier_name, abn from supplier_abn, entity_type is 'company' only for Pty Ltd/Ltd names and 'unknown' for individuals and other names, and the reporting_entity buyer is correctly left unmapped. The only real problem is the stale needs_transform entry about ABN spacing, which the examples contradict."
+}

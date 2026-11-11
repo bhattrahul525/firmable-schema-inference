@@ -1,0 +1,201 @@
+{
+  "record_id": {
+    "columns": [
+      "id"
+    ],
+    "hash_row": false,
+    "reason": "id has 206548 distinct values across 206548 rows, so it uniquely identifies each licence-class row."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licensee Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Licensee Name is the registered licensee name on the QBCC register. It holds person names for individuals and company names for companies, which rule 4 maps as legal_name. Mixed case is preserved, so no case normalisation is applied."
+    },
+    {
+      "source": [
+        "ABN"
+      ],
+      "canonical": "entity.abn",
+      "transforms": [
+        {
+          "name": "abn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Column is labelled ABN and all sampled values are 11 digits in grouped form (e.g. '51 166 281 223'). The abn transform performs the checksum. Engine must confirm it strips the internal spaces; if not, values will be rejected and shown back."
+    },
+    {
+      "source": [
+        "ACN"
+      ],
+      "canonical": "entity.acn",
+      "transforms": [
+        {
+          "name": "acn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Column is labelled ACN and profile shows 100% 9-digit values in grouped form (e.g. '166 281 223'). The acn transform performs the checksum. The column is only ~24% filled, which is expected for individual licensees."
+    },
+    {
+      "source": [
+        "Licence Type DESC"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"Company\": \"company\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Explicit entity-type column in the source, so rule 7 permits map_values. 'Company' (48,894 rows) is an unambiguous match for ontology value company. 'Individual' (157,654 rows) describes a natural-person licensee and has no ontology equivalent; mapping it to sole_trader would be a guess (rule 4), so it is deliberately left out and will be rejected, leaving the engine to record unknown."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Single free-text business address including street, locality, state and postcode. Kept whole as the full address."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.state",
+      "transforms": [
+        {
+          "name": "regex_extract",
+          "arg": "\\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\\s+\\d{4}\\s*$"
+        },
+        {
+          "name": "state_code",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "State abbreviation sits immediately before the 4-digit postcode at the end of the address in all sampled rows. Some rows are NSW or SA, so the pattern covers all states and territories."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "regex_extract",
+          "arg": "(\\d{4})\\s*$"
+        },
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Trailing 4-digit number of the address is the postcode in all sampled rows. The postcode transform guards the format."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Licence Number",
+      "reason": "Per-licence identifier. Ontology v0.1 has no licence-number field, and it is not an entity identifier, so it is not mapped."
+    },
+    {
+      "source": "Licence Type CODE",
+      "reason": "Duplicate of Licence Type DESC (I/C codes). Carries the same Individual/Company split; the Company mapping is carried by Licence Type DESC, so this duplicate is not mapped."
+    },
+    {
+      "source": "Financial Category DESC",
+      "reason": "Regulatory financial-category classification. Ontology v0.1 has no field for it."
+    },
+    {
+      "source": "Financial Category CODE",
+      "reason": "Code form of Financial Category DESC. Ontology v0.1 has no field for it."
+    },
+    {
+      "source": "Licence Grade",
+      "reason": "Licence grade (builder, trade contractor, supervisor, etc.) is a licence attribute, not an entity status or industry code. Ontology v0.1 has no field for it."
+    },
+    {
+      "source": "Licence Class Type",
+      "reason": "Licence class (e.g. Carpentry, Builder - Open) is a regulatory authorisation category, not an ANZSIC industry code. Rule 9 forbids translating it, and the ontology has no licence-class field, so it is not mapped to industry_code."
+    }
+  ],
+  "needs_transform": [
+    {
+      "source": "Licensee Business Address",
+      "why": "Locality (suburb/town) is embedded in the free-text address with no delimiter before it. The street portion varies in format (e.g. 'Shed 2 58 Islander Rd Pialba', 'Torbanlea Torbanlea QLD 4662'), so no existing transform can isolate it reliably. Requires a locality-extraction transform before address.locality can be mapped."
+    }
+  ],
+  "source_reliability": {
+    "identity": 0.9,
+    "address": 0.8,
+    "classification": 0.85,
+    "contact": 0.6
+  },
+  "source_reliability_basis": "QBCC is the statutory licensing regulator for Queensland building and construction, so its register is high-trust for licence identity and classification (licence class, grade, financial category). Business addresses are self-reported by licensees, so address trust is lower. Contact details are not in the dataset, so contact is set low. Licensee names are as recorded by the regulator, which is good for identity but may vary in case and format across rows.",
+  "changes": [
+    {
+      "what": "Added entity.entity_type field sourced from Licence Type DESC using map_values {\"Company\": \"company\"} only.",
+      "why": "The source has an explicit entity-type column. Company rows are unambiguous and were previously left as the engine default 'unknown' although the source states the type. Rule 7 permits map_values on an explicit column."
+    },
+    {
+      "what": "Removed Licence Type DESC from unmapped.",
+      "why": "The column is now used in fields (entity.entity_type), so rule 3 is satisfied by the field mapping rather than an unmapped entry."
+    },
+    {
+      "what": "Individual values are deliberately not in the map_values table.",
+      "why": "Individual has no ontology equivalent for natural-person licensees; mapping it to sole_trader would be a guess (rule 4), and mapping it to unknown would count the engine default as a parsed value. Rejection leaves these rows as unknown."
+    },
+    {
+      "what": "No other fields changed.",
+      "why": "The reviewer raised only the entity_type issue; the remaining mappings, record_id, observed_at and reliability scores were not challenged by the report."
+    }
+  ],
+  "warning_responses": [
+    {
+      "check_id": "entity_type_explicit_column",
+      "action": "changed",
+      "reason": "Licence Type DESC is an explicit entity-type source column. Company rows now map to company via map_values; Individual values are left out so they are rejected and recorded as unknown, avoiding the sole_trader guess."
+    }
+  ]
+}

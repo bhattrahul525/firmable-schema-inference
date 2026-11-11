@@ -20,17 +20,6 @@
       "reject_reasons": {},
       "reject_examples": []
     },
-    "entity.entity_type<-Licensee": {
-      "rows": 300,
-      "blank": 0,
-      "ok": 300,
-      "skip": 0,
-      "reject": 0,
-      "parse_rate": 1.0,
-      "skip_reasons": {},
-      "reject_reasons": {},
-      "reject_examples": []
-    },
     "entity.trading_name<-Trading As": {
       "rows": 300,
       "blank": 4,
@@ -42,10 +31,10 @@
       "reject_reasons": {},
       "reject_examples": []
     },
-    "address.full<-Street Address+Suburb": {
+    "entity.entity_type<-Licensee": {
       "rows": 300,
-      "blank": 12,
-      "ok": 288,
+      "blank": 0,
+      "ok": 300,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -79,27 +68,27 @@
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:af1f240ce672bbcf"
+          "source_record_id": "33753107"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:fc8cf523f43089a2"
+          "source_record_id": "33762465"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:e1d89fdd9bbd8e7e"
+          "source_record_id": "33720057"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:40a2283e6dbfb83a"
+          "source_record_id": "33753319"
         },
         {
           "raw": "0",
           "reason": "postcode_length(1)",
-          "source_record_id": "h:991c7f944e3da2c8"
+          "source_record_id": "33759284"
         }
       ]
     }
@@ -107,6 +96,6 @@
   "n_rows": 300,
   "hard_failure_count": 0,
   "id_failure": false,
-  "observations": 1755,
+  "observations": 1467,
   "rejects": 5
 }

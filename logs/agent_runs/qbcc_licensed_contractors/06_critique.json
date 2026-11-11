@@ -1,0 +1,447 @@
+{
+  "examples": [
+    {
+      "raw": {
+        "id": "61525",
+        "Licence Number": "1151428",
+        "Licensee Name": "SHAKAR PAINTING GROUP PTY LTD",
+        "ACN": "130 681 168",
+        "ABN": "13 130 681 168",
+        "Licensee Business Address": "14 ISAAC STREET WESTBROOK QLD 4350",
+        "Licence Type DESC": "Company",
+        "Licence Type CODE": "C",
+        "Financial Category DESC": "Category 1",
+        "Financial Category CODE": "1",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Painting and Decorating"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "SHAKAR PAINTING GROUP PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "13130681168"
+        },
+        {
+          "field": "entity.acn",
+          "value": "130681168"
+        },
+        {
+          "field": "address.full",
+          "value": "14 ISAAC STREET WESTBROOK QLD 4350"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4350"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "171803",
+        "Licence Number": "56609",
+        "Licensee Name": "PAUL JAMES TABELL",
+        "Licensee Business Address": "36 COUNTRY ROAD CANNONVALE QLD 4802",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Builder/Trade",
+        "Financial Category CODE": "SC2",
+        "Licence Grade": "Builder Licence",
+        "Licence Class Type": "Builder - Low Rise"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "PAUL JAMES TABELL"
+        },
+        {
+          "field": "address.full",
+          "value": "36 COUNTRY ROAD CANNONVALE QLD 4802"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4802"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "198431",
+        "Licence Number": "15374979",
+        "Licensee Name": "Ethan Carmichael",
+        "ABN": "13 729 484 415",
+        "Licensee Business Address": "6 Brunswick Pl Wights Mountain QLD 4520",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Trade",
+        "Financial Category CODE": "SCT1",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Roof and Wall Cladding"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "Ethan Carmichael"
+        },
+        {
+          "field": "entity.abn",
+          "value": "13729484415"
+        },
+        {
+          "field": "address.full",
+          "value": "6 Brunswick Pl Wights Mountain QLD 4520"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4520"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "12",
+        "Licence Number": "1081415",
+        "Licensee Name": "GARETH WILLIAM MAYS",
+        "Licensee Business Address": "2d,31 Rudman Pde Burleigh Heads QLD 4220",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "No Financials Required",
+        "Financial Category CODE": "N/A",
+        "Licence Grade": "Nominee Supervisor",
+        "Licence Class Type": "Gasfitting"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "GARETH WILLIAM MAYS"
+        },
+        {
+          "field": "address.full",
+          "value": "2d,31 Rudman Pde Burleigh Heads QLD 4220"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4220"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "180287",
+        "Licence Number": "15466101",
+        "Licensee Name": "Michael David Horner",
+        "Licensee Business Address": "11 Canterbury Bells Cct Springfield Lakes QLD 4300",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Trade",
+        "Financial Category CODE": "SCT1",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Bricklaying and Blocklaying"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "Michael David Horner"
+        },
+        {
+          "field": "address.full",
+          "value": "11 Canterbury Bells Cct Springfield Lakes QLD 4300"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4300"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "118765",
+        "Licence Number": "15568815",
+        "Licensee Name": "AMZ PLUMBING & DRAINAGE PTY LTD",
+        "ACN": "687 491 381",
+        "Licensee Business Address": "82 CORINGLEY RD GREENBANK QLD 4124",
+        "Licence Type DESC": "Company",
+        "Licence Type CODE": "C",
+        "Financial Category DESC": "Self Certification - Trade",
+        "Financial Category CODE": "SCT1",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Plumbing and Drainage"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "AMZ PLUMBING & DRAINAGE PTY LTD"
+        },
+        {
+          "field": "entity.acn",
+          "value": "687491381"
+        },
+        {
+          "field": "address.full",
+          "value": "82 CORINGLEY RD GREENBANK QLD 4124"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4124"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "61381",
+        "Licence Number": "15223349",
+        "Licensee Name": "Craig Anthony Henson",
+        "ABN": "26 678 998 188",
+        "Licensee Business Address": "17 Thomas Hanlon Ct Yatala QLD 4207",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Builder/Trade",
+        "Financial Category CODE": "SC2",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Structural Landscaping (Trade)"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "Craig Anthony Henson"
+        },
+        {
+          "field": "entity.abn",
+          "value": "26678998188"
+        },
+        {
+          "field": "address.full",
+          "value": "17 Thomas Hanlon Ct Yatala QLD 4207"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4207"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "165727",
+        "Licence Number": "1141241",
+        "Licensee Name": "WILLIAM JAMES HILL",
+        "Licensee Business Address": "TOWNSVILLE HOSPITAL - CSIRO1 DISCOVERY DRIVE DOUGLAS QLD 4814",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "No Financials Required",
+        "Financial Category CODE": "N/A",
+        "Licence Grade": "Site Supervisor",
+        "Licence Class Type": "Builder - Open"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "WILLIAM JAMES HILL"
+        },
+        {
+          "field": "address.full",
+          "value": "TOWNSVILLE HOSPITAL - CSIRO1 DISCOVERY DRIVE DOUGLAS QLD 4814"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4814"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "195981",
+        "Licence Number": "1090698",
+        "Licensee Name": "WAYNE DANIEL GRAHAM",
+        "Licensee Business Address": "Entry Via Hein Rd, 2-56 Stegemann Road BUCCAN QLD 4207",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Builder/Trade",
+        "Financial Category CODE": "SC2",
+        "Licence Grade": "Site Supervisor",
+        "Licence Class Type": "Builder - Open"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "WAYNE DANIEL GRAHAM"
+        },
+        {
+          "field": "address.full",
+          "value": "Entry Via Hein Rd, 2-56 Stegemann Road BUCCAN QLD 4207"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4207"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "id": "85344",
+        "Licence Number": "15353021",
+        "Licensee Name": "Eddie Galon Laurel",
+        "Licensee Business Address": "29 Densmore St Bracken Ridge QLD 4017",
+        "Licence Type DESC": "Individual",
+        "Licence Type CODE": "I",
+        "Financial Category DESC": "Self Certification - Trade",
+        "Financial Category CODE": "SCT1",
+        "Licence Grade": "Trade Contractor Licence",
+        "Licence Class Type": "Structural Metal Fabrication and Erection"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "Eddie Galon Laurel"
+        },
+        {
+          "field": "address.full",
+          "value": "29 Densmore St Bracken Ridge QLD 4017"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4017"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2026-11-10T21:00:17.918687",
+        "valid_from": null,
+        "valid_to": null
+      }
+    }
+  ],
+  "issues": [
+    {
+      "field": "entity.entity_type",
+      "problem": "The example for AMZ/SHAKAR-style company rows (e.g. SHAKAR PAINTING GROUP PTY LTD, Licence Type DESC 'Company') emits entity.entity_type = 'unknown' even though the source has an explicit column that identifies companies. The config drops the field entirely, so the engine's default is shown for rows where the source does state the entity type. This loses a usable, unambiguous signal for the Company rows.",
+      "suggested_fix": "Map Licence Type DESC via map_values, with {\"Company\": \"company\"} only, and leave \"Individual\" out so it is rejected and not guessed as sole_trader. Keep the Individual rows as unknown. This matches rule 7 and avoids the sole_trader guess."
+    }
+  ],
+  "overall": "The mapping is largely sound: ABN and ACN are checksum-mapped, legal_name is correctly the licensee name, and address state and postcode extraction matches the samples. The main concern is that entity_type is removed wholesale, so explicit 'Company' rows lose a deterministic classification that could be mapped safely."
+}

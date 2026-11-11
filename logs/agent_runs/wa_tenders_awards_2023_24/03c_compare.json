@@ -1,0 +1,39 @@
+{
+  "agreed": [
+    "('Supplier_Address',) -> address.full",
+    "('Supplier_Address',) -> address.postcode"
+  ],
+  "only_A": [
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        "clean_whitespace",
+        "regex_extract(^.+?\\s*\\((.+)\\)\\s*$)"
+      ]
+    },
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        "clean_whitespace",
+        "regex_extract(^(.+?)\\s*\\(.+\\)\\s*$)"
+      ]
+    }
+  ],
+  "only_B": [
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        "entity_type_from_suffix"
+      ]
+    }
+  ]
+}

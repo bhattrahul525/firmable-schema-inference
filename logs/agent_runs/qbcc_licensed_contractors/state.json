@@ -1,0 +1,32 @@
+{
+  "source_id": "qbcc_licensed_contractors",
+  "started_at": "2026-11-11T13:19:42.941206+00:00",
+  "timings": {
+    "01_inspect": 3.0,
+    "02_profile": 4.2,
+    "03a_propose_A": 23.73,
+    "03b_propose_B": 20.64,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.03,
+    "05_revise_r1": 17.11,
+    "04_validate_r1": 0.03,
+    "06_critique": 9.08,
+    "05_revise_critique": 15.77,
+    "04_validate_post_critique": 0.03,
+    "04_validate_final_v3": 0.02
+  },
+  "step_log": [
+    "01_inspect",
+    "02_profile",
+    "03a_propose_A",
+    "03b_propose_B",
+    "03c_compare",
+    "04_validate_r0",
+    "05_revise_r1",
+    "04_validate_r1",
+    "06_critique",
+    "05_revise_critique",
+    "04_validate_post_critique",
+    "04_validate_final_v3"
+  ]
+}

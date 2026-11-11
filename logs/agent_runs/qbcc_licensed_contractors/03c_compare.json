@@ -1,0 +1,13 @@
+{
+  "agreed": [
+    "('ABN',) -> entity.abn",
+    "('ACN',) -> entity.acn",
+    "('Licence Type DESC',) -> entity.entity_type",
+    "('Licensee Business Address',) -> address.full",
+    "('Licensee Business Address',) -> address.postcode",
+    "('Licensee Business Address',) -> address.state",
+    "('Licensee Name',) -> entity.legal_name"
+  ],
+  "only_A": [],
+  "only_B": []
+}

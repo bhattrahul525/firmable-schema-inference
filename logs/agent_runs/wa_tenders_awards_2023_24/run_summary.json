@@ -1,0 +1,34 @@
+{
+  "source_id": "wa_tenders_awards_2023_24",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 7,
+  "cost_usd": 0.031675,
+  "input_tokens": 129895,
+  "output_tokens": 42758,
+  "llm_seconds": 176.5,
+  "cost_by_step": {
+    "part2.inspect": 0.000368,
+    "part2.propose_A": 0.006653,
+    "part2.propose_B": 0.006262,
+    "part2.revise_r1": 0.0058,
+    "part2.critique": 0.002852,
+    "part2.revise_critique": 0.006382,
+    "part2.revise_human_1": 0.003358
+  },
+  "wall_clock_this_invocation_s": 17.6,
+  "step_timings_s": {
+    "01_inspect": 2.5,
+    "02_profile": 0.44,
+    "03a_propose_A": 34.81,
+    "03b_propose_B": 31.95,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.07,
+    "05_revise_r1": 32.0,
+    "04_validate_r1": 0.08,
+    "06_critique": 14.44,
+    "05_revise_critique": 43.37,
+    "04_validate_post_critique": 0.06,
+    "05_revise_human_1": 17.51,
+    "04_validate_human_1": 0.07
+  }
+}

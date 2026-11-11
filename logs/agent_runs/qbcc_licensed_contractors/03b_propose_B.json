@@ -1,0 +1,171 @@
+{
+  "record_id": {
+    "columns": [
+      "id"
+    ],
+    "hash_row": false,
+    "reason": "id is distinct across all 206548 rows. Licence Number repeats across licence classes (112656 distinct), so it cannot identify a row alone."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licensee Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Register of licensees; the licensee name is the registered licensee name. Individuals are mapped as legal_name per rule 4 and not inferred as sole_trader. Mixed case and upper case both occur."
+    },
+    {
+      "source": [
+        "ABN"
+      ],
+      "canonical": "entity.abn",
+      "transforms": [
+        {
+          "name": "abn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Column name and samples are clearly ABN (11 digits). Values are space-grouped (e.g. '37 315 662 283'); the abn checksum transform must accept the grouped form or the engine will reject them and show me."
+    },
+    {
+      "source": [
+        "ACN"
+      ],
+      "canonical": "entity.acn",
+      "transforms": [
+        {
+          "name": "acn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Column name and samples are clearly ACN (9 digits, space-grouped). Only populated for companies (fill rate 0.237). Checksum applied via acn transform."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Free-text business address for the licensee, as the source states it."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.state",
+      "transforms": [
+        {
+          "name": "regex_extract",
+          "arg": "\\b(QLD|NSW|VIC|WA|SA|TAS|ACT|NT)\\s+\\d{4}\\s*$"
+        },
+        {
+          "name": "state_code",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "Samples consistently end with 'STATE POSTCODE'. Derived from the address string (L1 parse), so confidence is lower than a direct column."
+    },
+    {
+      "source": [
+        "Licensee Business Address"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "regex_extract",
+          "arg": "(\\d{4})\\s*$"
+        },
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "Trailing 4-digit postcode in every sample. Derived from the address string, so confidence is lower than a direct column."
+    },
+    {
+      "source": [
+        "Licence Type DESC"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"Company\":\"company\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Explicit entity-type column. 'Company' maps to company. 'Individual' is deliberately left out: it describes a person licensee, not a sole_trader, so it is rejected and the engine records unknown."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Licence Number",
+      "reason": "Regulator licence identifier for the authorisation. No ontology field for it. Repeats across licence classes, so not a record key."
+    },
+    {
+      "source": "Licence Type CODE",
+      "reason": "Code duplicate of Licence Type DESC (I/C). Not mapped separately; the DESC column carries the entity-type signal."
+    },
+    {
+      "source": "Licence Class Type",
+      "reason": "Per-row licence class (e.g. Carpentry, Builder - Low Rise). It describes an authorisation held by the licensee, not the entity's industry. The ontology has no licence-class field, and translating it to industry_code would be a guess."
+    },
+    {
+      "source": "Financial Category DESC",
+      "reason": "Regulator financial-category classification with no ontology field."
+    },
+    {
+      "source": "Financial Category CODE",
+      "reason": "Code duplicate of Financial Category DESC with no ontology field."
+    },
+    {
+      "source": "Licence Grade",
+      "reason": "Licence grade (Builder, Trade Contractor, Nominee Supervisor, etc.). No ontology field for licence grade."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.9,
+    "address": 0.75,
+    "classification": 0.85,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "Identity: a statutory regulator's licensing register (QBCC) holding ABN/ACN and licensee names is high-trust for identity. Address: the licensee-declared business address is authoritative for the register but can lag reality and is free text. Classification: licence class and grade are regulator-recorded, so high trust for what is authorised, but they are not the entity's industry. Contact: the dataset has no phone, email or website, so 0.5 (cannot tell)."
+}

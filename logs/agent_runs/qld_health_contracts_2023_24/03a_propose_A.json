@@ -1,0 +1,255 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Contract reference number is 97% filled but has 181 distinct values across 210 rows, and Supplier name and Supplier ABN repeat across rows and can hold several suppliers per cell, so no column set was verified as unique. Row hash used instead."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Supplier name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "split",
+          "arg": ";"
+        },
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Column is the contracted supplier name, which is the entity this row is about. Multi-supplier cells are split on ';' only, because the ABN and address lists use the same ';' separator. Some names embed a t/a trading name and some cells use commas; see needs_transform."
+    },
+    {
+      "source": [
+        "Supplier ABN"
+      ],
+      "canonical": "entity.abn",
+      "transforms": [
+        {
+          "name": "split",
+          "arg": ";"
+        },
+        {
+          "name": "abn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Supplier ABN, split on ';' to align with supplier names, then checksum-validated. Values are mostly 11 digits with or without spaces. Labelled ABN/ACN tokens and comma-separated lists are not handled here."
+    },
+    {
+      "source": [
+        "Supplier name"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "No explicit entity-type column exists, so the rule is applied to the supplier name suffix per rule 7. Names ending in Pty Ltd, Pty. Limited or Limited become company; everything else becomes unknown."
+    },
+    {
+      "source": [
+        "Supplier address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "split",
+          "arg": ";"
+        },
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "Supplier address, which is the supplier's address and not the government agency's. Split on ';' to align with the supplier list. The placeholder value 0 and comma-separated multi-address cells are not handled here."
+    },
+    {
+      "source": [
+        "Supplier address"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "split",
+          "arg": ";"
+        },
+        {
+          "name": "regex_extract",
+          "arg": "\\b(?:QLD|NSW|VIC|WA|SA|TAS|ACT|NT)\\s+(\\d{4})\\b"
+        },
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "Postcode is taken from the state-abbreviation-plus-4-digit pattern, which is anchored to the state so that street numbers are not picked up. Confidence is reduced because comma-separated multi-address cells would yield only the first match."
+    },
+    {
+      "source": [
+        "Supplier address"
+      ],
+      "canonical": "address.state",
+      "transforms": [
+        {
+          "name": "split",
+          "arg": ";"
+        },
+        {
+          "name": "regex_extract",
+          "arg": "\\b(QLD|NSW|VIC|WA|SA|TAS|ACT|NT)\\b"
+        },
+        {
+          "name": "state_code",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "State abbreviation taken from the supplier address. Confidence is reduced for the same comma-separated multi-address reason as postcode."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "_id",
+      "reason": "Completely empty column, ignored."
+    },
+    {
+      "source": "Agency (Dept or Stat Body)",
+      "reason": "Government buyer, not the supplier entity. Not mapped per rule 4. Contains typos such as Queensl;and Health and QLD Health Services."
+    },
+    {
+      "source": "Agency address",
+      "reason": "Government buyer address, not the supplier. Not mapped per rule 4."
+    },
+    {
+      "source": "Contract description/name",
+      "reason": "Describes the contract, with no matching ontology field. Some values embed a [MULTI] or site code."
+    },
+    {
+      "source": "Award contract date",
+      "reason": "Date of contract award. It is not a date_registered and not an entity status or licence start, so per rule 10 it is not mapped to valid_from."
+    },
+    {
+      "source": "Contract value",
+      "reason": "Contract monetary value, with no ontology field. Contains non-numeric values such as the text '$10,000 or more' and '-'."
+    },
+    {
+      "source": "Variation to contract (Yes/No)",
+      "reason": "Contract attribute with no ontology field. Mixed casing and stray values such as 1 and 2."
+    },
+    {
+      "source": "Specific confidentiality provision used",
+      "reason": "Contract attribute with no ontology field."
+    },
+    {
+      "source": "Procurement method",
+      "reason": "Contract attribute with no ontology field."
+    },
+    {
+      "source": "Justification (if limited tender)",
+      "reason": "Free-text contract justification with no ontology field."
+    },
+    {
+      "source": "Form of contract",
+      "reason": "Contract attribute with no ontology field."
+    },
+    {
+      "source": "Number of offers sought",
+      "reason": "Contract attribute with no ontology field. Mixed content."
+    },
+    {
+      "source": "Evaluation criteria and weightings",
+      "reason": "Contract attribute with no ontology field. Mixed content."
+    },
+    {
+      "source": "Deliverables",
+      "reason": "Contract attribute with no ontology field. Mostly the placeholder 0."
+    },
+    {
+      "source": "Contract milestones",
+      "reason": "Contract attribute with no ontology field. Only the placeholder 0."
+    },
+    {
+      "source": "Contract performance management",
+      "reason": "Contract attribute with no ontology field. Mostly the placeholder 0."
+    },
+    {
+      "source": "Contract reference number",
+      "reason": "Contract identifier, not unique per row, so not used as record_id. No ontology field."
+    },
+    {
+      "source": "Contract category group",
+      "reason": "Procurement category of the contract, not the supplier's industry. Mapping it to entity.industry_code would misclassify the supplier, so it is not mapped."
+    },
+    {
+      "source": "Parent contract number/SOA",
+      "reason": "Contract hierarchy identifier with no ontology field."
+    },
+    {
+      "source": "Commence date",
+      "reason": "Contract period start, not a licence or status start and not a registration date. Not used for valid_from per rule 10."
+    },
+    {
+      "source": "Finish date",
+      "reason": "Contract period end, not a licence or status end. Not used for valid_to per rule 10."
+    }
+  ],
+  "needs_transform": [
+    {
+      "source": "Supplier address",
+      "why": "Placeholder value 0 appears in about 15 rows and is not a real address. No transform blanks it, and map_values cannot safely map it to absent."
+    },
+    {
+      "source": "Supplier name",
+      "why": "Some multi-supplier cells are comma-separated, for example Slade Health Pty Ltd, Wesley Pharmacy Pty Ltd, Baxter Healthcare Pty Ltd. A split on ',' is unsafe because addresses contain commas, so these cells stay unsplit and misaligned."
+    },
+    {
+      "source": "Supplier name",
+      "why": "Trading names are embedded as '(t/a ...)', for example heyCKW Pty Ltd (t/a HeyProcurement). Only one sample is visible, so the pattern is not yet confirmed as consistent enough for regex_extract into trading_name."
+    },
+    {
+      "source": "Supplier ABN",
+      "why": "Some cells use labelled tokens such as ABN and ACN with '/' separators (Major Medical Equipment Framework row), and some use comma-separated lists (Slade row). The ACN values need a label-aware extraction and are not mapped to entity.acn."
+    },
+    {
+      "source": "Supplier address",
+      "why": "Comma-separated multi-address cells (Slade row) are not split on ';', so their items cannot be aligned with the supplier list."
+    }
+  ],
+  "source_reliability": {
+    "identity": 0.6,
+    "address": 0.5,
+    "classification": 0.3,
+    "contact": 0.4
+  },
+  "source_reliability_basis": "Statutory-style government procurement disclosure published by Queensland Health, so the publisher is authoritative about which supplier and ABN were contracted. Supplier identifiers and names are self-reported by agencies and show typos, mixed separators and placeholder values, so identity is moderate. Supplier addresses are often incomplete or placeholder, so address is lower. Contract categories are procurement labels rather than supplier classifications, so classification is low. No contact fields are present."
+}

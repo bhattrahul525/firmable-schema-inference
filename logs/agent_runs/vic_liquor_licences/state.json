@@ -1,16 +1,16 @@
 {
   "source_id": "vic_liquor_licences",
-  "started_at": "2026-11-11T12:50:50.543152+00:00",
+  "started_at": "2026-11-11T13:18:37.431369+00:00",
   "timings": {
-    "01_inspect": 4.37,
-    "02_profile": 0.6,
-    "03a_propose_A": 24.54,
-    "03b_propose_B": 20.2,
+    "01_inspect": 4.18,
+    "02_profile": 0.67,
+    "03a_propose_A": 17.04,
+    "03b_propose_B": 21.47,
     "03c_compare": 0.0,
-    "04_validate_r0": 0.12,
-    "05_revise_r1": 25.44,
-    "04_validate_r1": 0.04,
-    "06_critique": 6.69
+    "04_validate_r0": 0.03,
+    "06_critique": 7.85,
+    "05_revise_critique": 11.43,
+    "04_validate_post_critique": 0.03
   },
   "step_log": [
     "01_inspect",
@@ -19,8 +19,8 @@
     "03b_propose_B",
     "03c_compare",
     "04_validate_r0",
-    "05_revise_r1",
-    "04_validate_r1",
-    "06_critique"
+    "06_critique",
+    "05_revise_critique",
+    "04_validate_post_critique"
   ]
 }

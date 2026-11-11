@@ -1,0 +1,13 @@
+{
+  "what_it_is": "ACT Government Notifiable Invoices Register: a JSON export of invoices/payments made by ACT government agencies to suppliers above the notification threshold.",
+  "one_row_is": "one notified invoice payment from an ACT government reporting entity to a supplier",
+  "contains_business_entities": true,
+  "format": "json",
+  "encoding": "utf-8",
+  "delimiter": "",
+  "sheet": "",
+  "header_row": 0,
+  "records_path": "",
+  "attempts": 1,
+  "reader_check": "ok: 12 columns, 127437 rows"
+}

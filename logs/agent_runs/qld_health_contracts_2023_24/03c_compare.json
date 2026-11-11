@@ -1,0 +1,12 @@
+{
+  "agreed": [
+    "('Supplier ABN',) -> entity.abn",
+    "('Supplier address',) -> address.full",
+    "('Supplier address',) -> address.postcode",
+    "('Supplier address',) -> address.state",
+    "('Supplier name',) -> entity.entity_type",
+    "('Supplier name',) -> entity.legal_name"
+  ],
+  "only_A": [],
+  "only_B": []
+}

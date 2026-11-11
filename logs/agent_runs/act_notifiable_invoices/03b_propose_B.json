@@ -1,0 +1,115 @@
+{
+  "record_id": {
+    "columns": [
+      ":id"
+    ],
+    "hash_row": false,
+    "reason": ":id has 127437 distinct values across 127437 rows, so it uniquely identifies each notified invoice payment."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "Dataset snapshot: rows carry no statement date of their own (:created_at and :updated_at are platform timestamps, not the claim date), so the resource last-modified time is used.",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "supplier_name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Column is the supplier's name on the invoice payment, and the entity of each row is the supplier, so it is taken as the supplier's name. Values appear as registered names (e.g. 'PTY LTD', 'LIMITED'), but the data does not explicitly state registration. Some values contain mojibake (e.g. in publish_description rows) that is not repaired here."
+    },
+    {
+      "source": [
+        "supplier_abn"
+      ],
+      "canonical": "entity.abn",
+      "transforms": [
+        {
+          "name": "abn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Column holds the supplier ABN in space-grouped form ('83 121 852 088'); profile shows 99.6% are 11 digits, so the abn checksum transform is applied. Assumes the abn transform accepts the grouped format; the column does not mix in 9-digit ACNs."
+    },
+    {
+      "source": [
+        "supplier_name"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "No explicit entity-type column exists, so entity_type is derived from the supplier name suffix (company only for Pty Ltd/Limited/Ltd, otherwise unknown). Person-like and trust names will resolve to unknown."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "reporting_entity",
+      "reason": "government buyer: the ACT government reporting entity that made the payment, not the supplier, so it is not mapped to the supplier entity."
+    },
+    {
+      "source": "publish_description",
+      "reason": "Describes the purchased goods/services or the payment, not the supplier's industry, and there is no canonical field for expenditure descriptions. Some values contain mojibake encoding artefacts."
+    },
+    {
+      "source": "date_invoice_received",
+      "reason": "Date the invoice was received by government; no canonical field for invoice dates. Not date_registered, and not a valid_from/valid_to licence or status date. Only 85% filled."
+    },
+    {
+      "source": "payment_date",
+      "reason": "Date the payment was made; no canonical field for payment dates. Not a licence or status start/end date, so valid_from/valid_to are not set from it."
+    },
+    {
+      "source": "payment_amount",
+      "reason": "Payment value in dollars; the ontology has no amount field for this slice."
+    },
+    {
+      "source": "contract_number",
+      "reason": "Contract reference; no canonical field. Sparsely filled (11%) with inconsistent formats (e.g. 'N/A', 'C0008', numeric values)."
+    },
+    {
+      "source": ":version",
+      "reason": "Platform row-version metadata; not a claim about the entity."
+    },
+    {
+      "source": ":created_at",
+      "reason": "Platform row-creation timestamp; it is not the date the source stated the claim, and observed_at uses resource metadata instead."
+    },
+    {
+      "source": ":updated_at",
+      "reason": "Platform row-update timestamp; not a claim about the entity or the statement date."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.85,
+    "address": 0.5,
+    "classification": 0.5,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "ACT Government open data register of invoice payments made by government agencies. It is a statutory notification with official payment records, so supplier identity (name and ABN) is credible. It contains no address or contact claims. Classification here is only inferred from the name suffix and the free-text description is not used, so it is left neutral. Supplier names come from agency entry and may vary in format, so a neutral score is used for those. The licence is 'Other' and flagged for review."
+}

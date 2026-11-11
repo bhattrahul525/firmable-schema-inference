@@ -1,0 +1,25 @@
+{
+  "source_id": "qld_health_contracts_2023_24",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 4,
+  "cost_usd": 0.018175,
+  "input_tokens": 61752,
+  "output_tokens": 24377,
+  "llm_seconds": 111.6,
+  "cost_by_step": {
+    "part2.inspect": 0.000834,
+    "part2.propose_A": 0.007906,
+    "part2.propose_B": 0.007215,
+    "part2.critique": 0.00222
+  },
+  "wall_clock_this_invocation_s": 111.7,
+  "step_timings_s": {
+    "01_inspect": 3.27,
+    "02_profile": 0.02,
+    "03a_propose_A": 49.84,
+    "03b_propose_B": 49.98,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.04,
+    "06_critique": 8.53
+  }
+}

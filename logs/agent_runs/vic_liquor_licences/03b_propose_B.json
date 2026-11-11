@@ -1,8 +1,10 @@
 {
   "record_id": {
-    "columns": [],
-    "hash_row": true,
-    "reason": "Licence Number has 20000 distinct values across 23169 rows, so it does not uniquely identify a row (one licence can appear on more than one row). No combination of columns was verified as unique, so the engine hashes the whole row."
+    "columns": [
+      "Licence Number"
+    ],
+    "hash_row": false,
+    "reason": "Licence Number is distinct across all 23169 rows, one row per current licence."
   },
   "observed_at": {
     "from_metadata": "resource_last_modified",
@@ -30,8 +32,8 @@
         }
       ],
       "group": "main",
-      "mapping_confidence": 0.85,
-      "reason": "Licensee is the licence holder, which is treated as the registered name. Some licensees are individuals (for example GRANT SIMON); they are mapped as legal_name without inferring entity type."
+      "mapping_confidence": 0.9,
+      "reason": "Licensee is the licence holder, which is the registered licensee name per the data. Some values are person names (rule 4); they are still mapped as legal_name and never inferred as sole_trader."
     },
     {
       "source": [
@@ -46,7 +48,7 @@
       ],
       "group": "main",
       "mapping_confidence": 0.9,
-      "reason": "Trading As is the name the premises trades under, which matches the trading name definition. Fill rate is 99.2 percent."
+      "reason": "Trading As is the name the premises trades under, which is a trading name, not the registered name."
     },
     {
       "source": [
@@ -61,7 +63,7 @@
       ],
       "group": "main",
       "mapping_confidence": 0.7,
-      "reason": "The source has no explicit entity-type column, so the suffix rule is applied to the Licensee name. Names without a company suffix become unknown, which is the intended default."
+      "reason": "No explicit entity-type column exists, so entity_type_from_suffix on the Licensee name is the only permitted route. Individuals will resolve to unknown."
     },
     {
       "source": [
@@ -75,8 +77,8 @@
         }
       ],
       "group": "main",
-      "mapping_confidence": 0.9,
-      "reason": "Street Address is the premises address where the licence is held. It is not the postal address, which is listed separately. Some values lack a suburb, which sits in its own column."
+      "mapping_confidence": 0.7,
+      "reason": "Premises street line. It is partial (no suburb or postcode in this field), so confidence is moderate. It is mapped to address.full because it is the only premises street address column."
     },
     {
       "source": [
@@ -91,7 +93,7 @@
       ],
       "group": "main",
       "mapping_confidence": 0.95,
-      "reason": "Suburb is the premises locality. Fill rate is 96 percent."
+      "reason": "Suburb of the premises; column name and values agree."
     },
     {
       "source": [
@@ -105,66 +107,67 @@
         }
       ],
       "group": "main",
-      "mapping_confidence": 0.9,
-      "reason": "Premises postcode. The value 0 appears on about 229 rows, which is not a valid postcode and will be rejected by the postcode transform. Some postcodes may also belong to the postal rather than premises address, which the profile cannot confirm."
+      "mapping_confidence": 0.95,
+      "reason": "Premises postcode. Value 0 appears on 266 rows and will be rejected by the postcode transform, which is the intended behaviour."
     }
   ],
   "unmapped": [
     {
-      "source": "Licence Number",
-      "reason": "Licence identifier. The ontology has no licence-number field. It is kept in the raw record and is not unique per row."
-    },
-    {
       "source": "Licence Category",
-      "reason": "Licence type (for example Restaurant and cafe Licence). The ontology has no licence-category field, and it is not an entity type."
+      "reason": "Liquor licence class (e.g. Packaged Liquor Licence); no canonical field matches. It is not an entity type or industry code."
     },
     {
       "source": "Trading Hours",
-      "reason": "Trading hours category. The ontology has no trading-hours field. Several values repeat the licence category."
+      "reason": "Trading hours or licence sub-type; no canonical field exists."
     },
     {
       "source": "Patron Capacity (if applicable)",
-      "reason": "Patron capacity for the premises. The ontology has no capacity field."
+      "reason": "Patron capacity of the premises; no canonical field exists."
     },
     {
       "source": "Council",
-      "reason": "Local government area. The ontology has no council or jurisdiction field."
+      "reason": "Local government area; no canonical field exists."
     },
     {
       "source": "Region",
-      "reason": "Liquor licensing region. The ontology has no region field."
+      "reason": "Liquor licensing region; no canonical field exists."
     },
     {
       "source": "Metro/Regional",
-      "reason": "Metro or regional flag. The ontology has no such field."
+      "reason": "Metro or regional classification; no canonical field exists."
     },
     {
       "source": "Latitude",
-      "reason": "Coordinate. The ontology has no geo field. Some values look wrong for their suburb (for example Collingwood at -38.38), so they should not be trusted."
+      "reason": "Geocode; no canonical field exists. Some coordinates do not match the stated suburb (for example Collingwood at -38.38), so they are unreliable in any case."
     },
     {
       "source": "Longitude",
-      "reason": "Coordinate. The ontology has no geo field. Some values look wrong for their suburb (for example Collingwood at 142.24), so they should not be trusted."
+      "reason": "Geocode; no canonical field exists. See Latitude for quality concerns."
     },
     {
       "source": "Postal Address",
-      "reason": "Licensee postal address (often a PO box or locked bag), not the premises. The ontology has no postal-address field, and mapping it to address.full would be wrong."
+      "reason": "Licensee mailing address, not the premises address, so it is not mapped to address.*. There is no postal-address field in the ontology."
     },
     {
       "source": "Postal Suburb",
-      "reason": "Postal suburb of the licensee, not the premises. The ontology has no postal field."
+      "reason": "Licensee mailing suburb; no canonical postal field exists."
     },
     {
       "source": "Postal Postcode",
-      "reason": "Postal postcode of the licensee, not the premises. The ontology has no postal field."
+      "reason": "Licensee mailing postcode; no canonical postal field exists."
     }
   ],
-  "needs_transform": [],
+  "needs_transform": [
+    {
+      "source": "(no state column)",
+      "why": "address.state is not in the file, but every row is a Victorian licence, so it would need a constant-value transform to set VIC. No such transform exists. Not mapping it is the conservative choice."
+    }
+  ],
   "source_reliability": {
-    "identity": 0.9,
-    "address": 0.9,
-    "classification": 0.5,
+    "identity": 0.8,
+    "address": 0.7,
+    "classification": 0.4,
     "contact": 0.5
   },
-  "source_reliability_basis": "Liquor Control Victoria is the statutory regulator that issues the licences, so its register is highly reliable for licensee identity and premises address. Classification (licence category and trading hours) is an administrative label rather than a judgement about the business, so it is rated neutral. The dataset has no contact fields, so contact is rated neutral. Some coordinates and postal values look inconsistent, which lowers confidence in the geographic and postal data."
+  "source_reliability_basis": "Liquor Control Victoria is the statutory licensing regulator, so its register is high-trust for the fact that a licence is held by a named licensee (identity). The licensee name is the holder's declared name, and the trading name is self-declared. Address is the premises location from licence records, but there are quality issues: postcode 0 on 266 rows, and some coordinates do not match their suburb. Classification is weak because there is no entity-type column and the liquor licence category is not an entity type. Contact is weak because the only contact-like data is the licensee's postal address, which is not mapped."
 }

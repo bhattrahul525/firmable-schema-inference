@@ -1,0 +1,179 @@
+{
+  "structural_errors": [],
+  "field_failures": [
+    {
+      "key": "entity.entity_type<-Licence Type DESC",
+      "reason": "parse rate 21% is below 90%",
+      "reject_reasons": {
+        "unmapped_value:Individual": 236
+      },
+      "skip_reasons": {},
+      "examples": [
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "115111"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "181253"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "84724"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "12305"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "143117"
+        }
+      ]
+    }
+  ],
+  "unaccounted_columns": [],
+  "duplicate_ids": {
+    "duplicate_rows": 0,
+    "of": 300
+  },
+  "warnings": [],
+  "infos": [
+    {
+      "id": "abn_acn_overlap",
+      "text": "Where one entity has both an ABN and an ACN (56 cases), the ACN equals the last 9 digits of the ABN in 95%. Reported as evidence only; not assumed anywhere."
+    }
+  ],
+  "stats": {
+    "entity.legal_name<-Licensee Name": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.abn<-ABN": {
+      "rows": 300,
+      "blank": 143,
+      "ok": 155,
+      "skip": 0,
+      "reject": 2,
+      "parse_rate": 0.9873,
+      "skip_reasons": {},
+      "reject_reasons": {
+        "abn_checksum_failed": 2
+      },
+      "reject_examples": [
+        {
+          "raw": "18 724 467 381",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "193149"
+        },
+        {
+          "raw": "91 066 309 113",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "162643"
+        }
+      ]
+    },
+    "entity.acn<-ACN": {
+      "rows": 300,
+      "blank": 236,
+      "ok": 64,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.entity_type<-Licence Type DESC": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 64,
+      "skip": 0,
+      "reject": 236,
+      "parse_rate": 0.2133,
+      "skip_reasons": {},
+      "reject_reasons": {
+        "unmapped_value:Individual": 236
+      },
+      "reject_examples": [
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "115111"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "181253"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "84724"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "12305"
+        },
+        {
+          "raw": "Individual",
+          "reason": "unmapped_value:Individual",
+          "source_record_id": "143117"
+        }
+      ]
+    },
+    "address.full<-Licensee Business Address": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.state<-Licensee Business Address": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 294,
+      "skip": 6,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "regex_no_match": 6
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.postcode<-Licensee Business Address": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    }
+  },
+  "n_rows": 300,
+  "hard_failure_count": 1,
+  "id_failure": false,
+  "observations": 1713,
+  "rejects": 238
+}

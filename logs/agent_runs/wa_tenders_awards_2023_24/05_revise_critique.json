@@ -1,0 +1,324 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Reference_Number has 4919 distinct values across 5817 rows, so it is not unique. No verified unique column set exists, so the row is hashed."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "^.*\\(((?:[^()]|\\([^()]*\\))+)\\)\\s*$"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.5,
+      "reason": "Supplier_Name uses 'Trading (Legal)' style text in many rows, e.g. 'Talent International (Talent International Pty Ltd)'. The pattern uses a greedy prefix so the LAST top-level parenthetical is taken, and allows one level of nested parentheses inside it. This keeps names such as 'Jones Lang Lasalle (WA) (Jones Lang Lasalle (WA) Pty Ltd)' intact, giving 'Jones Lang Lasalle (WA) Pty Ltd'. Limitation: a cell whose only parenthetical is part of the name (e.g. 'Jones Lang Lasalle (WA)') would be read as a legal name; the convention is inferred, not stated by the source, so confidence is kept low. Cells without any parenthetical (e.g. 'Peoplebank Australia Limited') yield no match and are skipped; see needs_transform."
+    },
+    {
+      "source": [
+        "Supplier_Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "^(.*\\S)\\s*\\(((?:[^()]|\\([^()]*\\))+)\\)\\s*$"
+        },
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.45,
+      "reason": "The text before the LAST top-level parenthetical is the name traded under, per the 'Trading (Legal)' pattern seen in the samples. The greedy prefix keeps inner parentheses that belong to the trading name, e.g. 'Jones Lang Lasalle (WA)' rather than 'Jones Lang Lasalle'. Only rows with a parenthetical produce a value. Confidence is lower than legal_name because the convention is inferred and the single-parenthetical ambiguity above applies."
+    },
+    {
+      "source": [
+        "Supplier_Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Supplier_Address is the awarded supplier's address, and the column name and sample values agree."
+    },
+    {
+      "source": [
+        "Supplier_Address"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "(\\d{4})\\s*$"
+        },
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Every sample address ends with a 4-digit postcode, so the trailing 4 digits are extracted and normalised."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Public_Authority",
+      "reason": "government buyer: the WA public authority is the buyer, not the supplier entity this row describes"
+    },
+    {
+      "source": "Public_Authority_Address",
+      "reason": "government buyer: address of the public authority, not the supplier"
+    },
+    {
+      "source": "Title",
+      "reason": "procurement title describing the contract; no ontology field for contract or tender descriptions"
+    },
+    {
+      "source": "Reference_Number",
+      "reason": "procurement reference, not unique across rows (4919 distinct / 5817 rows), so it cannot be record_id; no ontology field for it"
+    },
+    {
+      "source": "Description",
+      "reason": "free-text procurement description; no ontology field"
+    },
+    {
+      "source": "Type_of_Work",
+      "reason": "procurement category (Goods & Services / Works); no ontology field"
+    },
+    {
+      "source": "Procurement_Method",
+      "reason": "procurement process method; no ontology field"
+    },
+    {
+      "source": "Associated_With_Tender",
+      "reason": "reference to a related tender; no ontology field"
+    },
+    {
+      "source": "UNSPSC_Code_1",
+      "reason": "UNSPSC code describes the goods or services procured under the contract, not the supplier's industry, so it is not mapped to entity.industry_code (which is ANZSIC-oriented)"
+    },
+    {
+      "source": "UNSPSC_Title_1",
+      "reason": "UNSPSC description of the procured goods or services, not supplier industry"
+    },
+    {
+      "source": "UNSPSC_Percent_1",
+      "reason": "share of contract allocated to UNSPSC_Code_1; no ontology field"
+    },
+    {
+      "source": "UNSPSC_Code_2",
+      "reason": "UNSPSC code of the procured goods or services, not supplier industry"
+    },
+    {
+      "source": "UNSPSC_Title_2",
+      "reason": "UNSPSC description of the procured goods or services, not supplier industry"
+    },
+    {
+      "source": "UNSPSC_Percent_2",
+      "reason": "share of contract allocated to UNSPSC_Code_2; no ontology field"
+    },
+    {
+      "source": "UNSPSC_Code_3",
+      "reason": "UNSPSC code of the procured goods or services, not supplier industry"
+    },
+    {
+      "source": "UNSPSC_Title_3",
+      "reason": "UNSPSC description of the procured goods or services, not supplier industry"
+    },
+    {
+      "source": "UNSPSC_Percent_3",
+      "reason": "share of contract allocated to UNSPSC_Code_3; no ontology field"
+    },
+    {
+      "source": "Gascoyne",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Goldfields_Esperance",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Great_Southern",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Kimberley",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Mid_West",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Peel",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Perth_Metropolitan",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Pilbara",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "South_West",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Wheatbelt",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "State_Wide",
+      "reason": "regional delivery flag; no ontology field"
+    },
+    {
+      "source": "Interstate",
+      "reason": "delivery scope flag; not a supplier address state, so it is not mapped to address.state"
+    },
+    {
+      "source": "International",
+      "reason": "delivery scope flag; no ontology field"
+    },
+    {
+      "source": "Number_of_Submissions",
+      "reason": "count of tender submissions; no ontology field"
+    },
+    {
+      "source": "Panel_Contract",
+      "reason": "panel-contract flag; no ontology field"
+    },
+    {
+      "source": "Contract_Term",
+      "reason": "contract term type; no ontology field"
+    },
+    {
+      "source": "Closing_Date",
+      "reason": "tender closing date; no ontology field"
+    },
+    {
+      "source": "Award_Date",
+      "reason": "date of award; the ontology has no award date and date_registered applies only to entity registration"
+    },
+    {
+      "source": "Commencement_Date",
+      "reason": "contract commencement date describes the contract term, not when an entity or address claim became true; valid_from is not used for entity or address observations and the ontology has no contract-relationship observation type, so it is not mapped"
+    },
+    {
+      "source": "Initial_Expiry_Date",
+      "reason": "initial contract expiry; describes the contract term, not entity status; no ontology field"
+    },
+    {
+      "source": "Final_Expiry_Date",
+      "reason": "final contract expiry describes the contract term, not when an entity or address claim ended; valid_to is not used for entity or address observations and the ontology has no contract-relationship observation type, so it is not mapped"
+    },
+    {
+      "source": "Original_Contract_Value",
+      "reason": "contract value; no ontology field"
+    },
+    {
+      "source": "Original_Contract_Value_Type",
+      "reason": "contract value basis (estimate or fixed price); no ontology field"
+    },
+    {
+      "source": "CUA_Number",
+      "reason": "common use arrangement reference; no ontology field"
+    }
+  ],
+  "needs_transform": [
+    {
+      "source": "Supplier_Name",
+      "why": "Supplier_Name values without a parenthetical (e.g. 'Peoplebank Australia Limited', 'Shorewater Marine') get no legal_name because regex_extract skips non-matches. A fallback that uses the whole cell when no parenthetical exists is needed, and no such transform is available. Those rows therefore have no legal_name observation."
+    }
+  ],
+  "source_reliability": {
+    "identity": 0.7,
+    "address": 0.6,
+    "classification": 0.4,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "WA Government statutory tender-award disclosure, published by the Department of Treasury and Finance. Strong for the fact that a contract was awarded to a named supplier. Supplier names and addresses are as entered by buying agencies (inconsistent casing, 'Trading (Legal)' mixes), so identity and address are rated below a statutory company register. Classification (UNSPSC) describes goods or services rather than supplier industry and is weak for entity classification. Contact is not provided by the source, so 0.5 is used as an uninformed default.",
+  "changes": [
+    {
+      "what": "entity.legal_name regex changed from a lazy prefix ending at the first '(' to a greedy prefix that captures the last top-level parenthetical, allowing one nested level; mapping_confidence lowered from 0.6 to 0.5.",
+      "why": "Reviewer showed 'Jones Lang Lasalle (WA) (Jones Lang Lasalle (WA) Pty Ltd)' produced a corrupted legal_name 'WA) (Jones Lang Lasalle (WA) Pty Ltd'. The new pattern gives 'Jones Lang Lasalle (WA) Pty Ltd'. The convention is still unverified on single-parenthetical names, so confidence is lowered."
+    },
+    {
+      "what": "entity.trading_name regex changed to a greedy prefix matching the text before the last top-level parenthetical, with a trailing clean_whitespace; mapping_confidence lowered from 0.5 to 0.45.",
+      "why": "Same nested-parenthesis defect: the old lazy prefix gave 'Jones Lang Lasalle' and dropped '(WA)'. The new pattern gives 'Jones Lang Lasalle (WA)'."
+    },
+    {
+      "what": "entity.entity_type field removed; no mapping is configured and the engine will record 'unknown'.",
+      "why": "The documented behaviour (parenthetical cells return unknown) contradicts the observed output (company for several parenthetical cells). The only way to get company on those rows would be to chain a regex-extracted legal name into the suffix test, which is itself an unverified convention and would also drop non-parenthetical names. Rule 7 and rule 8 favour not guessing, so the field is removed rather than patched. Supplier_Name is still accounted for by legal_name and trading_name."
+    },
+    {
+      "what": "valid_from and valid_to set to no source and no transforms.",
+      "why": "Commencement_Date and Final_Expiry_Date describe the contract term. Applying them to entity legal_name, trading_name, and address observations implies entity or address validity they do not describe. Rule 10 does not support this, and the ontology has no contract-relationship observation type."
+    },
+    {
+      "what": "Commencement_Date and Final_Expiry_Date added to unmapped with reasons.",
+      "why": "Removing their use as valid_from/valid_to would otherwise leave these columns unaccounted for (rule 3). Initial_Expiry_Date was already unmapped."
+    },
+    {
+      "what": "needs_transform note for Supplier_Name extended to say those rows have no legal_name observation.",
+      "why": "Makes the consequence of missing the no-parenthesis fallback explicit for downstream readers."
+    }
+  ],
+  "warning_responses": [
+    {
+      "check_id": "W1_supplier_name_parenthesis_parsing",
+      "action": "changed",
+      "reason": "Replaced the lazy-prefix patterns for legal_name and trading_name with greedy-prefix patterns that anchor on the last top-level parenthetical and allow one nested level. Lowered mapping_confidence for both fields. Re-test on rows with parentheses inside the name is still required; the nested-name example from the report is now handled by construction, but single-parenthetical names remain ambiguous and are flagged in the reason text."
+    },
+    {
+      "check_id": "W2_entity_type_contradiction",
+      "action": "changed",
+      "reason": "Removed the entity_type mapping. The stated rule and observed output disagree, and no verified source of entity type exists in this dataset (no explicit column; the only proxy is a legal-suffix test whose input convention is unverified). Rule 7 says not to map entity_type in this case, so the engine will record unknown."
+    },
+    {
+      "check_id": "W3_contract_dates_scope",
+      "action": "changed",
+      "reason": "Cleared valid_from and valid_to so contract commencement and expiry no longer apply to entity or address observations. Commencement_Date and Final_Expiry_Date moved to unmapped with reasons that they describe the contract term, not entity validity. Rule 10 is respected."
+    }
+  ]
+}

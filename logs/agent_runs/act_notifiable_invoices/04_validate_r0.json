@@ -1,0 +1,53 @@
+{
+  "structural_errors": [],
+  "field_failures": [],
+  "unaccounted_columns": [],
+  "duplicate_ids": {
+    "duplicate_rows": 0,
+    "of": 300
+  },
+  "warnings": [],
+  "infos": [],
+  "stats": {
+    "entity.legal_name<-supplier_name": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.abn<-supplier_abn": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 298,
+      "skip": 2,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "not_digits": 2
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.entity_type<-supplier_name": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    }
+  },
+  "n_rows": 300,
+  "hard_failure_count": 0,
+  "id_failure": false,
+  "observations": 898,
+  "rejects": 0
+}

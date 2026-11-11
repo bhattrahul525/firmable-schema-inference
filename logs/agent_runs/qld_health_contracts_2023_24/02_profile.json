@@ -1,0 +1,828 @@
+{
+  "n_rows": 210,
+  "columns": [
+    {
+      "column": "_id",
+      "fill_rate": 0.0,
+      "distinct": 0,
+      "top_values": [],
+      "avg_length": 0
+    },
+    {
+      "column": "Agency (Dept or Stat Body)",
+      "fill_rate": 1.0,
+      "distinct": 4,
+      "top_values": [
+        [
+          "Queensland Health",
+          127
+        ],
+        [
+          "QLD Health Services",
+          61
+        ],
+        [
+          "Queensl;and Health",
+          21
+        ],
+        [
+          "QLD Health",
+          1
+        ]
+      ],
+      "avg_length": 17.6,
+      "shape": {
+        "pct_contains_semicolon": 0.1
+      }
+    },
+    {
+      "column": "Agency address",
+      "fill_rate": 1.0,
+      "distinct": 6,
+      "top_values": [
+        [
+          "41 O'Connell Terrace, Bowen Hills",
+          97
+        ],
+        [
+          "187-209 Stanley St, Townsville",
+          43
+        ],
+        [
+          "139 Grafton St, Cairns",
+          36
+        ],
+        [
+          "Demountable 2, Canning St, Rockhampton",
+          32
+        ],
+        [
+          "33 Charlotte Street, Brisbane",
+          1
+        ]
+      ],
+      "avg_length": 31.4,
+      "shape": {}
+    },
+    {
+      "column": "Contract description/name",
+      "fill_rate": 0.995,
+      "distinct": 117,
+      "top_values": [
+        [
+          "CSCSD111539 Deed of Variation to Preferred Supplie",
+          31
+        ],
+        [
+          "Trade Services Panel [MULTI]",
+          9
+        ],
+        [
+          "Queensland Government - Grocery, Dairy and Beverag",
+          9
+        ],
+        [
+          "Queensland Government - Grocery, Dairy and Beverag",
+          8
+        ],
+        [
+          "Queensland Government - Grocery, Dairy and Beverag",
+          6
+        ]
+      ],
+      "avg_length": 63.5,
+      "shape": {}
+    },
+    {
+      "column": "Award contract date",
+      "fill_rate": 1.0,
+      "distinct": 113,
+      "top_values": [
+        [
+          "29/11/2023",
+          19
+        ],
+        [
+          "29/11/2022",
+          14
+        ],
+        [
+          "4/07/2023",
+          6
+        ],
+        [
+          "1/09/2023",
+          6
+        ],
+        [
+          "29/08/2023",
+          4
+        ]
+      ],
+      "avg_length": 9.7,
+      "shape": {
+        "pct_date_like": 1.0
+      }
+    },
+    {
+      "column": "Contract value",
+      "fill_rate": 1.0,
+      "distinct": 130,
+      "top_values": [
+        [
+          "$10,000 or more",
+          55
+        ],
+        [
+          "$10,000.00",
+          15
+        ],
+        [
+          "$660,000.00",
+          4
+        ],
+        [
+          "-",
+          3
+        ],
+        [
+          "$150,000.00",
+          2
+        ]
+      ],
+      "avg_length": 12.2,
+      "shape": {}
+    },
+    {
+      "column": "Supplier name",
+      "fill_rate": 1.0,
+      "distinct": 144,
+      "top_values": [
+        [
+          "Hays Specialist Recruiting",
+          7
+        ],
+        [
+          "MACEMARK PTY. LIMITED",
+          6
+        ],
+        [
+          "CHUBB FIRE & SECURITY PTY LTD",
+          6
+        ],
+        [
+          "OTIS ELEVATOR COMPANY PTY LTD",
+          4
+        ],
+        [
+          "RGC Health Pty Ltd",
+          4
+        ]
+      ],
+      "avg_length": 67.8,
+      "shape": {
+        "pct_company_suffix": 0.79,
+        "pct_contains_semicolon": 0.052
+      }
+    },
+    {
+      "column": "Supplier address",
+      "fill_rate": 0.524,
+      "distinct": 77,
+      "top_values": [
+        [
+          "0",
+          15
+        ],
+        [
+          "Level 45/111 Eagle St, Brisbane City QLD 4000",
+          5
+        ],
+        [
+          "Suit 19a Springwood Plaza, 3-15 Dennis Road, Sprin",
+          4
+        ],
+        [
+          "Unit 11, 210 Robinson Road East, Geebung QLD 4034,",
+          2
+        ],
+        [
+          "Level 3, 2 Lyon Park Road, Macquarie Park, NSW, 21",
+          2
+        ]
+      ],
+      "avg_length": 151.4,
+      "shape": {
+        "pct_date_like": 0.009,
+        "pct_contains_semicolon": 0.091
+      }
+    },
+    {
+      "column": "Variation to contract (Yes/No)",
+      "fill_rate": 0.952,
+      "distinct": 9,
+      "top_values": [
+        [
+          "Yes",
+          105
+        ],
+        [
+          "No",
+          68
+        ],
+        [
+          "YES",
+          8
+        ],
+        [
+          "yes",
+          8
+        ],
+        [
+          "1",
+          4
+        ]
+      ],
+      "avg_length": 2.6,
+      "shape": {}
+    },
+    {
+      "column": "Specific confidentiality provision used",
+      "fill_rate": 0.967,
+      "distinct": 3,
+      "top_values": [
+        [
+          "No",
+          196
+        ],
+        [
+          "Yes",
+          6
+        ],
+        [
+          "no",
+          1
+        ]
+      ],
+      "avg_length": 2.0,
+      "shape": {}
+    },
+    {
+      "column": "Procurement method",
+      "fill_rate": 0.971,
+      "distinct": 17,
+      "top_values": [
+        [
+          "Open Tender",
+          59
+        ],
+        [
+          "Extension",
+          44
+        ],
+        [
+          "Variation",
+          41
+        ],
+        [
+          "Extension/Variation",
+          19
+        ],
+        [
+          "Price Increase",
+          9
+        ]
+      ],
+      "avg_length": 11.1,
+      "shape": {}
+    },
+    {
+      "column": "Justification (if limited tender)",
+      "fill_rate": 0.676,
+      "distinct": 88,
+      "top_values": [
+        [
+          "N/A",
+          14
+        ],
+        [
+          "-",
+          10
+        ],
+        [
+          "Change to Overtime Penalty Rates Schedule 2 clause",
+          9
+        ],
+        [
+          "Superannuation guarantee increase from 10.5% to 11",
+          6
+        ],
+        [
+          "New Contract",
+          5
+        ]
+      ],
+      "avg_length": 61.5,
+      "shape": {}
+    },
+    {
+      "column": "Form of contract",
+      "fill_rate": 1.0,
+      "distinct": 23,
+      "top_values": [
+        [
+          "Standing Offer Arrangement (SOA)",
+          63
+        ],
+        [
+          "Maintenance Service Agreement",
+          27
+        ],
+        [
+          "Pre-qualified Agreement",
+          25
+        ],
+        [
+          "PSP",
+          24
+        ],
+        [
+          "Use of existing SOA",
+          16
+        ]
+      ],
+      "avg_length": 22.2,
+      "shape": {}
+    },
+    {
+      "column": "Number of offers sought",
+      "fill_rate": 0.381,
+      "distinct": 12,
+      "top_values": [
+        [
+          "0",
+          56
+        ],
+        [
+          "Deed of Variation",
+          4
+        ],
+        [
+          "Open Market - 4 offers received",
+          4
+        ],
+        [
+          "1",
+          4
+        ],
+        [
+          "3",
+          3
+        ]
+      ],
+      "avg_length": 4.0,
+      "shape": {
+        "pct_contains_semicolon": 0.013
+      }
+    },
+    {
+      "column": "Evaluation criteria and weightings",
+      "fill_rate": 0.357,
+      "distinct": 6,
+      "top_values": [
+        [
+          "0",
+          64
+        ],
+        [
+          "Qualitative, Quantitative & QPP requirements",
+          6
+        ],
+        [
+          "Yes",
+          2
+        ],
+        [
+          "Capability, capacity and experience; Candidate aud",
+          1
+        ],
+        [
+          "conformance to requirements; capability and experi",
+          1
+        ]
+      ],
+      "avg_length": 8.0,
+      "shape": {
+        "pct_contains_semicolon": 0.027
+      }
+    },
+    {
+      "column": "Deliverables",
+      "fill_rate": 0.338,
+      "distinct": 2,
+      "top_values": [
+        [
+          "0",
+          70
+        ],
+        [
+          "Header Arrangement Supplier Panel for Medical Imag",
+          1
+        ]
+      ],
+      "avg_length": 2.0,
+      "shape": {}
+    },
+    {
+      "column": "Contract milestones",
+      "fill_rate": 0.333,
+      "distinct": 1,
+      "top_values": [
+        [
+          "0",
+          70
+        ]
+      ],
+      "avg_length": 1.0,
+      "shape": {}
+    },
+    {
+      "column": "Contract performance management",
+      "fill_rate": 0.338,
+      "distinct": 2,
+      "top_values": [
+        [
+          "0",
+          70
+        ],
+        [
+          "KPIs Accounting;Reporting;Customer satisfaction",
+          1
+        ]
+      ],
+      "avg_length": 1.6,
+      "shape": {
+        "pct_contains_semicolon": 0.014
+      }
+    },
+    {
+      "column": "Contract reference number",
+      "fill_rate": 0.971,
+      "distinct": 181,
+      "top_values": [
+        [
+          "24-SPACI0001",
+          4
+        ],
+        [
+          "CSCSD111539-16",
+          3
+        ],
+        [
+          "81681",
+          2
+        ],
+        [
+          "ZZ-RP77314",
+          2
+        ],
+        [
+          "ZZ-RP94836-9",
+          2
+        ]
+      ],
+      "avg_length": 23.7,
+      "shape": {
+        "pct_contains_semicolon": 0.044
+      }
+    },
+    {
+      "column": "Contract category group",
+      "fill_rate": 1.0,
+      "distinct": 17,
+      "top_values": [
+        [
+          "Medical Services",
+          42
+        ],
+        [
+          "Building, Plant and Equipment",
+          28
+        ],
+        [
+          "Food and Catering",
+          25
+        ],
+        [
+          "Medical Equipment and Maintenance",
+          24
+        ],
+        [
+          "Facilities Management and Maintenance",
+          24
+        ]
+      ],
+      "avg_length": 23.2,
+      "shape": {}
+    },
+    {
+      "column": "Parent contract number/SOA",
+      "fill_rate": 0.695,
+      "distinct": 39,
+      "top_values": [
+        [
+          "CSCSD111539",
+          36
+        ],
+        [
+          "HSQ101256",
+          24
+        ],
+        [
+          "ZZ-RP77664",
+          11
+        ],
+        [
+          "HSQ81538",
+          7
+        ],
+        [
+          "ZZ-RP94836",
+          5
+        ]
+      ],
+      "avg_length": 9.7,
+      "shape": {}
+    },
+    {
+      "column": "Commence date",
+      "fill_rate": 1.0,
+      "distinct": 106,
+      "top_values": [
+        [
+          "1/07/2023",
+          20
+        ],
+        [
+          "31/07/2023",
+          11
+        ],
+        [
+          "1/06/2022",
+          7
+        ],
+        [
+          "17/07/2023",
+          7
+        ],
+        [
+          "1/08/2017",
+          7
+        ]
+      ],
+      "avg_length": 9.4,
+      "shape": {
+        "pct_date_like": 1.0
+      }
+    },
+    {
+      "column": "Supplier ABN",
+      "fill_rate": 0.995,
+      "distinct": 153,
+      "top_values": [
+        [
+          "47 001 407 281",
+          7
+        ],
+        [
+          "64010467213",
+          5
+        ],
+        [
+          "56 002 873 065",
+          4
+        ],
+        [
+          "58 160 732 365",
+          4
+        ],
+        [
+          "47 000 067 541",
+          3
+        ]
+      ],
+      "avg_length": 33.7,
+      "shape": {
+        "pct_11_digits": 0.919,
+        "pct_contains_semicolon": 0.053
+      }
+    },
+    {
+      "column": "Finish date",
+      "fill_rate": 1.0,
+      "distinct": 94,
+      "top_values": [
+        [
+          "30/11/2027",
+          37
+        ],
+        [
+          "31/01/2024",
+          16
+        ],
+        [
+          "31/01/2025",
+          10
+        ],
+        [
+          "29/07/2024",
+          7
+        ],
+        [
+          "31/05/2024",
+          5
+        ]
+      ],
+      "avg_length": 9.9,
+      "shape": {
+        "pct_date_like": 1.0
+      }
+    }
+  ],
+  "split": {
+    "A": [
+      167,
+      76,
+      74,
+      60,
+      47,
+      93,
+      36,
+      61,
+      0,
+      141,
+      200,
+      165,
+      150,
+      157,
+      194,
+      206,
+      180,
+      12,
+      134,
+      29,
+      184,
+      108,
+      15,
+      57,
+      90,
+      161,
+      118,
+      124,
+      9,
+      44
+    ],
+    "B": [
+      152,
+      172,
+      106,
+      14,
+      208,
+      17,
+      105,
+      121,
+      189,
+      169,
+      23,
+      143,
+      85,
+      137,
+      182,
+      38,
+      30,
+      79,
+      52,
+      49,
+      120,
+      147,
+      4,
+      91,
+      186,
+      83,
+      126,
+      42,
+      7,
+      37
+    ],
+    "held_out": [
+      27,
+      28,
+      65,
+      71,
+      16,
+      102,
+      6,
+      119,
+      138,
+      80,
+      94,
+      10,
+      64,
+      69,
+      174,
+      113,
+      166,
+      146,
+      35,
+      56,
+      154,
+      70,
+      31,
+      82,
+      24,
+      18,
+      196,
+      50,
+      45,
+      1,
+      148,
+      145,
+      107,
+      48,
+      13,
+      156,
+      111,
+      62,
+      201,
+      164,
+      177,
+      159,
+      149,
+      112,
+      115,
+      59,
+      43,
+      117,
+      160,
+      100,
+      125,
+      130,
+      128,
+      55,
+      78,
+      173,
+      32,
+      84,
+      132,
+      199,
+      63,
+      114,
+      54,
+      187,
+      8,
+      116,
+      203,
+      209,
+      207,
+      11,
+      168,
+      21,
+      205,
+      178,
+      77,
+      40,
+      163,
+      181,
+      3,
+      22,
+      110,
+      202,
+      155,
+      122,
+      204,
+      158,
+      95,
+      135,
+      53,
+      133,
+      176,
+      2,
+      51,
+      86,
+      140,
+      197,
+      19,
+      123,
+      5,
+      104,
+      68,
+      89,
+      190,
+      170,
+      39
+    ]
+  },
+  "empty_columns": [
+    "_id"
+  ]
+}

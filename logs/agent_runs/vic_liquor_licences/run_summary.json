@@ -2,27 +2,27 @@
   "source_id": "vic_liquor_licences",
   "model": "claude-haiku-5-5",
   "llm_calls": 5,
-  "cost_usd": 0.012471,
-  "input_tokens": 62160,
-  "output_tokens": 17099,
-  "llm_seconds": 78.5,
+  "cost_usd": 0.011643,
+  "input_tokens": 62571,
+  "output_tokens": 13948,
+  "llm_seconds": 59.3,
   "cost_by_step": {
-    "part2.inspect": 0.000301,
-    "part2.propose_A": 0.003883,
-    "part2.propose_B": 0.00336,
-    "part2.revise_r1": 0.003531,
-    "part2.critique": 0.001396
+    "part2.inspect": 0.000307,
+    "part2.propose_A": 0.003276,
+    "part2.propose_B": 0.003706,
+    "part2.critique": 0.001526,
+    "part2.revise_critique": 0.002828
   },
-  "wall_clock_this_invocation_s": 83.7,
+  "wall_clock_this_invocation_s": 64.4,
   "step_timings_s": {
-    "01_inspect": 4.37,
-    "02_profile": 0.6,
-    "03a_propose_A": 24.54,
-    "03b_propose_B": 20.2,
+    "01_inspect": 4.18,
+    "02_profile": 0.67,
+    "03a_propose_A": 17.04,
+    "03b_propose_B": 21.47,
     "03c_compare": 0.0,
-    "04_validate_r0": 0.12,
-    "05_revise_r1": 25.44,
-    "04_validate_r1": 0.04,
-    "06_critique": 6.69
+    "04_validate_r0": 0.03,
+    "06_critique": 7.85,
+    "05_revise_critique": 11.43,
+    "04_validate_post_critique": 0.03
   }
 }

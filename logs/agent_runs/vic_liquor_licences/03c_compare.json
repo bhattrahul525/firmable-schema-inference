@@ -3,30 +3,10 @@
     "('Licensee',) -> entity.entity_type",
     "('Licensee',) -> entity.legal_name",
     "('Postcode',) -> address.postcode",
+    "('Street Address',) -> address.full",
     "('Suburb',) -> address.locality",
     "('Trading As',) -> entity.trading_name"
   ],
-  "only_A": [
-    {
-      "source": [
-        "Street Address",
-        "Suburb"
-      ],
-      "canonical": "address.full",
-      "transforms": [
-        "join_nonempty(, )"
-      ]
-    }
-  ],
-  "only_B": [
-    {
-      "source": [
-        "Street Address"
-      ],
-      "canonical": "address.full",
-      "transforms": [
-        "clean_whitespace"
-      ]
-    }
-  ]
+  "only_A": [],
+  "only_B": []
 }

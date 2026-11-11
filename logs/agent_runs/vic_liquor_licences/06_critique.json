@@ -25,16 +25,16 @@
           "value": "THE WAREHOUSE GEELONG PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "THE WAREHOUSE GEELONG"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "5 LITTLE RYRIE ST, GEELONG"
+          "value": "5 LITTLE RYRIE ST"
         },
         {
           "field": "address.locality",
@@ -44,7 +44,12 @@
           "field": "address.postcode",
           "value": "3220"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -72,16 +77,16 @@
           "value": "GSKR PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "GOLDEN SKY INDIAN RESTAURANT"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "223-225 MURRAY ST, COLAC"
+          "value": "223-225 MURRAY ST"
         },
         {
           "field": "address.locality",
@@ -91,7 +96,12 @@
           "field": "address.postcode",
           "value": "3250"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -118,16 +128,16 @@
           "value": "DJ LIFE PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "GAMI POINTCOOK"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "RESTAURANT 35/300 POINT COOK ROAD SANCTUARY LAKES SHOPPING CENTRE, POINT COOK"
+          "value": "RESTAURANT 35/300 POINT COOK ROAD SANCTUARY LAKES SHOPPING CENTRE"
         },
         {
           "field": "address.locality",
@@ -137,7 +147,12 @@
           "field": "address.postcode",
           "value": "3030"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -165,16 +180,16 @@
           "value": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC"
         },
         {
-          "field": "entity.entity_type",
-          "value": "unknown"
-        },
-        {
           "field": "entity.trading_name",
           "value": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC"
         },
         {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        },
+        {
           "field": "address.full",
-          "value": "KEYSBOROUGH RECREATION RESERVE CNR CHELTENHAM & STANLEY ROADS, KEYSBOROUGH"
+          "value": "KEYSBOROUGH RECREATION RESERVE CNR CHELTENHAM & STANLEY ROADS"
         },
         {
           "field": "address.locality",
@@ -184,7 +199,12 @@
           "field": "address.postcode",
           "value": "3173"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -212,16 +232,16 @@
           "value": "GENSUKE HAWTHORN PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "GENSUKE HAWTHORN"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "TENANCY 4 860-862 GLENFERRIE ROAD, HAWTHORN"
+          "value": "TENANCY 4 860-862 GLENFERRIE ROAD"
         },
         {
           "field": "address.locality",
@@ -231,7 +251,12 @@
           "field": "address.postcode",
           "value": "3122"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -258,16 +283,16 @@
           "value": "YARRA DRINK DELIGHT PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "YARAVILLE LIQUORS"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "6 WEMBLEY AV, YARRAVILLE"
+          "value": "6 WEMBLEY AV"
         },
         {
           "field": "address.locality",
@@ -277,7 +302,12 @@
           "field": "address.postcode",
           "value": "3013"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -305,16 +335,16 @@
           "value": "JINDA GROUP PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "JINDA GROUP"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "1-7 FERGUSON STREET, ABBOTSFORD"
+          "value": "1-7 FERGUSON STREET"
         },
         {
           "field": "address.locality",
@@ -324,7 +354,12 @@
           "field": "address.postcode",
           "value": "3067"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -351,16 +386,16 @@
           "value": "THE LITTLE WINE ROOM PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "THE LITTLE WINE ROOM"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "74 ASLING STREET, BRIGHTON"
+          "value": "74 ASLING STREET"
         },
         {
           "field": "address.locality",
@@ -370,7 +405,12 @@
           "field": "address.postcode",
           "value": "3186"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -398,16 +438,16 @@
           "value": "BETHANGA & DISTRICT GOLF CLUB INC."
         },
         {
-          "field": "entity.entity_type",
-          "value": "unknown"
-        },
-        {
           "field": "entity.trading_name",
           "value": "BETHANGA & DISTRICT GOLF CLUB"
         },
         {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        },
+        {
           "field": "address.full",
-          "value": "576 SPRINGDALE RD, BETHANGA"
+          "value": "576 SPRINGDALE RD"
         },
         {
           "field": "address.locality",
@@ -417,7 +457,12 @@
           "field": "address.postcode",
           "value": "3691"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     },
     {
       "raw": {
@@ -444,16 +489,16 @@
           "value": "BAR BARONS PTY LTD"
         },
         {
-          "field": "entity.entity_type",
-          "value": "company"
-        },
-        {
           "field": "entity.trading_name",
           "value": "BAR BARONS"
         },
         {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
           "field": "address.full",
-          "value": "4A EDINBURGH ST, OAKLEIGH SOUTH"
+          "value": "4A EDINBURGH ST"
         },
         {
           "field": "address.locality",
@@ -463,9 +508,20 @@
           "field": "address.postcode",
           "value": "3167"
         }
-      ]
+      ],
+      "envelope": {
+        "observed_at": "2026-11-03T22:04:18.658116",
+        "valid_from": null,
+        "valid_to": null
+      }
     }
   ],
-  "issues": [],
-  "overall": "The mapping looks right on every example row. Licensee maps to legal_name and Trading As to trading_name, and the entity_type results (company for Pty Ltd, unknown for Inc. and clubs) match the suffix rule. Street Address plus Suburb joins to address.full, Suburb to locality, and Postcode to postcode. Postal address columns, licence class and hours are correctly left unmapped, and the postcode '0' rejection is consistent with the transform. No meaning errors are visible in the examples."
+  "issues": [
+    {
+      "field": "address.full",
+      "problem": "Street Address holds only the street line (e.g. \"5 LITTLE RYRIE ST\", \"4A EDINBURGH ST\"). Suburb and postcode are separate, and no state column exists. The engine emits it as address.full, so the observation claims a complete address the source does not state. The config's own reason calls it a 'partial full address', which confirms the mismatch.",
+      "suggested_fix": "Do not map Street Address to address.full as it stands. Either map it to a street-level field if one is added to the ontology, or combine it with Suburb and Postcode using join_nonempty(', ') as a first transform on a source list. Only then emit address.full, and lower mapping_confidence to reflect the partial-address meaning."
+    }
+  ],
+  "overall": "The entity mappings look right in the examples: legal_name and trading_name are not swapped, individuals and clubs are handled consistently, and the entity_type suffix rule matches the examples. The main meaning error is that the street-only Street Address is emitted as address.full."
 }

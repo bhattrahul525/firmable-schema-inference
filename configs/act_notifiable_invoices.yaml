@@ -1,0 +1,141 @@
+source_id: act_notifiable_invoices
+config_version: 2
+what_it_is: 'ACT Government Notifiable Invoices Register: a JSON export of invoices/payments made by ACT government
+  agencies to suppliers above the notification threshold.'
+one_row_is: one notified invoice payment from an ACT government reporting entity to a supplier
+reader:
+  format: json
+  encoding: utf-8
+record_id:
+  from:
+  - :id
+record_id_reason: Column :id has 127437 distinct values across 127437 rows, so it uniquely identifies each row.
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: supplier_name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Supplier name on a government payment register. The data says it is the supplier name, which we treat
+    as the registered name. Not verified against a company register, so confidence is below 0.9.
+  proposal_agreement: agreed
+  field_confidence: 0.85
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: supplier_abn
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Column is named supplier_abn and about 99.6 percent of values are 11-digit numbers. Values are space-grouped
+    (e.g. 83 121 852 088); spaced values were observed to produce valid entity.abn observations in tested rows (e.g.
+    11 000 013 098 gives 11000013098). Non-ABN values such as International are skipped by the abn transform and
+    remain unmapped. Checksum validation is applied.
+  proposal_agreement: agreed
+  field_confidence: 0.85
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 298
+    skipped_not_applicable: 2
+    rejected: 0
+    parse_rate: 1.0
+- source: supplier_name
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: The source has no explicit entity-type column, so the suffix rule on the supplier name is used. Names
+    without a company suffix, such as trusts and bodies, resolve to unknown.
+  proposal_agreement: agreed
+  field_confidence: 0.6
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: reporting_entity
+  reason: Government buyer (ACT agency or directorate reporting the payment), not the supplier. Not mapped per rule
+    4.
+- source: publish_description
+  reason: Describes the purchase or expense category, not the supplier's industry. No canonical field matches. Not
+    translated to ANZSIC.
+- source: date_invoice_received
+  reason: Invoice receipt date is a transaction date, not a registration or licence validity date. No canonical
+    field matches. Sparsely filled at about 85 percent.
+- source: payment_date
+  reason: Payment transaction date. No canonical field matches, and it does not state when a supplier's status or
+    licence started or ended.
+- source: payment_amount
+  reason: Transaction amount. No canonical amount field exists in this ontology subset.
+- source: contract_number
+  reason: Contract reference for the payment. No canonical field matches. Mostly blank, with N/A values.
+- source: :version
+  reason: System or export revision identifier. Not a claim about the entity.
+- source: :created_at
+  reason: System export timestamp. Not the statement date of the claim, which is covered by observed_at from resource_last_modified.
+- source: :updated_at
+  reason: System export timestamp. Not the statement date of the claim, which is covered by observed_at from resource_last_modified.
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.5
+  classification: 0.4
+  contact: 0.5
+source_reliability_basis: Statutory ACT government disclosure of payments above the notification threshold. Supplier
+  names and ABNs come from government accounts-payable records, not a verified register, so identity is moderate.
+  There is no address or contact data. Classification is weak because publish_description describes spend, not the
+  supplier's industry. Licence is listed as Other and flagged, so it is not a clear open licence.
+meaning_check_responses:
+- check_id: needs_transform.supplier_abn
+  action: changed
+  reason: 'The warning is correct: the needs_transform entry is stale. Spaced ABNs produce valid entity.abn observations
+    in the tested rows, so the entry was removed and the field reason updated. The abn transform still skips non-11-digit
+    values such as International, which stay unmapped. A larger-sample confirmation is advisable but does not change
+    this config.'
+revision_history:
+- round: critique
+  changes:
+  - what: Removed the needs_transform entry for supplier_abn and rewrote the supplier_abn field reason to state
+      that space-grouped ABNs are handled by the abn transform.
+    why: Reviewer raw rows show space-grouped values such as 11 000 013 098 and 83 072 293 880 producing valid entity.abn
+      observations (11000013098, 83072293880), so the spacing risk recorded in the earlier config is not present.
+      The entry was stale and contradicted the working output. Non-AU International values remain unmapped as before.
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 898
+  abstained: []
+  warnings: []
+  infos: []
+  critique_issues:
+  - field: needs_transform
+    problem: The needs_transform entry says the abn transform may reject space-grouped ABNs and a whitespace-stripping
+      transform may be needed. The examples show space-grouped values such as '11 000 013 098' and '83 072 293 880'
+      producing valid entity.abn observations ('11000013098', '83072293880'), so the risk appears to be resolved.
+      The entry is stale and contradicts the working output.
+    suggested_fix: Confirm the abn transform strips internal spaces on a larger sample, then remove the needs_transform
+      entry or change it to a note that spaced values are handled. Keep the non-AU 'International' values unmapped
+      as the config already states.
+  proposal_disagreements:
+    only_A: []
+    only_B: []
+generated_by:
+  agent_version: 0.1.0
+  model: claude-haiku-5-5
+  generated_at: '2026-11-11T13:22:17+00:00'

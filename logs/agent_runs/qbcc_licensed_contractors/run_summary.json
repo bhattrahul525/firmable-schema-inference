@@ -1,0 +1,32 @@
+{
+  "source_id": "qbcc_licensed_contractors",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 6,
+  "cost_usd": 0.013816,
+  "input_tokens": 63923,
+  "output_tokens": 20544,
+  "llm_seconds": 88.5,
+  "cost_by_step": {
+    "part2.inspect": 0.000261,
+    "part2.propose_A": 0.003607,
+    "part2.propose_B": 0.003237,
+    "part2.revise_r1": 0.002711,
+    "part2.critique": 0.001529,
+    "part2.revise_critique": 0.002471
+  },
+  "wall_clock_this_invocation_s": 94.3,
+  "step_timings_s": {
+    "01_inspect": 3.0,
+    "02_profile": 4.2,
+    "03a_propose_A": 23.73,
+    "03b_propose_B": 20.64,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.03,
+    "05_revise_r1": 17.11,
+    "04_validate_r1": 0.03,
+    "06_critique": 9.08,
+    "05_revise_critique": 15.77,
+    "04_validate_post_critique": 0.03,
+    "04_validate_final_v3": 0.02
+  }
+}
