@@ -1,0 +1,31 @@
+{
+  "source_id": "find_by_lia_band",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 6,
+  "cost_usd": 0.018823,
+  "input_tokens": 73058,
+  "output_tokens": 24209,
+  "llm_seconds": 107.2,
+  "cost_by_step": {
+    "part2.inspect": 0.000773,
+    "part2.propose_A": 0.004788,
+    "part2.propose_B": 0.004115,
+    "part2.revise_r1": 0.004436,
+    "part2.critique": 0.002255,
+    "part2.revise_critique": 0.002456
+  },
+  "wall_clock_this_invocation_s": 107.5,
+  "step_timings_s": {
+    "01_inspect": 2.24,
+    "02_profile": 0.12,
+    "03a_propose_A": 26.5,
+    "03b_propose_B": 26.0,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.04,
+    "05_revise_r1": 28.01,
+    "04_validate_r1": 0.04,
+    "06_critique": 10.5,
+    "05_revise_critique": 13.96,
+    "04_validate_post_critique": 0.04
+  }
+}

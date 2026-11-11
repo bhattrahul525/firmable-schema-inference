@@ -1,0 +1,13 @@
+{
+  "what_it_is": "NSW Liquor and Gaming Authority (Find by LIA Band) snapshot register of licensed clubs and hotels with gaming machine entitlements as at 1 Dec 2020.",
+  "one_row_is": "one licensed venue (club or hotel) holding a liquor/gaming licence, with its trading status, location and gaming machine entitlement figures.",
+  "contains_business_entities": true,
+  "format": "csv",
+  "encoding": "utf-8",
+  "delimiter": ",",
+  "sheet": "",
+  "header_row": 1,
+  "records_path": "",
+  "attempts": 1,
+  "reader_check": "ok: 21 columns, 3306 rows"
+}

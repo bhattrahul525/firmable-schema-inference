@@ -49,9 +49,11 @@ def filename_for(res: dict) -> str:
     return name
 
 
-def download(source: dict, pool: dict[str, dict]) -> dict:
+def download(source: dict, pool: dict[str, dict], res: dict | None = None) -> dict:
+    """`res` lets a caller choose the resource itself (used for unseen datasets); otherwise the
+    rule in sources.yaml must match exactly one resource."""
     rec = pool[source["dataset_id"]]
-    res = pick(rec, source["resource"])
+    res = res or pick(rec, source["resource"])
     out_dir = RAW_DIR / source["source_id"]
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / filename_for(res)

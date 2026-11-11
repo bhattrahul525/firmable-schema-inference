@@ -1,0 +1,38 @@
+{
+  "agreed": [
+    "('Trading Status',) -> entity.status",
+    "('Venue Address',) -> address.full"
+  ],
+  "only_A": [
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        "clean_whitespace"
+      ]
+    }
+  ],
+  "only_B": [
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        "clean_whitespace",
+        "regex_extract(([A-Z][A-Z ]+)$)"
+      ]
+    },
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        "clean_whitespace"
+      ]
+    }
+  ]
+}

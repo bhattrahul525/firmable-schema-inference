@@ -1,0 +1,30 @@
+{
+  "source_id": "find_by_lia_band",
+  "started_at": "2026-11-11T13:38:11.449376+00:00",
+  "timings": {
+    "01_inspect": 2.24,
+    "02_profile": 0.12,
+    "03a_propose_A": 26.5,
+    "03b_propose_B": 26.0,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.04,
+    "05_revise_r1": 28.01,
+    "04_validate_r1": 0.04,
+    "06_critique": 10.5,
+    "05_revise_critique": 13.96,
+    "04_validate_post_critique": 0.04
+  },
+  "step_log": [
+    "01_inspect",
+    "02_profile",
+    "03a_propose_A",
+    "03b_propose_B",
+    "03c_compare",
+    "04_validate_r0",
+    "05_revise_r1",
+    "04_validate_r1",
+    "06_critique",
+    "05_revise_critique",
+    "04_validate_post_critique"
+  ]
+}

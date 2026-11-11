@@ -1,0 +1,236 @@
+source_id: find_by_lia_band
+config_version: 3
+what_it_is: NSW Liquor and Gaming Authority (Find by LIA Band) snapshot register of licensed clubs and hotels with
+  gaming machine entitlements as at 1 Dec 2020.
+one_row_is: one licensed venue (club or hotel) holding a liquor/gaming licence, with its trading status, location
+  and gaming machine entitlement figures.
+reader:
+  format: csv
+  encoding: utf-8
+  delimiter: ','
+  header_row: 1
+record_id:
+  hash_row: true
+record_id_reason: Licence No is not unique (3305 distinct values across 3306 rows; LIQC324007158 appears twice),
+  so no column set is a verified row key. Hash the row instead.
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Licence Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Name on the liquor/gaming licence for the venue (e.g. 'Royal Hotel'). The column is not labelled or described
+    as the registered or licensee legal name, so under the rules it stays trading_name. Some values carry company
+    suffixes (25%), but that does not make the column a registered name, so entity.legal_name and entity_type are
+    not derived from it.
+  proposal_agreement: resolved_by_revision
+  field_confidence: 0.6
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Venue Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Street address plus locality in capitals (e.g. '482 Kent St SYDNEY'). Column name and samples agree on
+    venue location. No postcode or state is embedded in the value.
+  proposal_agreement: agreed
+  field_confidence: 0.85
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Venue Address
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: regex_extract
+    arg: ([A-Z][A-Z ]+)$
+  group: main
+  mapping_confidence: 0.75
+  reason: The locality is the trailing all-capitals suburb in every sample (e.g. 'SYDNEY', 'BOWRAL', 'COFFS HARBOUR').
+    Street names are mixed case, so the leftmost anchored match picks the suburb. Values with no trailing capitals
+    are skipped, not guessed. Confidence is below 0.9 because the pattern is verified on samples only, not on all
+    3306 rows.
+  proposal_agreement: resolved_by_revision
+  field_confidence: 0.7
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 299
+    skipped_not_applicable: 1
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Data as of
+  reason: Constant snapshot date '01-Dec-20' for the whole register. It describes the snapshot, not an entity claim.
+    observed_at is taken from resource_last_modified instead.
+- source: Licence No
+  reason: Liquor licence number (LIQH/LIQC prefix). No ontology field exists for it, and it is not an ABN or ACN.
+    It is not unique, so it is not used as the record key.
+- source: Trading Status
+  reason: Venue operating state ('Trading' / 'Temporarily ceased trading'), not an entity status. Mapping 'Trading'
+    to active would state an entity-level claim the register does not make. Mapping it to unknown carries no information.
+    No entity.status mapping is emitted.
+- source: Start Date
+  reason: The metadata does not say what this date describes, so it cannot be confirmed as the licence start for
+    the name and address claims (rule 10). It is not used for valid_from. The heavy recurrence of 1947 and 1955
+    suggests placeholder values, not real start dates.
+- source: Latitude
+  reason: Coordinate. The ontology has no geo field, so it is not mapped.
+- source: Longitude
+  reason: Coordinate. The ontology has no geo field, so it is not mapped.
+- source: Type
+  reason: Venue kind (hotel or club). It is not an entity.entity_type value and not an ANZSIC code, and no explicit
+    entity-type column exists, so it is not mapped.
+- source: Filter Category
+  reason: Venue size and gaming category (e.g. 'Hotel - large'). No ontology field exists for it.
+- source: SA2 Name
+  reason: ABS Statistical Area 2 name for gaming-machine banding. It is not a postal locality, so it is not mapped
+    to address.locality.
+- source: SA2 Band
+  reason: Gaming-machine band tier. No ontology field exists for it.
+- source: Subject to Cap
+  reason: Gaming-machine cap flag. No ontology field exists for it.
+- source: LGA
+  reason: Local government area. The ontology has no LGA field, and address.locality would be wrong.
+- source: Region
+  reason: Metropolitan or Country classification. No ontology field exists for it.
+- source: GME
+  reason: Gaming machine entitlement figure. No ontology field exists for it.
+- source: PMP
+  reason: Gaming machine entitlement figure (poker machine permits). No ontology field exists for it.
+- source: Auth Total
+  reason: Authorised gaming machine total. No ontology field exists for it.
+- source: Unfulfilled Quota
+  reason: Gaming machine quota figure. No ontology field exists for it.
+- source: GMT
+  reason: Gaming machine total figure. No ontology field exists for it.
+- source: EGMs
+  reason: Electronic gaming machine count. No ontology field exists for it.
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.8
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: NSW Liquor and Gaming Authority (Department of Customer Service) is a statutory regulator
+  publishing a licence register. That supports high trust on identity and address. Classification is somewhat lower
+  because the gaming figures are a point-in-time snapshot. The dataset licence is 'unknown' and flagged, which is
+  a finding and lowers confidence in downstream reuse. The register has no contact fields, so contact is 0.5 by
+  default.
+meaning_check_responses:
+- check_id: proposal_disagreement_trading_vs_legal_name
+  action: kept
+  reason: Licence Name stays entity.trading_name. Its meaning is a venue licence name, and the data does not state
+    it is the registered legal name. Legal name would need an explicit registered-name statement.
+- check_id: proposal_disagreement_venue_address_locality
+  action: changed
+  reason: Added address.locality via a trailing all-caps regex_extract, keeping address.full. The suburb is consistently
+    present in the samples, so the extraction is supported.
+- check_id: test_0_rejected_values_is_not_meaning_check
+  action: changed
+  reason: The 0 rejected values result does not validate meaning. The status mapping was changed so 'Temporarily
+    ceased trading' maps to unknown instead of suspended, because suspended overstates the source claim.
+- check_id: entity.status
+  action: changed
+  reason: Removed the entity.status mapping instead of keeping 'active' or relabelling 'Trading' as unknown. The
+    register's Trading Status describes a venue operating state, so no entity status claim is emitted. Trading Status
+    is listed under unmapped with the reason.
+- check_id: valid_from
+  action: changed
+  reason: Cleared valid_from because Start Date's meaning is not stated in the source or metadata, so it cannot
+    be confirmed as the licence start for the name and address claims. Start Date is listed under unmapped and the
+    reason is recorded there.
+revision_history:
+- round: r1
+  changes:
+  - what: Kept entity.trading_name for Licence Name and rejected proposal 2's entity.legal_name mapping.
+    why: The data does not say Licence Name is the registered, licensee or supplier name. Rule 5 requires that statement
+      before a name can be legal_name. Proposal 2 offered no evidence beyond the 25% company-suffix share, which
+      does not establish registration.
+  - what: Added address.locality from Venue Address using clean_whitespace then regex_extract of the trailing all-caps
+      suburb, with mapping_confidence 0.75. address.full is kept.
+    why: Proposal 2 showed that the suburb is consistently the trailing all-caps segment in the samples. Extracting
+      it is a deterministic L1 parse, not a guess. Rows with no trailing capitals are skipped. Confidence is below
+      0.9 because the pattern is checked on samples only.
+  - what: Changed the Trading Status map so 'Temporarily ceased trading' maps to unknown instead of suspended. Trading
+      maps to active, and mapping_confidence is 0.75.
+    why: A venue temporarily ceasing trading is not a regulatory suspension of the entity. The 0 rejected values
+      result shows only that the raw strings matched the table. It does not show the mapping is semantically right,
+      so the earlier suspended interpretation is not supported.
+  - what: Left record_id, observed_at, valid_from, source_reliability and the unmapped list unchanged.
+    why: The proposals did not contest these, and the test results do not give a reason to change them. Start Date
+      is kept for valid_from. The unmapped list covers every remaining column.
+- round: critique
+  changes:
+  - what: Removed the entity.status field (map_values on Trading Status) and listed Trading Status under unmapped.
+    why: Both raw values describe venue operating state, not entity status. Mapping 'Trading' to active made an
+      entity-level claim the register does not support, and mapping to unknown adds nothing. Removing the field
+      is more conservative than either option the reviewer offered.
+  - what: Cleared the valid_from mapping (Start Date parse_date) and listed Start Date under unmapped.
+    why: The metadata does not state what Start Date describes, so rule 10 is not satisfied for applying it to the
+      name and address claims. The recurring 1947/1955 values also look like placeholders.
+  - what: No changes to record_id, observed_at, valid_to, the trading_name mapping, the address.full mapping, the
+      address.locality mapping, or source_reliability.
+    why: The reviewer raised no issue with these, and the current reasoning holds.
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1199
+  abstained: []
+  warnings: []
+  infos: []
+  critique_issues:
+  - field: entity.status
+    problem: The status mapping is inconsistent. 'Temporarily ceased trading' is treated as a venue operating state,
+      not an entity status, so it becomes unknown. But 'Trading' is mapped to active, which makes the same kind
+      of venue operating state into an entity-level active claim. Examples 1-10 all emit entity.status 'active'
+      from a venue operating state, which overstates what the register says about the entity.
+    suggested_fix: Apply the same reasoning to both values. Either map 'Trading' to unknown with a reason stating
+      it is a venue operating state, or keep 'active' with a reason explaining why this register's 'Trading' is
+      a licence/entity-level claim. Lower mapping_confidence for entity.status accordingly.
+  - field: valid_from
+    problem: valid_from is taken from 'Start Date' and then applied to every observation, including entity.trading_name
+      and address.full. Rule 10 allows valid_from only when the source states when the described licence or status
+      started. The config gives no reason establishing that Start Date is the licence start, so it is unverified
+      for the name and address claims.
+    suggested_fix: Document in the config what 'Start Date' describes (for example, the liquor licence start date)
+      and confirm that it applies to the name and address claims. If it is not confirmed, leave valid_from unmapped.
+  proposal_disagreements:
+    only_A:
+    - source:
+      - Licence Name
+      canonical: entity.trading_name
+      transforms:
+      - clean_whitespace
+    only_B:
+    - source:
+      - Venue Address
+      canonical: address.locality
+      transforms:
+      - clean_whitespace
+      - regex_extract(([A-Z][A-Z ]+)$)
+    - source:
+      - Licence Name
+      canonical: entity.legal_name
+      transforms:
+      - clean_whitespace
+generated_by:
+  agent_version: 0.1.0
+  model: claude-haiku-5-5
+  generated_at: '2026-11-11T13:39:58+00:00'

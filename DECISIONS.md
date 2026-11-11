@@ -91,3 +91,10 @@ Notable design decisions and why. Feeds WRITEUP.md.
 - **Run-to-run variation:** VIC regenerated without address.full (Street Address left unmapped) where the earlier run joined street and suburb. Agent output is not deterministic; the approval hash makes each approved version exact.
 - **Human review results:** first-review verdicts: 3 fields rejected out of the 6 sources' fields at first look (WA name fields x2 plus none elsewhere); all others right. See configs/*.approval.json for the exact rounds.
 - **Extraction volumes (option A):** small sources in full (ASIC 4,313; QLD Health 210; WA 5,817), large ones 5,000 evenly spaced rows (VIC of 23,169; QBCC of 206,548; ACT of 127,437). Extraction costs $0.
+
+## Part 2: seventh-source test (2026-11-12)
+
+- **Command:** `python -m src.part2_agent.onboard <portal>:<dataset-name>` (or `--file path`) fetches an unseen dataset with its CKAN licence/dates, then runs the same agent. No column, format or mapping is chosen by a human.
+- **Pick was not cherry-picked:** random.Random(7) over shortlist entries that were tabular and outside dataset families we had already covered (contracts/tenders/liquor/ASIC/QBCC). First draw (before excluding families) hit another QLD contract-disclosure report, too similar to QLD Health, so the rule was tightened and the same seed re-drawn. Picked `nsw:find-by-lia-band` (shortlist rank 38; licence unknown, flagged).
+- **Result:** config v3 in 6 LLM calls, $0.019, about 2 minutes. It is a NSW register of licensed clubs/hotels (gaming machines). Agent mapped Licence Name as trading_name only (not legal_name: the data does not say it is the registered name), address.full and a suburb extraction; abstained on status, start date and all gaming columns, with reasons; critique step removed an unsupported entity.status and valid_from itself.
+- **Honest limits:** under-fills legal_name (club names like "... Club Ltd" are probably legal names but the source does not say so); no ABN in this dataset, so it could not be linked by ID. The config is left pending review, not approved and not extracted: it demonstrates onboarding, it is not one of the six.

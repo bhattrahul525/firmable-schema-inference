@@ -1,0 +1,537 @@
+{
+  "examples": [
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Royal Oak Hotel",
+        "Licence No": "LIQH400105363",
+        "Start Date": "30/05/1960",
+        "Trading Status": "Trading",
+        "Latitude": "-33.8557040000",
+        "Longitude": "151.1810240000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - small",
+        "Venue Address": "College St & Curtis Rd BALMAIN",
+        "SA2 Name": "Double Bay - Bellevue Hill",
+        "SA2 Band": "1",
+        "Subject to Cap": "No",
+        "LGA": "Inner West Council",
+        "Region": "Metropolitan",
+        "GME": "9",
+        "PMP": "0",
+        "Auth Total": "9",
+        "Unfulfilled Quota": "0",
+        "GMT": "9",
+        "EGMs": "3"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Royal Oak Hotel"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "College St & Curtis Rd BALMAIN"
+        },
+        {
+          "field": "address.locality",
+          "value": "BALMAIN"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1960-05-30",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Walsh's Hotel",
+        "Licence No": "LIQH400119399",
+        "Start Date": "23/10/1957",
+        "Trading Status": "Trading",
+        "Latitude": "-35.3543290000",
+        "Longitude": "149.2333190000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - large",
+        "Venue Address": "40-48 Monaro St QUEANBEYAN",
+        "SA2 Name": "Manly - Fairlight",
+        "SA2 Band": "2",
+        "Subject to Cap": "No",
+        "LGA": "Queanbeyan-Palerang Regional Council",
+        "Region": "Country",
+        "GME": "22",
+        "PMP": "0",
+        "Auth Total": "22",
+        "Unfulfilled Quota": "0",
+        "GMT": "22",
+        "EGMs": "22"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Walsh's Hotel"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "40-48 Monaro St QUEANBEYAN"
+        },
+        {
+          "field": "address.locality",
+          "value": "QUEANBEYAN"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1957-10-23",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Maitland City Bowls, Sports & Rec Club",
+        "Licence No": "LIQC300238903",
+        "Start Date": "21/02/1958",
+        "Trading Status": "Trading",
+        "Latitude": "-32.7182880000",
+        "Longitude": "151.5285230000",
+        "Type": "club",
+        "Filter Category": "Club - large",
+        "Venue Address": "Melbee St RUTHERFORD",
+        "SA2 Name": "Maitland - West",
+        "SA2 Band": "2",
+        "Subject to Cap": "No",
+        "LGA": "Maitland City Council",
+        "Region": "Country",
+        "GME": "170",
+        "PMP": "0",
+        "Auth Total": "170",
+        "Unfulfilled Quota": "0",
+        "GMT": "170",
+        "EGMs": "157"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Maitland City Bowls, Sports & Rec Club"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "Melbee St RUTHERFORD"
+        },
+        {
+          "field": "address.locality",
+          "value": "RUTHERFORD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1958-02-21",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Pullman Sydney Airport",
+        "Licence No": "LIQH440018975",
+        "Start Date": "25/05/2016",
+        "Trading Status": "Trading",
+        "Latitude": "-33.9275420000",
+        "Longitude": "151.1868180000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - non gaming",
+        "Venue Address": "191 O'Riordan St MASCOT",
+        "SA2 Name": "Armidale",
+        "SA2 Band": "2",
+        "Subject to Cap": "No",
+        "LGA": "Bayside Council",
+        "Region": "Metropolitan",
+        "GME": "0",
+        "PMP": "0",
+        "Auth Total": "0",
+        "Unfulfilled Quota": "0",
+        "GMT": "0",
+        "EGMs": "0"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Pullman Sydney Airport"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "191 O'Riordan St MASCOT"
+        },
+        {
+          "field": "address.locality",
+          "value": "MASCOT"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "2016-05-25",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Newmarket Hotel",
+        "Licence No": "LIQH400111584",
+        "Start Date": "9/07/1956",
+        "Trading Status": "Trading",
+        "Latitude": "-35.9927810000",
+        "Longitude": "146.3913330000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - non gaming",
+        "Venue Address": "249 Honour Ave COROWA",
+        "SA2 Name": "Sydney - Haymarket - The Rocks",
+        "SA2 Band": "3",
+        "Subject to Cap": "Yes",
+        "LGA": "Federation Council",
+        "Region": "Country",
+        "GME": "0",
+        "PMP": "0",
+        "Auth Total": "0",
+        "Unfulfilled Quota": "0",
+        "GMT": "0",
+        "EGMs": "0"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Newmarket Hotel"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "249 Honour Ave COROWA"
+        },
+        {
+          "field": "address.locality",
+          "value": "COROWA"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1956-07-09",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Werris Creek Golf Club Ltd",
+        "Licence No": "LIQC300242366",
+        "Start Date": "29/07/1955",
+        "Trading Status": "Trading",
+        "Latitude": "-31.3438380000",
+        "Longitude": "150.6337570000",
+        "Type": "club",
+        "Filter Category": "Club - small",
+        "Venue Address": "Gap Rd WERRIS CREEK",
+        "SA2 Name": "Quirindi",
+        "SA2 Band": "3",
+        "Subject to Cap": "Yes",
+        "LGA": "Liverpool Plains Shire Council",
+        "Region": "Country",
+        "GME": "6",
+        "PMP": "0",
+        "Auth Total": "6",
+        "Unfulfilled Quota": "0",
+        "GMT": "6",
+        "EGMs": "6"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Werris Creek Golf Club Ltd"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "Gap Rd WERRIS CREEK"
+        },
+        {
+          "field": "address.locality",
+          "value": "WERRIS CREEK"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1955-07-29",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Comboyne Ex-Servicemens & Citizens Club Limited",
+        "Licence No": "LIQC300239039",
+        "Start Date": "19/12/1957",
+        "Trading Status": "Trading",
+        "Latitude": "-31.6048350000",
+        "Longitude": "152.4681910000",
+        "Type": "club",
+        "Filter Category": "Club - small",
+        "Venue Address": "3-5 Comboyne St COMBOYNE",
+        "SA2 Name": "Port Macquarie Region",
+        "SA2 Band": "1",
+        "Subject to Cap": "No",
+        "LGA": "Port Macquarie-Hastings Council",
+        "Region": "Country",
+        "GME": "10",
+        "PMP": "0",
+        "Auth Total": "10",
+        "Unfulfilled Quota": "0",
+        "GMT": "10",
+        "EGMs": "10"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Comboyne Ex-Servicemens & Citizens Club Limited"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "3-5 Comboyne St COMBOYNE"
+        },
+        {
+          "field": "address.locality",
+          "value": "COMBOYNE"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1957-12-19",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Artwork in Progress",
+        "Licence No": "LIQH400106688",
+        "Start Date": "6/05/1957",
+        "Trading Status": "Trading",
+        "Latitude": "-33.8685570000",
+        "Longitude": "151.2056440000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - large",
+        "Venue Address": "46-52 King St SYDNEY",
+        "SA2 Name": "Waterloo - Beaconsfield",
+        "SA2 Band": "2",
+        "Subject to Cap": "No",
+        "LGA": "Council of the City of Sydney",
+        "Region": "Metropolitan",
+        "GME": "24",
+        "PMP": "6",
+        "Auth Total": "30",
+        "Unfulfilled Quota": "0",
+        "GMT": "30",
+        "EGMs": "30"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Artwork in Progress"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "46-52 King St SYDNEY"
+        },
+        {
+          "field": "address.locality",
+          "value": "SYDNEY"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1957-05-06",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Winners Circle Wallsend",
+        "Licence No": "LIQH400118155",
+        "Start Date": "19/01/1960",
+        "Trading Status": "Trading",
+        "Latitude": "-32.9021910000",
+        "Longitude": "151.6671590000",
+        "Type": "hotel",
+        "Filter Category": "Hotel - medium",
+        "Venue Address": "Wallsend Plaza Shops 29-31 24 Kokera St WALLSEND",
+        "SA2 Name": "Newcastle - Cooks Hill",
+        "SA2 Band": "2",
+        "Subject to Cap": "No",
+        "LGA": "Newcastle City Council",
+        "Region": "Metropolitan",
+        "GME": "20",
+        "PMP": "0",
+        "Auth Total": "20",
+        "Unfulfilled Quota": "0",
+        "GMT": "20",
+        "EGMs": "20"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Winners Circle Wallsend"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "Wallsend Plaza Shops 29-31 24 Kokera St WALLSEND"
+        },
+        {
+          "field": "address.locality",
+          "value": "WALLSEND"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1960-01-19",
+        "valid_to": null
+      }
+    },
+    {
+      "raw": {
+        "Data as of": "01-Dec-20",
+        "Licence Name": "Manilla Bowling Club",
+        "Licence No": "LIQC300235343",
+        "Start Date": "30/03/1949",
+        "Trading Status": "Trading",
+        "Latitude": "-30.7474620000",
+        "Longitude": "150.7249220000",
+        "Type": "club",
+        "Filter Category": "Club - small",
+        "Venue Address": "95-101 Arthur St MANILLA",
+        "SA2 Name": "Tamworth Region",
+        "SA2 Band": "1",
+        "Subject to Cap": "No",
+        "LGA": "Tamworth Regional Council",
+        "Region": "Country",
+        "GME": "14",
+        "PMP": "0",
+        "Auth Total": "14",
+        "Unfulfilled Quota": "0",
+        "GMT": "14",
+        "EGMs": "14"
+      },
+      "observations": [
+        {
+          "field": "entity.trading_name",
+          "value": "Manilla Bowling Club"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.full",
+          "value": "95-101 Arthur St MANILLA"
+        },
+        {
+          "field": "address.locality",
+          "value": "MANILLA"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        }
+      ],
+      "envelope": {
+        "observed_at": "2020-12-10T00:53:09.257114",
+        "valid_from": "1949-03-30",
+        "valid_to": null
+      }
+    }
+  ],
+  "issues": [
+    {
+      "field": "entity.status",
+      "problem": "The status mapping is inconsistent. 'Temporarily ceased trading' is treated as a venue operating state, not an entity status, so it becomes unknown. But 'Trading' is mapped to active, which makes the same kind of venue operating state into an entity-level active claim. Examples 1-10 all emit entity.status 'active' from a venue operating state, which overstates what the register says about the entity.",
+      "suggested_fix": "Apply the same reasoning to both values. Either map 'Trading' to unknown with a reason stating it is a venue operating state, or keep 'active' with a reason explaining why this register's 'Trading' is a licence/entity-level claim. Lower mapping_confidence for entity.status accordingly."
+    },
+    {
+      "field": "valid_from",
+      "problem": "valid_from is taken from 'Start Date' and then applied to every observation, including entity.trading_name and address.full. Rule 10 allows valid_from only when the source states when the described licence or status started. The config gives no reason establishing that Start Date is the licence start, so it is unverified for the name and address claims.",
+      "suggested_fix": "Document in the config what 'Start Date' describes (for example, the liquor licence start date) and confirm that it applies to the name and address claims. If it is not confirmed, leave valid_from unmapped."
+    }
+  ],
+  "overall": "The core mappings are mostly sound: Licence Name is correctly kept as trading_name, the address and locality extraction matches the examples, and the unmapped columns are reasonable. The main meaning problems are the inconsistent status treatment of trading versus ceased trading, and the unexplained application of Start Date as valid_from to every observation."
+}

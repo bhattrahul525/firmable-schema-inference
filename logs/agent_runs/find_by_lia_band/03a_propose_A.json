@@ -1,0 +1,150 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Licence No is not unique (3305 distinct values across 3306 rows; LIQC324007158 appears twice), so no column set is a verified row key. Hash the row instead."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "Start Date",
+    "transforms": [
+      {
+        "name": "parse_date",
+        "arg": "%d/%m/%Y"
+      }
+    ]
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "Name on the liquor/gaming licence for the venue (e.g. 'Royal Hotel'). The data does not state it is the registered legal name, so it is mapped as trading name. Some values carry company suffixes (25%), but the column is not labelled as registered name, so entity.legal_name is not used and entity_type is not derived from it."
+    },
+    {
+      "source": [
+        "Trading Status"
+      ],
+      "canonical": "entity.status",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"Trading\":\"active\",\"Temporarily ceased trading\":\"suspended\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "Two observed values. 'Trading' maps to active. 'Temporarily ceased trading' maps to suspended, the closest enum value, though it is an interpretation rather than an exact match."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Street address plus locality in capitals (e.g. '482 Kent St SYDNEY'). Column name and samples agree on venue location. No postcode or state is embedded in the value."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Data as of",
+      "reason": "Constant snapshot date '01-Dec-20' for the whole register. It describes the snapshot, not an entity claim. observed_at is taken from resource_last_modified instead."
+    },
+    {
+      "source": "Licence No",
+      "reason": "Liquor licence number (LIQH/LIQC prefix). No ontology field exists for it, and it is not an ABN or ACN. It is not unique, so it is not used as the record key."
+    },
+    {
+      "source": "Latitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Longitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Type",
+      "reason": "Venue kind (hotel or club). It is not an entity.entity_type value and not an ANZSIC code, and no explicit entity-type column exists, so it is not mapped."
+    },
+    {
+      "source": "Filter Category",
+      "reason": "Venue size and gaming category (e.g. 'Hotel - large'). No ontology field exists for it."
+    },
+    {
+      "source": "SA2 Name",
+      "reason": "ABS Statistical Area 2 name for gaming-machine banding. It is not a postal locality, so address.locality is not mapped."
+    },
+    {
+      "source": "SA2 Band",
+      "reason": "Gaming-machine band tier. No ontology field exists for it."
+    },
+    {
+      "source": "Subject to Cap",
+      "reason": "Gaming-machine cap flag. No ontology field exists for it."
+    },
+    {
+      "source": "LGA",
+      "reason": "Local government area. The ontology has no LGA field, and address.locality would be wrong."
+    },
+    {
+      "source": "Region",
+      "reason": "Metropolitan or Country classification. No ontology field exists for it."
+    },
+    {
+      "source": "GME",
+      "reason": "Gaming machine entitlement figure. No ontology field exists for it."
+    },
+    {
+      "source": "PMP",
+      "reason": "Gaming machine entitlement figure (poker machine permits). No ontology field exists for it."
+    },
+    {
+      "source": "Auth Total",
+      "reason": "Authorised gaming machine total. No ontology field exists for it."
+    },
+    {
+      "source": "Unfulfilled Quota",
+      "reason": "Gaming machine quota figure. No ontology field exists for it."
+    },
+    {
+      "source": "GMT",
+      "reason": "Gaming machine total figure. No ontology field exists for it."
+    },
+    {
+      "source": "EGMs",
+      "reason": "Electronic gaming machine count. No ontology field exists for it."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.8,
+    "address": 0.8,
+    "classification": 0.7,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "NSW Liquor and Gaming Authority (Department of Customer Service) is a statutory regulator publishing a licence register. That supports high trust on identity and address. Classification is somewhat lower because the gaming figures are a point-in-time snapshot. The dataset licence is 'unknown' and flagged, which is a finding and lowers confidence in downstream reuse. The register has no contact fields, so contact is 0.5 by default."
+}

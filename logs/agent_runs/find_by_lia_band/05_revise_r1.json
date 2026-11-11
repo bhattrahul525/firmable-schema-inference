@@ -1,0 +1,204 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Licence No is not unique (3305 distinct values across 3306 rows; LIQC324007158 appears twice), so no column set is a verified row key. Hash the row instead."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "Start Date",
+    "transforms": [
+      {
+        "name": "parse_date",
+        "arg": "%d/%m/%Y"
+      }
+    ]
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "Name on the liquor/gaming licence for the venue (e.g. 'Royal Hotel'). The column is not labelled or described as the registered or licensee legal name, so under the rules it stays trading_name. Proposal 2's legal_name mapping is rejected. Some values carry company suffixes (25%), but that does not make the column a registered name, so entity.legal_name and entity_type are not derived from it."
+    },
+    {
+      "source": [
+        "Trading Status"
+      ],
+      "canonical": "entity.status",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"Trading\": \"active\", \"Temporarily ceased trading\": \"unknown\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.75,
+      "reason": "'Trading' maps to active. 'Temporarily ceased trading' is a venue operating state, not a regulatory suspension of the entity, so it is mapped to unknown rather than suspended. Mapping it to suspended would state something the source does not say."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Street address plus locality in capitals (e.g. '482 Kent St SYDNEY'). Column name and samples agree on venue location. No postcode or state is embedded in the value."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "([A-Z][A-Z ]+)$"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.75,
+      "reason": "The locality is the trailing all-capitals suburb in every sample (e.g. 'SYDNEY', 'BOWRAL', 'COFFS HARBOUR'). Street names are mixed case, so the leftmost anchored match picks the suburb. Values with no trailing capitals are skipped, not guessed. Confidence is below 0.9 because the pattern is verified on samples only, not on all 3306 rows."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Data as of",
+      "reason": "Constant snapshot date '01-Dec-20' for the whole register. It describes the snapshot, not an entity claim. observed_at is taken from resource_last_modified instead."
+    },
+    {
+      "source": "Licence No",
+      "reason": "Liquor licence number (LIQH/LIQC prefix). No ontology field exists for it, and it is not an ABN or ACN. It is not unique, so it is not used as the record key."
+    },
+    {
+      "source": "Latitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Longitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Type",
+      "reason": "Venue kind (hotel or club). It is not an entity.entity_type value and not an ANZSIC code, and no explicit entity-type column exists, so it is not mapped."
+    },
+    {
+      "source": "Filter Category",
+      "reason": "Venue size and gaming category (e.g. 'Hotel - large'). No ontology field exists for it."
+    },
+    {
+      "source": "SA2 Name",
+      "reason": "ABS Statistical Area 2 name for gaming-machine banding. It is not a postal locality, so it is not mapped to address.locality."
+    },
+    {
+      "source": "SA2 Band",
+      "reason": "Gaming-machine band tier. No ontology field exists for it."
+    },
+    {
+      "source": "Subject to Cap",
+      "reason": "Gaming-machine cap flag. No ontology field exists for it."
+    },
+    {
+      "source": "LGA",
+      "reason": "Local government area. The ontology has no LGA field, and address.locality would be wrong."
+    },
+    {
+      "source": "Region",
+      "reason": "Metropolitan or Country classification. No ontology field exists for it."
+    },
+    {
+      "source": "GME",
+      "reason": "Gaming machine entitlement figure. No ontology field exists for it."
+    },
+    {
+      "source": "PMP",
+      "reason": "Gaming machine entitlement figure (poker machine permits). No ontology field exists for it."
+    },
+    {
+      "source": "Auth Total",
+      "reason": "Authorised gaming machine total. No ontology field exists for it."
+    },
+    {
+      "source": "Unfulfilled Quota",
+      "reason": "Gaming machine quota figure. No ontology field exists for it."
+    },
+    {
+      "source": "GMT",
+      "reason": "Gaming machine total figure. No ontology field exists for it."
+    },
+    {
+      "source": "EGMs",
+      "reason": "Electronic gaming machine count. No ontology field exists for it."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.8,
+    "address": 0.8,
+    "classification": 0.7,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "NSW Liquor and Gaming Authority (Department of Customer Service) is a statutory regulator publishing a licence register. That supports high trust on identity and address. Classification is somewhat lower because the gaming figures are a point-in-time snapshot. The dataset licence is 'unknown' and flagged, which is a finding and lowers confidence in downstream reuse. The register has no contact fields, so contact is 0.5 by default.",
+  "changes": [
+    {
+      "what": "Kept entity.trading_name for Licence Name and rejected proposal 2's entity.legal_name mapping.",
+      "why": "The data does not say Licence Name is the registered, licensee or supplier name. Rule 5 requires that statement before a name can be legal_name. Proposal 2 offered no evidence beyond the 25% company-suffix share, which does not establish registration."
+    },
+    {
+      "what": "Added address.locality from Venue Address using clean_whitespace then regex_extract of the trailing all-caps suburb, with mapping_confidence 0.75. address.full is kept.",
+      "why": "Proposal 2 showed that the suburb is consistently the trailing all-caps segment in the samples. Extracting it is a deterministic L1 parse, not a guess. Rows with no trailing capitals are skipped. Confidence is below 0.9 because the pattern is checked on samples only."
+    },
+    {
+      "what": "Changed the Trading Status map so 'Temporarily ceased trading' maps to unknown instead of suspended. Trading maps to active, and mapping_confidence is 0.75.",
+      "why": "A venue temporarily ceasing trading is not a regulatory suspension of the entity. The 0 rejected values result shows only that the raw strings matched the table. It does not show the mapping is semantically right, so the earlier suspended interpretation is not supported."
+    },
+    {
+      "what": "Left record_id, observed_at, valid_from, source_reliability and the unmapped list unchanged.",
+      "why": "The proposals did not contest these, and the test results do not give a reason to change them. Start Date is kept for valid_from. The unmapped list covers every remaining column."
+    }
+  ],
+  "warning_responses": [
+    {
+      "check_id": "proposal_disagreement_trading_vs_legal_name",
+      "action": "kept",
+      "reason": "Licence Name stays entity.trading_name. Its meaning is a venue licence name, and the data does not state it is the registered legal name. Legal name would need an explicit registered-name statement."
+    },
+    {
+      "check_id": "proposal_disagreement_venue_address_locality",
+      "action": "changed",
+      "reason": "Added address.locality via a trailing all-caps regex_extract, keeping address.full. The suburb is consistently present in the samples, so the extraction is supported."
+    },
+    {
+      "check_id": "test_0_rejected_values_is_not_meaning_check",
+      "action": "changed",
+      "reason": "The 0 rejected values result does not validate meaning. The status mapping was changed so 'Temporarily ceased trading' maps to unknown instead of suspended, because suspended overstates the source claim."
+    }
+  ]
+}

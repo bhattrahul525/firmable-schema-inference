@@ -1,0 +1,178 @@
+{
+  "record_id": {
+    "columns": [
+      "Licence No",
+      "Licence Name",
+      "Venue Address"
+    ],
+    "hash_row": true,
+    "reason": "Licence No is not unique (3305 distinct in 3306 rows; LIQC324007158 appears twice), so the row key is a deterministic hash of Licence No, Licence Name and Venue Address."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "Start Date",
+    "transforms": [
+      {
+        "name": "parse_date",
+        "arg": "[\"%d/%m/%Y\"]"
+      }
+    ]
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "Column is the liquor licence holder name. The data does not say whether it is the registered name, and some values look like venue trading names (e.g. 'Hog & Billy Hotel'). Mapped as legal_name at moderate confidence; a registered-name source is needed to confirm."
+    },
+    {
+      "source": [
+        "Trading Status"
+      ],
+      "canonical": "entity.status",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"Trading\":\"active\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "'Trading' maps to active. 'Temporarily ceased trading' is deliberately left out because no enum value is a confident match; it will be rejected and shown for review."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Venue street address with locality, as a single string."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "([A-Z][A-Z ]+)$"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "Locality appears as trailing upper-case words in every sample (e.g. 'Main St & Gregory Ave LAKE ALBERT'). Consistent in samples but not verified for all 3306 rows, so confidence is moderate."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Data as of",
+      "reason": "Constant snapshot date (01-Dec-20). Snapshot timing is taken from resource_last_modified per the snapshot-register rule."
+    },
+    {
+      "source": "Type",
+      "reason": "Venue type (hotel/club) is not a legal entity type in the ontology enum. Not mapped to entity.entity_type, to avoid guessing."
+    },
+    {
+      "source": "Filter Category",
+      "reason": "Licensing or gaming category, not an ANZSIC industry code. Not mapped to entity.industry_code."
+    },
+    {
+      "source": "Latitude",
+      "reason": "No geolocation field in the ontology."
+    },
+    {
+      "source": "Longitude",
+      "reason": "No geolocation field in the ontology."
+    },
+    {
+      "source": "SA2 Name",
+      "reason": "ABS statistical area name, not a postal locality. Not mapped to address.locality."
+    },
+    {
+      "source": "SA2 Band",
+      "reason": "Gaming machine band classification with no ontology field."
+    },
+    {
+      "source": "Subject to Cap",
+      "reason": "Gaming regulatory flag with no ontology field."
+    },
+    {
+      "source": "LGA",
+      "reason": "Local government area with no ontology field."
+    },
+    {
+      "source": "Region",
+      "reason": "Metropolitan/Country classification with no ontology field."
+    },
+    {
+      "source": "GME",
+      "reason": "Gaming machine entitlement figure with no ontology field."
+    },
+    {
+      "source": "PMP",
+      "reason": "Gaming machine entitlement figure with no ontology field."
+    },
+    {
+      "source": "Auth Total",
+      "reason": "Gaming machine entitlement figure with no ontology field."
+    },
+    {
+      "source": "Unfulfilled Quota",
+      "reason": "Gaming machine entitlement figure with no ontology field."
+    },
+    {
+      "source": "GMT",
+      "reason": "Gaming machine entitlement figure with no ontology field."
+    },
+    {
+      "source": "EGMs",
+      "reason": "Electronic gaming machine count with no ontology field."
+    },
+    {
+      "source": "Licence No",
+      "reason": "Liquor licence number (LIQH/LIQC prefix). Not an ABN or ACN and has no ontology field. Used only in the record_id hash."
+    }
+  ],
+  "needs_transform": [
+    {
+      "source": "Trading Status",
+      "why": "The value 'Temporarily ceased trading' (165 rows) has no confident entity.status equivalent. Mapping it to suspended would be a guess. Needs a reviewed decision on the enum value, or an extra status value in the ontology."
+    }
+  ],
+  "source_reliability": {
+    "identity": 0.7,
+    "address": 0.8,
+    "classification": 0.5,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "NSW Liquor and Gaming Authority licence snapshot (government regulator, statutory register), so high for the existence of a licence and its location. Lower for identity because Licence Name is the licence name and may not be the registered entity name. Classification is weaker because the Type and Filter Category columns are regulatory categories, not industry codes. No contact fields. Metadata licence is 'unknown' and flagged, so reuse terms need confirming before use."
+}

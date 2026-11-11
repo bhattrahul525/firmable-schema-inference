@@ -1,0 +1,183 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Licence No is not unique (3305 distinct values across 3306 rows; LIQC324007158 appears twice), so no column set is a verified row key. Hash the row instead."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licence Name"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "Name on the liquor/gaming licence for the venue (e.g. 'Royal Hotel'). The column is not labelled or described as the registered or licensee legal name, so under the rules it stays trading_name. Some values carry company suffixes (25%), but that does not make the column a registered name, so entity.legal_name and entity_type are not derived from it."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Street address plus locality in capitals (e.g. '482 Kent St SYDNEY'). Column name and samples agree on venue location. No postcode or state is embedded in the value."
+    },
+    {
+      "source": [
+        "Venue Address"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        },
+        {
+          "name": "regex_extract",
+          "arg": "([A-Z][A-Z ]+)$"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.75,
+      "reason": "The locality is the trailing all-capitals suburb in every sample (e.g. 'SYDNEY', 'BOWRAL', 'COFFS HARBOUR'). Street names are mixed case, so the leftmost anchored match picks the suburb. Values with no trailing capitals are skipped, not guessed. Confidence is below 0.9 because the pattern is verified on samples only, not on all 3306 rows."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Data as of",
+      "reason": "Constant snapshot date '01-Dec-20' for the whole register. It describes the snapshot, not an entity claim. observed_at is taken from resource_last_modified instead."
+    },
+    {
+      "source": "Licence No",
+      "reason": "Liquor licence number (LIQH/LIQC prefix). No ontology field exists for it, and it is not an ABN or ACN. It is not unique, so it is not used as the record key."
+    },
+    {
+      "source": "Trading Status",
+      "reason": "Venue operating state ('Trading' / 'Temporarily ceased trading'), not an entity status. Mapping 'Trading' to active would state an entity-level claim the register does not make. Mapping it to unknown carries no information. No entity.status mapping is emitted."
+    },
+    {
+      "source": "Start Date",
+      "reason": "The metadata does not say what this date describes, so it cannot be confirmed as the licence start for the name and address claims (rule 10). It is not used for valid_from. The heavy recurrence of 1947 and 1955 suggests placeholder values, not real start dates."
+    },
+    {
+      "source": "Latitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Longitude",
+      "reason": "Coordinate. The ontology has no geo field, so it is not mapped."
+    },
+    {
+      "source": "Type",
+      "reason": "Venue kind (hotel or club). It is not an entity.entity_type value and not an ANZSIC code, and no explicit entity-type column exists, so it is not mapped."
+    },
+    {
+      "source": "Filter Category",
+      "reason": "Venue size and gaming category (e.g. 'Hotel - large'). No ontology field exists for it."
+    },
+    {
+      "source": "SA2 Name",
+      "reason": "ABS Statistical Area 2 name for gaming-machine banding. It is not a postal locality, so it is not mapped to address.locality."
+    },
+    {
+      "source": "SA2 Band",
+      "reason": "Gaming-machine band tier. No ontology field exists for it."
+    },
+    {
+      "source": "Subject to Cap",
+      "reason": "Gaming-machine cap flag. No ontology field exists for it."
+    },
+    {
+      "source": "LGA",
+      "reason": "Local government area. The ontology has no LGA field, and address.locality would be wrong."
+    },
+    {
+      "source": "Region",
+      "reason": "Metropolitan or Country classification. No ontology field exists for it."
+    },
+    {
+      "source": "GME",
+      "reason": "Gaming machine entitlement figure. No ontology field exists for it."
+    },
+    {
+      "source": "PMP",
+      "reason": "Gaming machine entitlement figure (poker machine permits). No ontology field exists for it."
+    },
+    {
+      "source": "Auth Total",
+      "reason": "Authorised gaming machine total. No ontology field exists for it."
+    },
+    {
+      "source": "Unfulfilled Quota",
+      "reason": "Gaming machine quota figure. No ontology field exists for it."
+    },
+    {
+      "source": "GMT",
+      "reason": "Gaming machine total figure. No ontology field exists for it."
+    },
+    {
+      "source": "EGMs",
+      "reason": "Electronic gaming machine count. No ontology field exists for it."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.8,
+    "address": 0.8,
+    "classification": 0.7,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "NSW Liquor and Gaming Authority (Department of Customer Service) is a statutory regulator publishing a licence register. That supports high trust on identity and address. Classification is somewhat lower because the gaming figures are a point-in-time snapshot. The dataset licence is 'unknown' and flagged, which is a finding and lowers confidence in downstream reuse. The register has no contact fields, so contact is 0.5 by default.",
+  "changes": [
+    {
+      "what": "Removed the entity.status field (map_values on Trading Status) and listed Trading Status under unmapped.",
+      "why": "Both raw values describe venue operating state, not entity status. Mapping 'Trading' to active made an entity-level claim the register does not support, and mapping to unknown adds nothing. Removing the field is more conservative than either option the reviewer offered."
+    },
+    {
+      "what": "Cleared the valid_from mapping (Start Date parse_date) and listed Start Date under unmapped.",
+      "why": "The metadata does not state what Start Date describes, so rule 10 is not satisfied for applying it to the name and address claims. The recurring 1947/1955 values also look like placeholders."
+    },
+    {
+      "what": "No changes to record_id, observed_at, valid_to, the trading_name mapping, the address.full mapping, the address.locality mapping, or source_reliability.",
+      "why": "The reviewer raised no issue with these, and the current reasoning holds."
+    }
+  ],
+  "warning_responses": [
+    {
+      "check_id": "entity.status",
+      "action": "changed",
+      "reason": "Removed the entity.status mapping instead of keeping 'active' or relabelling 'Trading' as unknown. The register's Trading Status describes a venue operating state, so no entity status claim is emitted. Trading Status is listed under unmapped with the reason."
+    },
+    {
+      "check_id": "valid_from",
+      "action": "changed",
+      "reason": "Cleared valid_from because Start Date's meaning is not stated in the source or metadata, so it cannot be confirmed as the licence start for the name and address claims. Start Date is listed under unmapped and the reason is recorded there."
+    }
+  ]
+}

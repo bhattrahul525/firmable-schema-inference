@@ -318,11 +318,24 @@ def run_summary(source_id: str, started_at: str) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Onboard one source with the Part 2 agent.")
-    ap.add_argument("source_id")
+    ap.add_argument("source", nargs="?", help="a downloaded source_id, or <portal>:<ckan dataset name> for an unseen dataset")
+    ap.add_argument("--file", help="onboard a local csv/tsv/xlsx/json file instead")
+    ap.add_argument("--licence", default="unknown", help="licence of a local file (default: unknown, flagged)")
+    ap.add_argument("--resource-contains", help="CKAN: only consider resources whose name contains this")
     a = ap.parse_args()
-    if not (RAW_DIR / a.source_id / "metadata.json").exists():
-        sys.exit(f"no downloaded source {a.source_id!r}. Run: python -m src.part1_triage.download")
-    onboard(a.source_id)
+    if a.file:
+        from src.part2_agent.fetch import fetch_file
+        source_id = fetch_file(a.file, a.licence)
+    elif a.source and ":" in a.source:
+        from src.part2_agent.fetch import fetch_ckan
+        source_id = fetch_ckan(a.source, a.resource_contains)
+    elif a.source:
+        source_id = a.source
+    else:
+        sys.exit("give a source_id, a <portal>:<dataset> reference, or --file")
+    if not (RAW_DIR / source_id / "metadata.json").exists():
+        sys.exit(f"no downloaded source {source_id!r}. Run: python -m src.part1_triage.download")
+    onboard(source_id)
 
 
 if __name__ == "__main__":
