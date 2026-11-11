@@ -1,0 +1,122 @@
+{
+  "builder_version": "p1.0",
+  "profiles": 50,
+  "by_trust": {
+    "accepted": 40,
+    "loose_only": 10
+  },
+  "entity_frame": {
+    "accepted": 40,
+    "loose_only_available": 16,
+    "loose_only_used": 10,
+    "loose_groups": 26,
+    "loose_skipped_touch_accepted": 10,
+    "loose_skipped_ambiguous": 0
+  },
+  "fields_filled": {
+    "entity.abn": 50,
+    "entity.entity_type": 45,
+    "address.full": 31,
+    "address.state": 35,
+    "entity.legal_name": 41,
+    "address.postcode": 25,
+    "address.locality": 5,
+    "entity.acn": 2
+  },
+  "profiles_with_trading_names": 3,
+  "profiles_with_conflicts": 4,
+  "conflicts_by_field": {
+    "entity.legal_name": 4
+  },
+  "profiles_with_unresolved": 10,
+  "unresolved_by_field": {
+    "entity.legal_name": 9,
+    "address": 1
+  },
+  "decided_by": {
+    "all_sources_agree": 112,
+    "single_source": 118,
+    "more_sources_agree": 3,
+    "higher_source_reliability": 1
+  },
+  "deletion_test": {
+    "act_notifiable_invoices": {
+      "profiles_containing_source": 48,
+      "corroboration_lost": 47,
+      "content": {
+        "conflict_resolution_changed": 6,
+        "unchanged": 30,
+        "other_field_changed_or_lost": 3,
+        "identity_changed_or_lost": 11
+      },
+      "fields_lost": {
+        "entity.entity_type": 3,
+        "entity.legal_name": 2,
+        "entity.abn": 9
+      },
+      "fields_changed": {}
+    },
+    "asic_credit_licensee": {
+      "profiles_containing_source": 5,
+      "corroboration_lost": 5,
+      "content": {
+        "unchanged": 45,
+        "other_field_changed_or_lost": 4,
+        "identity_changed_or_lost": 1
+      },
+      "fields_lost": {
+        "address.locality": 5,
+        "address.postcode": 5,
+        "address.state": 5,
+        "entity.entity_type": 1
+      },
+      "fields_changed": {
+        "entity.legal_name": 1
+      }
+    },
+    "qbcc_licensed_contractors": {
+      "profiles_containing_source": 2,
+      "corroboration_lost": 1,
+      "content": {
+        "unchanged": 48,
+        "identity_changed_or_lost": 2
+      },
+      "fields_lost": {
+        "address.full": 2,
+        "address.postcode": 2,
+        "address.state": 2,
+        "entity.acn": 2
+      },
+      "fields_changed": {}
+    },
+    "qld_health_contracts_2023_24": {
+      "profiles_containing_source": 45,
+      "corroboration_lost": 44,
+      "content": {
+        "conflict_resolution_changed": 2,
+        "other_field_changed_or_lost": 31,
+        "unchanged": 15,
+        "identity_changed_or_lost": 2
+      },
+      "fields_lost": {
+        "address.full": 29,
+        "address.state": 28,
+        "address.postcode": 18,
+        "entity.entity_type": 6,
+        "entity.legal_name": 1,
+        "entity.abn": 1
+      },
+      "fields_changed": {}
+    },
+    "vic_liquor_licences": {
+      "profiles_containing_source": 1,
+      "corroboration_lost": 1,
+      "content": {
+        "unchanged": 49,
+        "conflict_resolution_changed": 1
+      },
+      "fields_lost": {},
+      "fields_changed": {}
+    }
+  }
+}

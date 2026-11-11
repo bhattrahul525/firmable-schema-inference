@@ -11,5 +11,6 @@ Budget: 6h total. Log each working block (start, end, what got done).
 | 2026-11-12 | 11:00 | 12:00 | 60 | Part 2 build | Generic engine + 8-step agent; onboarded and approved all 6 sources (hard source: WA); extracted observations; fixed profile bug |
 | 2026-11-12 | 12:00 | 12:15 | 15 | Part 2 seventh-source test | Fetch-and-onboard command; agent produced a config for an unseen NSW dataset (seed-7 pick), left pending review |
 | 2026-11-12 | | | 60 | Part 3 | Matcher (tiers, queue, clusters), 50-link hand check labelled and scored. Duration is my estimate: Rahul to correct |
+| 2026-11-12 | | | 30 | Part 4 | Profile builder (50 profiles), decision rules + tests, source-deletion test. Duration is my estimate: Rahul to correct |
 
-**Running total:** 255 min / 360 min (105 min left)
+**Running total:** 285 min / 360 min (75 min left)

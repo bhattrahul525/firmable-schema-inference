@@ -21,3 +21,9 @@
 - LLM adjudicator for the borderline band only (ABN equal, names differ) with the evidence packet; measure vs hand labels.
 - Re-score demo: `rescore` from stored features when the matcher changes (m1.1 variant), to show the "change" answer in practice.
 - QBCC person-under-company-ABN pattern: model as a `nominee_of` relationship instead of a conflict.
+
+## Part 4 ideas
+- Claim-level dates (invoice date, contract award date) as observed_at so recency becomes a legitimate tie-breaker.
+- A display name for unresolved-name profiles (rule-based, clearly labelled) without pretending a winner.
+- Fix the QLD Health / ACT source_reliability ties with measured agreement against ASIC/QBCC (an independent reference) instead of model judgement.
+- Cross-source ACN/ABN enrichment: where ABN is known, look up ACN consistency (evidence only).
