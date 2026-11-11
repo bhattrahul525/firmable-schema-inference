@@ -1,0 +1,33 @@
+# The 6 sources chosen for Part 2 (human decision, see DECISIONS.md).
+#
+# This is a list of WHICH files to onboard, not HOW to map them. Mapping configs live in
+# configs/ and are written only by the Part 2 agent.
+#
+# source_id   stable id used in every observation's envelope
+# dataset_id  <portal>:<ckan name>, as in outputs/part1_shortlist.csv
+# resource    how to pick one file from the dataset's resources (format and/or name match)
+
+sources:
+  - source_id: asic_credit_licensee
+    dataset_id: datagovau:asic-credit-licensee
+    resource: {format: TSV}
+
+  - source_id: qbcc_licensed_contractors
+    dataset_id: qld:qbcc-licensed-contractors-register
+    resource: {name_contains: "register of licensed builders"}
+
+  - source_id: qld_health_contracts_2023_24
+    dataset_id: qld:system_procurement_contract-disclosure-report
+    resource: {name_contains: "2023-24"}
+
+  - source_id: wa_tenders_awards_2023_24
+    dataset_id: datagovau:tenders-wa-contract-award-details-2023-24-financial-year
+    resource: {format: CSV}
+
+  - source_id: vic_liquor_licences
+    dataset_id: vic:victorian-liquor-licences-by-location
+    resource: {name_contains: "September 2026"}
+
+  - source_id: act_notifiable_invoices
+    dataset_id: datagovau:kzmf-7uhp
+    resource: {format: JSON}
