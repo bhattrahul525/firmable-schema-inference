@@ -1,0 +1,471 @@
+{
+  "examples": [
+    {
+      "raw": {
+        "Licence Number": "36155675",
+        "Licensee": "THE WAREHOUSE GEELONG PTY LTD",
+        "Trading As": "THE WAREHOUSE GEELONG",
+        "Licence Category": "Limited Licence",
+        "Trading Hours": "Limited Licence",
+        "Street Address": "5 LITTLE RYRIE ST",
+        "Suburb": "GEELONG",
+        "Postcode": "3220",
+        "Council": "GREATER GEELONG CITY COUNCIL",
+        "Region": "Barwon South-West",
+        "Metro/Regional": "Regional",
+        "Latitude": "-38.22323293",
+        "Longitude": "145.17033890",
+        "Postal Address": "5 LITTLE RYRIE STREET",
+        "Postal Suburb": "GEELONG",
+        "Postal Postcode": "3220"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "THE WAREHOUSE GEELONG PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "THE WAREHOUSE GEELONG"
+        },
+        {
+          "field": "address.full",
+          "value": "5 LITTLE RYRIE ST, GEELONG"
+        },
+        {
+          "field": "address.locality",
+          "value": "GEELONG"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3220"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "32359748",
+        "Licensee": "GSKR PTY LTD",
+        "Trading As": "GOLDEN SKY INDIAN RESTAURANT",
+        "Licence Category": "Restaurant and cafe Licence",
+        "Trading Hours": "Trading to 1am",
+        "Patron Capacity (if applicable)": "73",
+        "Street Address": "223-225 MURRAY ST",
+        "Suburb": "COLAC",
+        "Postcode": "3250",
+        "Council": "COLAC-OTWAY SHIRE COUNCIL",
+        "Region": "Barwon South-West",
+        "Metro/Regional": "Regional",
+        "Latitude": "-38.33860022",
+        "Longitude": "143.58329963",
+        "Postal Address": "223-225 MURRAY ST",
+        "Postal Suburb": "COLAC",
+        "Postal Postcode": "3250"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "GSKR PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "GOLDEN SKY INDIAN RESTAURANT"
+        },
+        {
+          "field": "address.full",
+          "value": "223-225 MURRAY ST, COLAC"
+        },
+        {
+          "field": "address.locality",
+          "value": "COLAC"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3250"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "36156401",
+        "Licensee": "DJ LIFE PTY LTD",
+        "Trading As": "GAMI POINTCOOK",
+        "Licence Category": "Limited Licence",
+        "Trading Hours": "Limited Licence",
+        "Street Address": "RESTAURANT 35/300 POINT COOK ROAD SANCTUARY LAKES SHOPPING CENTRE",
+        "Suburb": "POINT COOK",
+        "Postcode": "3030",
+        "Council": "WYNDHAM CITY COUNCIL",
+        "Region": "Metro West",
+        "Metro/Regional": "Metro",
+        "Latitude": "-38.22456582",
+        "Longitude": "144.33719474",
+        "Postal Address": "RESTAURANT 35/300 POINT COOK ROAD SANCTUARY LAKES SHOPPING CENTRE",
+        "Postal Suburb": "POINT COOK",
+        "Postal Postcode": "3030"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "DJ LIFE PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "GAMI POINTCOOK"
+        },
+        {
+          "field": "address.full",
+          "value": "RESTAURANT 35/300 POINT COOK ROAD SANCTUARY LAKES SHOPPING CENTRE, POINT COOK"
+        },
+        {
+          "field": "address.locality",
+          "value": "POINT COOK"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3030"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "32121763",
+        "Licensee": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC",
+        "Trading As": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC",
+        "Licence Category": "Full Club Licence",
+        "Trading Hours": "Full Club Licence",
+        "Patron Capacity (if applicable)": "198",
+        "Street Address": "KEYSBOROUGH RECREATION RESERVE CNR CHELTENHAM & STANLEY ROADS",
+        "Suburb": "KEYSBOROUGH",
+        "Postcode": "3173",
+        "Council": "GREATER DANDENONG CITY COUNCIL",
+        "Region": "Metro South",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.99448300",
+        "Longitude": "145.16757200",
+        "Postal Address": "P O BOX 73",
+        "Postal Suburb": "DINGLEY",
+        "Postal Postcode": "3172"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "KEYSBOROUGH FOOTBALL NETBALL CLUB INC"
+        },
+        {
+          "field": "address.full",
+          "value": "KEYSBOROUGH RECREATION RESERVE CNR CHELTENHAM & STANLEY ROADS, KEYSBOROUGH"
+        },
+        {
+          "field": "address.locality",
+          "value": "KEYSBOROUGH"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3173"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "32326973",
+        "Licensee": "GENSUKE HAWTHORN PTY LTD",
+        "Trading As": "GENSUKE HAWTHORN",
+        "Licence Category": "Restaurant and cafe Licence",
+        "Trading Hours": "Trading to 1am",
+        "Patron Capacity (if applicable)": "40",
+        "Street Address": "TENANCY 4 860-862 GLENFERRIE ROAD",
+        "Suburb": "HAWTHORN",
+        "Postcode": "3122",
+        "Council": "BOROONDARA CITY COUNCIL",
+        "Region": "Metro East",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.81543287",
+        "Longitude": "145.03702540",
+        "Postal Address": "HAKATA GENSUKE 168 RUSSELL STREET",
+        "Postal Suburb": "MELBOURNE",
+        "Postal Postcode": "3000"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "GENSUKE HAWTHORN PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "GENSUKE HAWTHORN"
+        },
+        {
+          "field": "address.full",
+          "value": "TENANCY 4 860-862 GLENFERRIE ROAD, HAWTHORN"
+        },
+        {
+          "field": "address.locality",
+          "value": "HAWTHORN"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3122"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "32059380",
+        "Licensee": "YARRA DRINK DELIGHT PTY LTD",
+        "Trading As": "YARAVILLE LIQUORS",
+        "Licence Category": "Packaged Liquor Licence",
+        "Trading Hours": "Ordinary",
+        "Street Address": "6 WEMBLEY AV",
+        "Suburb": "YARRAVILLE",
+        "Postcode": "3013",
+        "Council": "MARIBYRNONG CITY COUNCIL",
+        "Region": "Metro West",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.81955000",
+        "Longitude": "144.87381900",
+        "Postal Address": "23 MARWARI WAY",
+        "Postal Suburb": "AINTREE",
+        "Postal Postcode": "3336"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "YARRA DRINK DELIGHT PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "YARAVILLE LIQUORS"
+        },
+        {
+          "field": "address.full",
+          "value": "6 WEMBLEY AV, YARRAVILLE"
+        },
+        {
+          "field": "address.locality",
+          "value": "YARRAVILLE"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3013"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "32314633",
+        "Licensee": "JINDA GROUP PTY LTD",
+        "Trading As": "JINDA GROUP",
+        "Licence Category": "Restaurant and cafe Licence",
+        "Trading Hours": "Trading to 1am",
+        "Patron Capacity (if applicable)": "100",
+        "Street Address": "1-7 FERGUSON STREET",
+        "Suburb": "ABBOTSFORD",
+        "Postcode": "3067",
+        "Council": "YARRA CITY COUNCIL",
+        "Region": "Metro North",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.80923800",
+        "Longitude": "144.99226800",
+        "Postal Address": "1-7 FERGUSON STREET",
+        "Postal Suburb": "ABBOTSFORD",
+        "Postal Postcode": "3067"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "JINDA GROUP PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "JINDA GROUP"
+        },
+        {
+          "field": "address.full",
+          "value": "1-7 FERGUSON STREET, ABBOTSFORD"
+        },
+        {
+          "field": "address.locality",
+          "value": "ABBOTSFORD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3067"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "36304101",
+        "Licensee": "THE LITTLE WINE ROOM PTY LTD",
+        "Trading As": "THE LITTLE WINE ROOM",
+        "Licence Category": "Remote Seller's Licence",
+        "Trading Hours": "Ordinary",
+        "Street Address": "74 ASLING STREET",
+        "Suburb": "BRIGHTON",
+        "Postcode": "3186",
+        "Council": "BAYSIDE CITY COUNCIL",
+        "Region": "Metro South",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.89888803",
+        "Longitude": "145.00294480",
+        "Postal Address": "74 ASLING STREET",
+        "Postal Suburb": "BRIGHTON",
+        "Postal Postcode": "3186"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "THE LITTLE WINE ROOM PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "THE LITTLE WINE ROOM"
+        },
+        {
+          "field": "address.full",
+          "value": "74 ASLING STREET, BRIGHTON"
+        },
+        {
+          "field": "address.locality",
+          "value": "BRIGHTON"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3186"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "31407962",
+        "Licensee": "BETHANGA & DISTRICT GOLF CLUB INC.",
+        "Trading As": "BETHANGA & DISTRICT GOLF CLUB",
+        "Licence Category": "Restricted Club Licence",
+        "Trading Hours": "Restricted Club Licence",
+        "Patron Capacity (if applicable)": "317",
+        "Street Address": "576 SPRINGDALE RD",
+        "Suburb": "BETHANGA",
+        "Postcode": "3691",
+        "Council": "TOWONG SHIRE COUNCIL",
+        "Region": "Hume",
+        "Metro/Regional": "Regional",
+        "Latitude": "-36.15679794",
+        "Longitude": "147.12412604",
+        "Postal Address": "515 TALGARNO GAP ROAD",
+        "Postal Suburb": "BETHANGA",
+        "Postal Postcode": "3691"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "BETHANGA & DISTRICT GOLF CLUB INC."
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "BETHANGA & DISTRICT GOLF CLUB"
+        },
+        {
+          "field": "address.full",
+          "value": "576 SPRINGDALE RD, BETHANGA"
+        },
+        {
+          "field": "address.locality",
+          "value": "BETHANGA"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3691"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "Licence Number": "36158584",
+        "Licensee": "BAR BARONS PTY LTD",
+        "Trading As": "BAR BARONS",
+        "Licence Category": "Limited Licence",
+        "Trading Hours": "Limited Licence",
+        "Street Address": "4A EDINBURGH ST",
+        "Suburb": "OAKLEIGH SOUTH",
+        "Postcode": "3167",
+        "Council": "MONASH CITY COUNCIL",
+        "Region": "Metro East",
+        "Metro/Regional": "Metro",
+        "Latitude": "-37.91524900",
+        "Longitude": "145.10955700",
+        "Postal Address": "4A EDINBURGH ST",
+        "Postal Suburb": "OAKLEIGH SOUTH",
+        "Postal Postcode": "3167"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "BAR BARONS PTY LTD"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "BAR BARONS"
+        },
+        {
+          "field": "address.full",
+          "value": "4A EDINBURGH ST, OAKLEIGH SOUTH"
+        },
+        {
+          "field": "address.locality",
+          "value": "OAKLEIGH SOUTH"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3167"
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "overall": "The mapping looks right on every example row. Licensee maps to legal_name and Trading As to trading_name, and the entity_type results (company for Pty Ltd, unknown for Inc. and clubs) match the suffix rule. Street Address plus Suburb joins to address.full, Suburb to locality, and Postcode to postcode. Postal address columns, licence class and hours are correctly left unmapped, and the postcode '0' rejection is consistent with the transform. No meaning errors are visible in the examples."
+}

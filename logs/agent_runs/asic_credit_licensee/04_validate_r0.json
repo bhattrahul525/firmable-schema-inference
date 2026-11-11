@@ -1,0 +1,125 @@
+{
+  "structural_errors": [],
+  "field_failures": [],
+  "unaccounted_columns": [],
+  "duplicate_ids": {
+    "duplicate_rows": 0,
+    "of": 300
+  },
+  "warnings": [],
+  "infos": [],
+  "stats": {
+    "entity.legal_name<-CRED_LIC_NAME": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.trading_name<-CRED_LIC_BN": {
+      "rows": 300,
+      "blank": 193,
+      "ok": 107,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.abn<-CRED_LIC_ABN_ACN": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 270,
+      "skip": 30,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "not_11_digits(9)": 28,
+        "not_11_digits(1)": 1,
+        "not_11_digits(8)": 1
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.acn<-CRED_LIC_ABN_ACN": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 28,
+      "skip": 272,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {
+        "not_9_digits(11)": 270,
+        "not_9_digits(1)": 1,
+        "not_9_digits(8)": 1
+      },
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.entity_type<-CRED_LIC_NAME": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.status<-CRED_LIC_STATUS": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.locality<-CRED_LIC_LOCALITY": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.state<-CRED_LIC_STATE": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.postcode<-CRED_LIC_PCODE": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    }
+  },
+  "n_rows": 300,
+  "hard_failure_count": 0,
+  "id_failure": false,
+  "observations": 2205,
+  "rejects": 0
+}

@@ -1,0 +1,112 @@
+{
+  "structural_errors": [],
+  "field_failures": [],
+  "unaccounted_columns": [],
+  "duplicate_ids": {
+    "duplicate_rows": 0,
+    "of": 300
+  },
+  "warnings": [],
+  "infos": [],
+  "stats": {
+    "entity.legal_name<-Licensee": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.entity_type<-Licensee": {
+      "rows": 300,
+      "blank": 0,
+      "ok": 300,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "entity.trading_name<-Trading As": {
+      "rows": 300,
+      "blank": 4,
+      "ok": 296,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.full<-Street Address+Suburb": {
+      "rows": 300,
+      "blank": 12,
+      "ok": 288,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.locality<-Suburb": {
+      "rows": 300,
+      "blank": 12,
+      "ok": 288,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.postcode<-Postcode": {
+      "rows": 300,
+      "blank": 12,
+      "ok": 283,
+      "skip": 0,
+      "reject": 5,
+      "parse_rate": 0.9826,
+      "skip_reasons": {},
+      "reject_reasons": {
+        "postcode_length(1)": 5
+      },
+      "reject_examples": [
+        {
+          "raw": "0",
+          "reason": "postcode_length(1)",
+          "source_record_id": "h:af1f240ce672bbcf"
+        },
+        {
+          "raw": "0",
+          "reason": "postcode_length(1)",
+          "source_record_id": "h:fc8cf523f43089a2"
+        },
+        {
+          "raw": "0",
+          "reason": "postcode_length(1)",
+          "source_record_id": "h:e1d89fdd9bbd8e7e"
+        },
+        {
+          "raw": "0",
+          "reason": "postcode_length(1)",
+          "source_record_id": "h:40a2283e6dbfb83a"
+        },
+        {
+          "raw": "0",
+          "reason": "postcode_length(1)",
+          "source_record_id": "h:991c7f944e3da2c8"
+        }
+      ]
+    }
+  },
+  "n_rows": 300,
+  "hard_failure_count": 0,
+  "id_failure": false,
+  "observations": 1755,
+  "rejects": 5
+}

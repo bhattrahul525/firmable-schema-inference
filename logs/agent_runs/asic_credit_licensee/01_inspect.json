@@ -1,0 +1,13 @@
+{
+  "what_it_is": "ASIC register extract of current Australian credit licensees, one row per credit licence with licensee name, ABN/ACN, licence status and address.",
+  "one_row_is": "one credit licence held by a licensee (an Australian Credit Licence), as listed on the ASIC credit licensee register",
+  "contains_business_entities": true,
+  "format": "tsv",
+  "encoding": "utf-8",
+  "delimiter": "\t",
+  "sheet": "",
+  "header_row": 1,
+  "records_path": "",
+  "attempts": 1,
+  "reader_check": "ok: 17 columns, 4313 rows"
+}

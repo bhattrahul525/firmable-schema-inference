@@ -1,0 +1,28 @@
+{
+  "source_id": "asic_credit_licensee",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 5,
+  "cost_usd": 0.013551,
+  "input_tokens": 67665,
+  "output_tokens": 18157,
+  "llm_seconds": 77.9,
+  "cost_by_step": {
+    "part2.inspect": 0.000382,
+    "part2.propose_A": 0.003915,
+    "part2.propose_B": 0.004699,
+    "part2.critique": 0.001946,
+    "part2.revise_critique": 0.002609
+  },
+  "wall_clock_this_invocation_s": 78.4,
+  "step_timings_s": {
+    "01_inspect": 2.33,
+    "02_profile": 0.34,
+    "03a_propose_A": 20.75,
+    "03b_propose_B": 27.24,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.04,
+    "06_critique": 11.52,
+    "05_revise_critique": 16.12,
+    "04_validate_post_critique": 0.03
+  }
+}

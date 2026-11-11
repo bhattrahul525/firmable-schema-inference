@@ -1,0 +1,512 @@
+{
+  "examples": [
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "472169",
+        "CRED_LIC_NAME": "CABOT SQUARE ACCOUNTING PTY LTD",
+        "CRED_LIC_START_DT": "12/03/2015",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "22137291699",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "SYDNEY",
+        "CRED_LIC_STATE": "NSW",
+        "CRED_LIC_PCODE": "2000",
+        "CRED_LIC_LAT": "-33.8698439",
+        "CRED_LIC_LNG": "151.2082848",
+        "CRED_LIC_EDRS": "FOS",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "CABOT SQUARE ACCOUNTING PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "22137291699"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "SYDNEY"
+        },
+        {
+          "field": "address.state",
+          "value": "NSW"
+        },
+        {
+          "field": "address.postcode",
+          "value": "2000"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "389707",
+        "CRED_LIC_NAME": "CREDIT CHOICE FINANCE PTY. LTD.",
+        "CRED_LIC_START_DT": "16/03/2011",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "58124482499",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "MILE PLAINS",
+        "CRED_LIC_STATE": "QLD",
+        "CRED_LIC_PCODE": "4113",
+        "CRED_LIC_LAT": "-27.5779184",
+        "CRED_LIC_LNG": "153.092299",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "CREDIT CHOICE FINANCE PTY. LTD."
+        },
+        {
+          "field": "entity.abn",
+          "value": "58124482499"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "MILE PLAINS"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4113"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "455213",
+        "CRED_LIC_NAME": "PAULMAJO PTY. LTD.",
+        "CRED_LIC_START_DT": "14/04/2014",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "29010151523",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "BLACKBURN SOUTH",
+        "CRED_LIC_STATE": "VIC",
+        "CRED_LIC_PCODE": "3130",
+        "CRED_LIC_LAT": "-37.8388322",
+        "CRED_LIC_LNG": "145.1487848",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities as a credit provider by:~carryi\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "PAULMAJO PTY. LTD."
+        },
+        {
+          "field": "entity.abn",
+          "value": "29010151523"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "BLACKBURN SOUTH"
+        },
+        {
+          "field": "address.state",
+          "value": "VIC"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3130"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "392848",
+        "CRED_LIC_NAME": "RENSURE GROUP PTY LTD",
+        "CRED_LIC_START_DT": "28/01/2011",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "95097551301",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "CABARITA",
+        "CRED_LIC_STATE": "NSW",
+        "CRED_LIC_PCODE": "2137",
+        "CRED_LIC_LAT": "-33.8475029",
+        "CRED_LIC_LNG": "151.1158878",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_BN": "RENSURE FINANCIAL SERVICE CO",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "RENSURE GROUP PTY LTD"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "RENSURE FINANCIAL SERVICE CO"
+        },
+        {
+          "field": "entity.abn",
+          "value": "95097551301"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "CABARITA"
+        },
+        {
+          "field": "address.state",
+          "value": "NSW"
+        },
+        {
+          "field": "address.postcode",
+          "value": "2137"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "234563",
+        "CRED_LIC_NAME": "ARAB BANK AUSTRALIA LIMITED",
+        "CRED_LIC_START_DT": "01/12/2010",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "37002950745",
+        "CRED_LIC_AFSL_NUM": "234563",
+        "CRED_LIC_LOCALITY": "SYDNEY",
+        "CRED_LIC_STATE": "NSW",
+        "CRED_LIC_PCODE": "2000",
+        "CRED_LIC_LAT": "-33.8698439",
+        "CRED_LIC_LNG": "151.2082848",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_BN": "ARAB BANK AUSTRALIA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "ARAB BANK AUSTRALIA LIMITED"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "ARAB BANK AUSTRALIA"
+        },
+        {
+          "field": "entity.abn",
+          "value": "37002950745"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "SYDNEY"
+        },
+        {
+          "field": "address.state",
+          "value": "NSW"
+        },
+        {
+          "field": "address.postcode",
+          "value": "2000"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "473284",
+        "CRED_LIC_NAME": "STELLER HOME LOANS PTY LTD",
+        "CRED_LIC_START_DT": "23/04/2015",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "92163306250",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "CROYDON NORTH",
+        "CRED_LIC_STATE": "VIC",
+        "CRED_LIC_PCODE": "3136",
+        "CRED_LIC_LAT": "-37.7737415",
+        "CRED_LIC_LNG": "145.2857882",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "STELLER HOME LOANS PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "92163306250"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "CROYDON NORTH"
+        },
+        {
+          "field": "address.state",
+          "value": "VIC"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3136"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "381438",
+        "CRED_LIC_NAME": "AUSTRALIAN MORTGAGE MANAGERS PTY LTD",
+        "CRED_LIC_START_DT": "04/10/2010",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "77055688054",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "RIDGEWAY IVANHOE",
+        "CRED_LIC_STATE": "VIC",
+        "CRED_LIC_PCODE": "3079",
+        "CRED_LIC_LAT": "-37.7737064195398",
+        "CRED_LIC_LNG": "145.043906258154",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "AUSTRALIAN MORTGAGE MANAGERS PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "77055688054"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "RIDGEWAY IVANHOE"
+        },
+        {
+          "field": "address.state",
+          "value": "VIC"
+        },
+        {
+          "field": "address.postcode",
+          "value": "3079"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "392040",
+        "CRED_LIC_NAME": "MEELA, PROSPER JOSEPH",
+        "CRED_LIC_START_DT": "07/02/2011",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "77136783602",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "PARKINSON",
+        "CRED_LIC_STATE": "QLD",
+        "CRED_LIC_PCODE": "4115",
+        "CRED_LIC_LAT": "-27.6357372",
+        "CRED_LIC_LNG": "153.0300028",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "MEELA, PROSPER JOSEPH"
+        },
+        {
+          "field": "entity.abn",
+          "value": "77136783602"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "unknown"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "PARKINSON"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4115"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "544684",
+        "CRED_LIC_NAME": "AMM JOURNEY GROUP PTY LTD",
+        "CRED_LIC_START_DT": "12/01/2023",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "24641152954",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "MAROOCHYDORE",
+        "CRED_LIC_STATE": "QLD",
+        "CRED_LIC_PCODE": "4558",
+        "CRED_LIC_LAT": "-26.6556523",
+        "CRED_LIC_LNG": "153.0946684",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_BN": "JOURNEY FINANCE ALL FINANCE SOLUTIONS",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "AMM JOURNEY GROUP PTY LTD"
+        },
+        {
+          "field": "entity.trading_name",
+          "value": "JOURNEY FINANCE ALL FINANCE SOLUTIONS"
+        },
+        {
+          "field": "entity.abn",
+          "value": "24641152954"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "MAROOCHYDORE"
+        },
+        {
+          "field": "address.state",
+          "value": "QLD"
+        },
+        {
+          "field": "address.postcode",
+          "value": "4558"
+        }
+      ]
+    },
+    {
+      "raw": {
+        "REGISTER_NAME": "Credit Licence",
+        "CRED_LIC_NUM": "422014",
+        "CRED_LIC_NAME": "WA MORTGAGE BROKERS PTY LTD",
+        "CRED_LIC_START_DT": "18/06/2012",
+        "CRED_LIC_STATUS": "APPR",
+        "CRED_LIC_ABN_ACN": "22129713275",
+        "CRED_LIC_AFSL_NUM": "0",
+        "CRED_LIC_LOCALITY": "MUNDARING",
+        "CRED_LIC_STATE": "WA",
+        "CRED_LIC_PCODE": "6073",
+        "CRED_LIC_LAT": "-31.9014181",
+        "CRED_LIC_LNG": "116.1653193",
+        "CRED_LIC_EDRS": "AFCA",
+        "CRED_LIC_AUTHORISATIONS": "This licence authorises the licensee to:~Engage in credit activities other than as a credit provider\u2026"
+      },
+      "observations": [
+        {
+          "field": "entity.legal_name",
+          "value": "WA MORTGAGE BROKERS PTY LTD"
+        },
+        {
+          "field": "entity.abn",
+          "value": "22129713275"
+        },
+        {
+          "field": "entity.entity_type",
+          "value": "company"
+        },
+        {
+          "field": "entity.status",
+          "value": "active"
+        },
+        {
+          "field": "address.locality",
+          "value": "MUNDARING"
+        },
+        {
+          "field": "address.state",
+          "value": "WA"
+        },
+        {
+          "field": "address.postcode",
+          "value": "6073"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "field": "entity.status",
+      "problem": "The CRED_LIC_STATUS values describe the credit licence (APPR = approved, SUSP = suspended), not the legal entity. The examples emit entity.status 'active' for every APPR row, which asserts the company is active. A licence can be approved while the company is deregistered or in liquidation, and a suspended licence does not make the entity 'suspended'. Mapping these onto entity.status is a meaning error, not just an interpretation.",
+      "suggested_fix": "Remove the entity.status map_values mapping (leave CRED_LIC_STATUS unmapped with reason 'licence status, not entity status'). If it must be kept, route it to a licence-status claim rather than entity.status, and do not map APPR to 'active'."
+    },
+    {
+      "field": "valid_from",
+      "problem": "The config maps CRED_LIC_START_DT to valid_from, but the example rows that have a start date (e.g. CABOT SQUARE ACCOUNTING, 12/03/2015) produce no valid_from observation. Either the mapping is not being applied or the output is incomplete, so the config and the emitted observations disagree.",
+      "suggested_fix": "Check that valid_from is emitted for rows with a parsable CRED_LIC_START_DT (format %d/%m/%Y) and confirm the observation envelope carries it. Also confirm that valid_from is documented as the licence start, not the entity registration date, so date_registered is not inferred from it."
+    }
+  ],
+  "overall": "Most field mappings are consistent with the examples: legal name from CRED_LIC_NAME, trading name from CRED_LIC_BN, ABN and checksum handling, suffix-based entity type, locality, state and postcode. The main meaning error is that the licence status codes are mapped onto entity.status, which asserts entity-level status from a licence-level field. The valid_from output is also missing from the examples, which should be verified."
+}

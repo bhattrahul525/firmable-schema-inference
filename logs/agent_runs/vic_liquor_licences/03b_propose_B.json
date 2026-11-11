@@ -1,0 +1,170 @@
+{
+  "record_id": {
+    "columns": [],
+    "hash_row": true,
+    "reason": "Licence Number has 20000 distinct values across 23169 rows, so it does not uniquely identify a row (one licence can appear on more than one row). No combination of columns was verified as unique, so the engine hashes the whole row."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "",
+    "transforms": []
+  },
+  "valid_to": {
+    "source": "",
+    "transforms": []
+  },
+  "fields": [
+    {
+      "source": [
+        "Licensee"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "Licensee is the licence holder, which is treated as the registered name. Some licensees are individuals (for example GRANT SIMON); they are mapped as legal_name without inferring entity type."
+    },
+    {
+      "source": [
+        "Trading As"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Trading As is the name the premises trades under, which matches the trading name definition. Fill rate is 99.2 percent."
+    },
+    {
+      "source": [
+        "Licensee"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "The source has no explicit entity-type column, so the suffix rule is applied to the Licensee name. Names without a company suffix become unknown, which is the intended default."
+    },
+    {
+      "source": [
+        "Street Address"
+      ],
+      "canonical": "address.full",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Street Address is the premises address where the licence is held. It is not the postal address, which is listed separately. Some values lack a suburb, which sits in its own column."
+    },
+    {
+      "source": [
+        "Suburb"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Suburb is the premises locality. Fill rate is 96 percent."
+    },
+    {
+      "source": [
+        "Postcode"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "Premises postcode. The value 0 appears on about 229 rows, which is not a valid postcode and will be rejected by the postcode transform. Some postcodes may also belong to the postal rather than premises address, which the profile cannot confirm."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "Licence Number",
+      "reason": "Licence identifier. The ontology has no licence-number field. It is kept in the raw record and is not unique per row."
+    },
+    {
+      "source": "Licence Category",
+      "reason": "Licence type (for example Restaurant and cafe Licence). The ontology has no licence-category field, and it is not an entity type."
+    },
+    {
+      "source": "Trading Hours",
+      "reason": "Trading hours category. The ontology has no trading-hours field. Several values repeat the licence category."
+    },
+    {
+      "source": "Patron Capacity (if applicable)",
+      "reason": "Patron capacity for the premises. The ontology has no capacity field."
+    },
+    {
+      "source": "Council",
+      "reason": "Local government area. The ontology has no council or jurisdiction field."
+    },
+    {
+      "source": "Region",
+      "reason": "Liquor licensing region. The ontology has no region field."
+    },
+    {
+      "source": "Metro/Regional",
+      "reason": "Metro or regional flag. The ontology has no such field."
+    },
+    {
+      "source": "Latitude",
+      "reason": "Coordinate. The ontology has no geo field. Some values look wrong for their suburb (for example Collingwood at -38.38), so they should not be trusted."
+    },
+    {
+      "source": "Longitude",
+      "reason": "Coordinate. The ontology has no geo field. Some values look wrong for their suburb (for example Collingwood at 142.24), so they should not be trusted."
+    },
+    {
+      "source": "Postal Address",
+      "reason": "Licensee postal address (often a PO box or locked bag), not the premises. The ontology has no postal-address field, and mapping it to address.full would be wrong."
+    },
+    {
+      "source": "Postal Suburb",
+      "reason": "Postal suburb of the licensee, not the premises. The ontology has no postal field."
+    },
+    {
+      "source": "Postal Postcode",
+      "reason": "Postal postcode of the licensee, not the premises. The ontology has no postal field."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.9,
+    "address": 0.9,
+    "classification": 0.5,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "Liquor Control Victoria is the statutory regulator that issues the licences, so its register is highly reliable for licensee identity and premises address. Classification (licence category and trading hours) is an administrative label rather than a judgement about the business, so it is rated neutral. The dataset has no contact fields, so contact is rated neutral. Some coordinates and postal values look inconsistent, which lowers confidence in the geographic and postal data."
+}

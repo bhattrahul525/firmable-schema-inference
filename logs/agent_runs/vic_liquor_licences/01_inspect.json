@@ -1,0 +1,13 @@
+{
+  "what_it_is": "Register of current Victorian liquor licences by location, published by Liquor Control Victoria as an XLSX snapshot.",
+  "one_row_is": "one current liquor licence held by a licensee at a premises address",
+  "contains_business_entities": true,
+  "format": "xlsx",
+  "encoding": "",
+  "delimiter": "",
+  "sheet": "Current_Victorian_Licences_By_L",
+  "header_row": 5,
+  "records_path": "",
+  "attempts": 1,
+  "reader_check": "ok: 21 columns, 23169 rows"
+}

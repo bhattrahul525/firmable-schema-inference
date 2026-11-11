@@ -1,0 +1,28 @@
+{
+  "source_id": "vic_liquor_licences",
+  "model": "claude-haiku-5-5",
+  "llm_calls": 5,
+  "cost_usd": 0.012471,
+  "input_tokens": 62160,
+  "output_tokens": 17099,
+  "llm_seconds": 78.5,
+  "cost_by_step": {
+    "part2.inspect": 0.000301,
+    "part2.propose_A": 0.003883,
+    "part2.propose_B": 0.00336,
+    "part2.revise_r1": 0.003531,
+    "part2.critique": 0.001396
+  },
+  "wall_clock_this_invocation_s": 83.7,
+  "step_timings_s": {
+    "01_inspect": 4.37,
+    "02_profile": 0.6,
+    "03a_propose_A": 24.54,
+    "03b_propose_B": 20.2,
+    "03c_compare": 0.0,
+    "04_validate_r0": 0.12,
+    "05_revise_r1": 25.44,
+    "04_validate_r1": 0.04,
+    "06_critique": 6.69
+  }
+}

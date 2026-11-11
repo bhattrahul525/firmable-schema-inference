@@ -66,3 +66,18 @@ Notable design decisions and why. Feeds WRITEUP.md.
 - **Extraction volume:** small sources are extracted in full, large ones sampled evenly across the
   file (not the first N rows), to give Part 3 a fair chance of overlap without hand-picking records.
   Extraction is deterministic, so extra records cost $0; only inference is per-source.
+
+## Part 2 (build block 1): engine + agent on ASIC and VIC (2026-11-12)
+
+- **Architecture:** one generic engine (`src/engine/`, 12 whitelisted transforms, no source names) + an 8-step agent (`src/part2_agent/`): inspect, profile/split, propose x2, compare, validate (held-out, real engine), revise (max 2), critique, finalise, human gate. Each step checkpoints to `logs/agent_runs/<source>/`; re-running resumes.
+- **Two independent proposals** (sample A vs sample B). Disagreements go to the revise step; fields they disputed are capped at field_confidence 0.70.
+- **field_confidence = min(model's mapping confidence, measured parse rate)**, never an average. Fields with no judged held-out values are capped at 0.5. source_reliability is the model's judgement per claim kind (labelled as such, not measured).
+- **derivation_level is computed from the transforms** (L0 cosmetic only; L1 parse/checksum/map), never claimed by the agent. Mapping the column itself was model-inferred; that is recorded in the config, not in the value's level.
+- **Meaning checks in code** (legal vs trading name suffix rates, postcode/state agreement, future dates, split-needed, ABN/ACN overlap reported as evidence only). A warning must be answered (changed / kept + reason), not silently ignored.
+- **Abstain, don't guess:** a field still failing validation after the revision budget is moved to `unmapped` by code. The agent also surfaced a real engine gap: VIC `address.state` needs a constant-value transform (`needs_transform`); we left it unmapped rather than infer VIC from the publisher.
+- **Approval lock:** `configs/<source>.approval.json` stores the SHA-256 of the approved config; the engine refuses an unapproved or edited config (tested). Rejection comments feed a human-feedback revise round on the next `onboard` run.
+- **Bugs found by running it:** BOM stuck to first header (fixed in reader, config regenerated, not hand-edited); critique step could not see envelope dates and falsely reported `valid_from` missing (fixed: critic now sees observed_at/valid_from/valid_to).
+- **Run-to-run variation:** two ASIC runs differed (first run dropped licence dates as unmapped; second mapped them to valid_from/valid_to). Both defensible; shows why the human gate exists. Model was Haiku (dev); final runs on Sonnet.
+- **First-review result:** 14 of 14 fields marked right on first review (ASIC 8, VIC 6). Caveat: n is small and the reviewer judged from packet examples, so this is weak evidence of accuracy, not a benchmark.
+- **Extraction:** 1,000 rows per source, evenly spaced. 11 VIC postcodes rejected (value '0'), 0 ASIC rejects.
+- **Open decision:** sampling 1,000 of 4,313 (ASIC) and 23,169 (VIC) will thin cross-source overlap for Part 3. Extraction costs $0, so consider larger limits for small sources (brief allows ~1,000).

@@ -1,0 +1,16 @@
+{
+  "rounds": [
+    {
+      "round": 1,
+      "reviewed_at": "2026-11-11T13:01:38+00:00",
+      "reviewer": "rahul",
+      "config_version": 2,
+      "config_sha256": "9015a50196ef8af082351152aca94e6ac78f3f816b4a132a2deb8c6be6753726",
+      "n_fields": 8,
+      "wrong": [],
+      "general_comment": ""
+    }
+  ],
+  "status": "approved",
+  "config_sha256": "9015a50196ef8af082351152aca94e6ac78f3f816b4a132a2deb8c6be6753726"
+}

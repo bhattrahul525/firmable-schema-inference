@@ -1,0 +1,256 @@
+source_id: asic_credit_licensee
+config_version: 2
+what_it_is: ASIC register extract of current Australian credit licensees, one row per credit licence with licensee
+  name, ABN/ACN, licence status and address.
+one_row_is: one credit licence held by a licensee (an Australian Credit Licence), as listed on the ASIC credit licensee
+  register
+reader:
+  format: tsv
+  encoding: utf-8
+  delimiter: "\t"
+  header_row: 1
+record_id:
+  from:
+  - CRED_LIC_NUM
+record_id_reason: CRED_LIC_NUM is distinct across all 4313 rows (distinct 4313 = row count), so it uniquely identifies
+  each credit licence record.
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: CRED_LIC_START_DT
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+valid_to:
+  source: CRED_LIC_END_DT
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields:
+- source: CRED_LIC_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: CRED_LIC_NAME is the licensee's name as recorded on the credit licence register, which is the registered
+    name. Sample values are company names with suffixes and some individual names, all consistent with a registered
+    licensee name.
+  proposal_agreement: agreed
+  field_confidence: 0.9
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_BN
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: CRED_LIC_BN is a business name, i.e. a name traded under, which maps to trading_name. It is blank for
+    about 66% of rows.
+  proposal_agreement: agreed
+  field_confidence: 0.85
+  validation:
+    held_out_rows: 300
+    blank: 193
+    ok: 107
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: The column holds 11-digit ABNs for about 89% of rows. The abn transform validates the checksum and skips
+    non-11-digit values such as the '0' placeholders.
+  proposal_agreement: agreed
+  field_confidence: 0.9
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 270
+    skipped_not_applicable: 30
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: The same column holds 9-digit values for about 8% of rows, which are probably ACNs. Mapped a second time
+    with the acn checksum transform, which skips non-9-digit values.
+  proposal_agreement: agreed
+  field_confidence: 0.8
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 28
+    skipped_not_applicable: 272
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_NAME
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: There is no explicit entity-type column, so the type is derived from the name suffix. Names ending in
+    Pty Ltd, Limited or Ltd give company, and everything else (including individual names) gives unknown.
+  proposal_agreement: agreed
+  field_confidence: 0.6
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Locality/suburb of the licensee address; sample values are suburb names.
+  proposal_agreement: agreed
+  field_confidence: 0.95
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Two-letter Australian state codes (NSW, VIC, QLD, etc.) that match the ontology state enum.
+  proposal_agreement: agreed
+  field_confidence: 0.95
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: CRED_LIC_PCODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 4-digit Australian postcode; the postcode transform restores any dropped leading zero.
+  proposal_agreement: agreed
+  field_confidence: 0.95
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: REGISTER_NAME
+  reason: Constant value 'Credit Licence' on every row (distinct 1). It identifies the register type, not an entity
+    claim.
+- source: CRED_LIC_STATUS
+  reason: Licence status, not entity status. APPR and SUSP describe the credit licence, which can be approved or
+    suspended while the legal entity is deregistered or in liquidation. No ontology field for licence status, so
+    not mapped to entity.status.
+- source: CRED_LIC_AFSL_NUM
+  reason: Australian Financial Services Licence number. No ontology field exists for it. Mostly '0' (no AFSL), and
+    it is not mapped to any canonical field.
+- source: CRED_LIC_STATUS_HISTORY
+  reason: Free-text history of licence suspensions and conditions. No ontology field, and the ontology status enum
+    is not used for it.
+- source: CRED_LIC_LAT
+  reason: Latitude of the licensee address. No ontology field for coordinates, and address.full is not derived from
+    it.
+- source: CRED_LIC_LNG
+  reason: Longitude of the licensee address. No ontology field for coordinates.
+- source: CRED_LIC_EDRS
+  reason: External dispute resolution scheme membership (AFCA, COSL, FOS). No ontology field.
+- source: CRED_LIC_AUTHORISATIONS
+  reason: Long free-text list of credit activities the licence authorises, semicolon-delimited. No ontology field
+    for licence scope, and splitting it would not map it to any canonical field.
+needs_transform: []
+source_reliability:
+  identity: 0.9
+  address: 0.85
+  classification: 0.75
+  contact: 0.5
+source_reliability_basis: ASIC is the statutory regulator that maintains the credit licensee register, so its identity
+  claims (legal name, ABN/ACN, licence holder) are highly reliable. Address is the registered licence address and
+  is generally current but may be an agent or service address. Classification is less certain because the derived
+  entity type is inferred from name suffixes. There is no contact data, so contact is set to a neutral 0.5.
+meaning_check_responses:
+- check_id: entity.status
+  action: changed
+  reason: The status mapping was a meaning error. CRED_LIC_STATUS describes licence approval and suspension, not
+    the legal entity's status. The field was removed from fields and the column moved to unmapped with the reason
+    'licence status, not entity status', so no entity.status observation is emitted.
+- check_id: valid_from
+  action: kept
+  reason: The config is correct and was not changed. CRED_LIC_START_DT is the licence start date (fill rate 1.0,
+    all values date-like in %d/%m/%Y), which matches rule 10 for valid_from. The missing valid_from observation
+    on the example rows (e.g. CABOT SQUARE ACCOUNTING, 12/03/2015) is an engine or emission fault, not a config
+    fault, so the engine output should be checked and those rows re-run. valid_from is the licence start, not the
+    entity registration date, and no date_registered mapping is inferred from it.
+revision_history:
+- round: critique
+  changes:
+  - what: Removed the entity.status map_values field (APPR->active, SUSP->suspended). CRED_LIC_STATUS is now listed
+      under unmapped with the reason 'licence status, not entity status'.
+    why: The values describe the credit licence, not the legal entity. Mapping APPR to 'active' asserts the company
+      is active, which the source does not say, and SUSP does not make the entity suspended.
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1905
+  abstained: []
+  warnings: []
+  infos: []
+  critique_issues:
+  - field: entity.status
+    problem: The CRED_LIC_STATUS values describe the credit licence (APPR = approved, SUSP = suspended), not the
+      legal entity. The examples emit entity.status 'active' for every APPR row, which asserts the company is active.
+      A licence can be approved while the company is deregistered or in liquidation, and a suspended licence does
+      not make the entity 'suspended'. Mapping these onto entity.status is a meaning error, not just an interpretation.
+    suggested_fix: Remove the entity.status map_values mapping (leave CRED_LIC_STATUS unmapped with reason 'licence
+      status, not entity status'). If it must be kept, route it to a licence-status claim rather than entity.status,
+      and do not map APPR to 'active'.
+  - field: valid_from
+    problem: The config maps CRED_LIC_START_DT to valid_from, but the example rows that have a start date (e.g.
+      CABOT SQUARE ACCOUNTING, 12/03/2015) produce no valid_from observation. Either the mapping is not being applied
+      or the output is incomplete, so the config and the emitted observations disagree.
+    suggested_fix: Check that valid_from is emitted for rows with a parsable CRED_LIC_START_DT (format %d/%m/%Y)
+      and confirm the observation envelope carries it. Also confirm that valid_from is documented as the licence
+      start, not the entity registration date, so date_registered is not inferred from it.
+  proposal_disagreements:
+    only_A: []
+    only_B: []
+generated_by:
+  agent_version: 0.1.0
+  model: claude-haiku-5-5
+  generated_at: '2026-11-11T12:50:49+00:00'

@@ -1,0 +1,207 @@
+{
+  "record_id": {
+    "columns": [
+      "CRED_LIC_NUM"
+    ],
+    "hash_row": false,
+    "reason": "CRED_LIC_NUM is distinct across all 4313 rows (distinct 4313 = row count), so it uniquely identifies each credit licence record."
+  },
+  "observed_at": {
+    "from_metadata": "resource_last_modified",
+    "source": "",
+    "transforms": []
+  },
+  "valid_from": {
+    "source": "CRED_LIC_START_DT",
+    "transforms": [
+      {
+        "name": "parse_date",
+        "arg": "[\"%d/%m/%Y\"]"
+      }
+    ]
+  },
+  "valid_to": {
+    "source": "CRED_LIC_END_DT",
+    "transforms": [
+      {
+        "name": "parse_date",
+        "arg": "[\"%d/%m/%Y\"]"
+      }
+    ]
+  },
+  "fields": [
+    {
+      "source": [
+        "CRED_LIC_NAME"
+      ],
+      "canonical": "entity.legal_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "CRED_LIC_NAME is the licensee's name as recorded on the credit licence register, which is the registered name. Sample values are company names with suffixes and some individual names, all consistent with a registered licensee name."
+    },
+    {
+      "source": [
+        "CRED_LIC_BN"
+      ],
+      "canonical": "entity.trading_name",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.85,
+      "reason": "CRED_LIC_BN is a business name, i.e. a name traded under, which maps to trading_name. It is blank for about 66% of rows."
+    },
+    {
+      "source": [
+        "CRED_LIC_ABN_ACN"
+      ],
+      "canonical": "entity.abn",
+      "transforms": [
+        {
+          "name": "abn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.9,
+      "reason": "The column holds 11-digit ABNs for about 89% of rows. The abn transform validates the checksum and skips non-11-digit values such as the '0' placeholders."
+    },
+    {
+      "source": [
+        "CRED_LIC_ABN_ACN"
+      ],
+      "canonical": "entity.acn",
+      "transforms": [
+        {
+          "name": "acn",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.8,
+      "reason": "The same column holds 9-digit values for about 8% of rows, which are probably ACNs. Mapped a second time with the acn checksum transform, which skips non-9-digit values."
+    },
+    {
+      "source": [
+        "CRED_LIC_NAME"
+      ],
+      "canonical": "entity.entity_type",
+      "transforms": [
+        {
+          "name": "entity_type_from_suffix",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.6,
+      "reason": "There is no explicit entity-type column, so the type is derived from the name suffix. Names ending in Pty Ltd, Limited or Ltd give company, and everything else (including individual names) gives unknown."
+    },
+    {
+      "source": [
+        "CRED_LIC_STATUS"
+      ],
+      "canonical": "entity.status",
+      "transforms": [
+        {
+          "name": "map_values",
+          "arg": "{\"APPR\":\"active\",\"SUSP\":\"suspended\"}"
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.7,
+      "reason": "APPR (approved) is read as active and SUSP as suspended. These describe the licence status, and the mapping onto entity.status is an interpretation."
+    },
+    {
+      "source": [
+        "CRED_LIC_LOCALITY"
+      ],
+      "canonical": "address.locality",
+      "transforms": [
+        {
+          "name": "clean_whitespace",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Locality/suburb of the licensee address; sample values are suburb names."
+    },
+    {
+      "source": [
+        "CRED_LIC_STATE"
+      ],
+      "canonical": "address.state",
+      "transforms": [
+        {
+          "name": "state_code",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "Two-letter Australian state codes (NSW, VIC, QLD, etc.) that match the ontology state enum."
+    },
+    {
+      "source": [
+        "CRED_LIC_PCODE"
+      ],
+      "canonical": "address.postcode",
+      "transforms": [
+        {
+          "name": "postcode",
+          "arg": ""
+        }
+      ],
+      "group": "main",
+      "mapping_confidence": 0.95,
+      "reason": "4-digit Australian postcode; the postcode transform restores any dropped leading zero."
+    }
+  ],
+  "unmapped": [
+    {
+      "source": "REGISTER_NAME",
+      "reason": "Constant value 'Credit Licence' on every row (distinct 1). It identifies the register type, not an entity claim."
+    },
+    {
+      "source": "CRED_LIC_AFSL_NUM",
+      "reason": "Australian Financial Services Licence number. No ontology field exists for it. Mostly '0' (no AFSL), and it is not mapped to any canonical field."
+    },
+    {
+      "source": "CRED_LIC_STATUS_HISTORY",
+      "reason": "Free-text history of licence suspensions and conditions. No ontology field, and the ontology status enum is not used for it."
+    },
+    {
+      "source": "CRED_LIC_LAT",
+      "reason": "Latitude of the licensee address. No ontology field for coordinates, and address.full is not derived from it."
+    },
+    {
+      "source": "CRED_LIC_LNG",
+      "reason": "Longitude of the licensee address. No ontology field for coordinates."
+    },
+    {
+      "source": "CRED_LIC_EDRS",
+      "reason": "External dispute resolution scheme membership (AFCA, COSL, FOS). No ontology field."
+    },
+    {
+      "source": "CRED_LIC_AUTHORISATIONS",
+      "reason": "Long free-text list of credit activities the licence authorises, semicolon-delimited. No ontology field for licence scope, and splitting it would not map it to any canonical field."
+    }
+  ],
+  "needs_transform": [],
+  "source_reliability": {
+    "identity": 0.9,
+    "address": 0.85,
+    "classification": 0.75,
+    "contact": 0.5
+  },
+  "source_reliability_basis": "ASIC is the statutory regulator that maintains the credit licensee register, so its identity claims (legal name, ABN/ACN, licence holder) are highly reliable. Address is the registered licence address and is generally current but may be an agent or service address. Classification is less certain because the status codes and derived entity type are inferred. There is no contact data, so contact is set to a neutral 0.5."
+}
