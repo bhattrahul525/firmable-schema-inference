@@ -26,19 +26,31 @@ PORTALS: dict[str, str] = {
     "vic": "https://discover.data.vic.gov.au/api/3/action/",
 }
 
+# Human-facing dataset page, used in hand-check sheets so a reviewer can click through.
+PORTAL_DATASET_PAGE: dict[str, str] = {
+    "datagovau": "https://data.gov.au/data/dataset/{name}",
+    "nsw": "https://data.nsw.gov.au/data/dataset/{name}",
+    "sa": "https://data.sa.gov.au/data/dataset/{name}",
+    "qld": "https://www.data.qld.gov.au/dataset/{name}",
+    "vic": "https://discover.data.vic.gov.au/dataset/{name}",
+}
+
 CACHE_DIR = Path("data/raw/catalogue/cache")
 USER_AGENT = "schema-inference-case-study/0.1 (research; python-requests)"
 
 
-def _session() -> requests.Session:
+def http_session(retries: int = 3) -> requests.Session:
+    """requests.Session with retry/backoff on transient errors. Shared by the CKAN
+    client and anything that downloads resource files."""
     s = requests.Session()
     retry = Retry(
-        total=3,
+        total=retries,
         backoff_factor=1.0,  # 1s, 2s, 4s
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=("GET",),
     )
     s.mount("https://", HTTPAdapter(max_retries=retry))
+    s.mount("http://", HTTPAdapter(max_retries=retry))
     s.headers["User-Agent"] = USER_AGENT
     return s
 
@@ -52,7 +64,7 @@ class CkanClient:
         self.cache_dir = cache_dir / portal
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.polite_delay = polite_delay  # seconds between uncached calls
-        self.session = _session()
+        self.session = http_session()
 
     def _cache_path(self, action: str, params: dict) -> Path:
         key = json.dumps({"action": action, "params": params}, sort_keys=True)

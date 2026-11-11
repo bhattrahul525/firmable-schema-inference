@@ -29,15 +29,23 @@ _ACN_IN_TEXT = re.compile(r"(?<!\d)(\d{3}\s?\d{3}\s?\d{3})(?!\d)")
 
 
 def digits_only(value: object) -> str:
-    """Strip everything except digits. Handles ints, floats read from Excel
-    (e.g. 51824753556.0) and strings with spaces or dashes."""
+    """The digits of a value that is *only* an identifier: digits, spaces, dashes.
+    Handles ints, floats read from Excel (51824753556.0) and "51 824 753 556".
+
+    Anything else (letters, decimal points) returns "". Without this rule a
+    longitude like 144.9612345678 becomes 11 digits and passes the ABN checksum
+    about 1 time in 89. Found in Part 1 probing. For ABNs inside free text use
+    find_abns() instead."""
     if value is None:
         return ""
     if isinstance(value, float):
         if value != value or not value.is_integer():  # NaN or fractional
             return ""
         value = int(value)
-    return re.sub(r"\D", "", str(value))
+    s = re.sub(r"\.0+$", "", str(value).strip())  # "51824753556.0" exported as text
+    if not re.fullmatch(r"[\d\s\-]+", s):
+        return ""
+    return re.sub(r"\D", "", s)
 
 
 def normalise_abn(value: object) -> str | None:

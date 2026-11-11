@@ -34,6 +34,13 @@ class TestABN(unittest.TestCase):
         text = "Supplier ABN 51 824 753 556; ph 0298765432; invoice 12345678901"
         self.assertEqual(find_abns(text), ["51824753556"])
 
+    def test_rejects_non_identifier_values(self):
+        # 14495000009 passes the ABN checksum, but "144.95000009" is a longitude
+        self.assertTrue(is_valid_abn("14495000009"))
+        self.assertIsNone(normalise_abn("144.95000009"))
+        self.assertIsNone(normalise_abn("ABN51824753556"))  # free text: use find_abns
+        self.assertEqual(normalise_abn("51824753556.0"), "51824753556")  # Excel export
+
 
 class TestACN(unittest.TestCase):
     def test_known_valid(self):

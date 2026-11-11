@@ -1,0 +1,44 @@
+{
+  "labelling_rule": "Rule A: Y only if the MAIN entity on most rows is a non-government business. Registers of individuals (advisers, auditors, credit reps) are N even when a company appears as a secondary party. Government bodies are N. In contract/invoice data the supplier is the entity (the government buyer is ignored). Licensed clubs counted Y; a foundation-run childcare register counted N (reviewer judged foundations not businesses).",
+  "sample_size": 20,
+  "seed": 20261111,
+  "yes": 14,
+  "no": 5,
+  "unsure": 1,
+  "false_positive_rate_excl_unsure": 0.263,
+  "false_positive_rate_unsure_counted_as_fp": 0.3,
+  "false_positives": [
+    {
+      "rank": "5",
+      "title": "ASIC \u2013 Credit Representative Dataset",
+      "note": "Mostly individuals (63% of 47,655 rows); 37% companies (all with ABN/ACN)"
+    },
+    {
+      "rank": "11",
+      "title": "ASIC \u2013 Financial Advisers Dataset",
+      "note": "Rows are about individual advisers; licensee company only secondary (Rule A)"
+    },
+    {
+      "rank": "12",
+      "title": "ASIC \u2013 Self-Managed Super Fund Auditor Dataset",
+      "note": "Rows are about individual auditors; firm name only secondary, ~half the rows (Rule A)"
+    },
+    {
+      "rank": "18",
+      "title": "Victorian Government Schools ABNs",
+      "note": "Government schools: real ABNs but not businesses (Rule A)"
+    },
+    {
+      "rank": "44",
+      "title": "Approved Queensland Education and Care (QEC) services",
+      "note": "Provider is a foundation (non-profit), not a business"
+    }
+  ],
+  "unsure_items": [
+    {
+      "rank": "42",
+      "title": "Consultancies, contractors and Contracts over 10K  - OIC",
+      "note": "File not reachable (403 for probe, no data in browser); could not verify"
+    }
+  ]
+}
