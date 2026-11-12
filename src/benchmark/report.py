@@ -21,8 +21,10 @@ NAME_FIELDS = ("entity.legal_name", "entity.trading_name")      # "has a name": 
 IDENTIFIER_FIELDS = ("entity.abn", "entity.acn")                # "has an identifier": ABN or ACN is mapped
 COLUMNS = ["source_id", "slot", "stratum", "dataset_id", "title", "format_class", "outcome", "forced_by", "turns", "tool_calls",
            "cost_usd", "agent_seconds", "download_seconds", "download_bytes", "file_format", "reader", "levels_W_P_G",
-           "mapped_count", "has_name", "has_identifier", "mapped_fields", "abstained_count", "abstained_fields", "unresolved_blocking", "unmapped_columns",
+           "mapped_count", "has_name", "has_identifier", "identifier_evidence", "fields_training_evidence", "fields_unverified",
+           "mapped_fields", "abstained_count", "abstained_fields", "unresolved_blocking", "unmapped_columns",
            "critique_blocking", "critique_advisory", "open_advisory", "resource_switches", "refusals", "licence", "licence_flag", "model", "tool_sequence", "cause", "fix", *HUMAN_COLUMNS]
+EVIDENCE_ORDER = ("unverified", "training", "held_out")   # worst first: the identifier column reports the worst state
 
 
 def read_events(source_id: str, runs_dir: Path = RUNS_DIR) -> list[dict] | None:
@@ -61,7 +63,12 @@ def summarise(source_id: str, *, runs_dir: Path = RUNS_DIR, raw_dir: Path = RAW_
         "download_bytes": meta.get("bytes"), "file_format": meta.get("resource_format"), "reader": cfg.get("reader"),
         "levels_W_P_G": f"{levels.get('W', 0)}/{levels.get('P', 0)}/{levels.get('G', 0)}",
         "mapped_fields": [{"canonical": f["canonical"], "source": f["source"], "level": f.get("transform_level", "W"),
-                           "field_confidence": f.get("field_confidence")} for f in fields],
+                           "field_confidence": f.get("field_confidence"), "evidence": f.get("evidence", "held_out")} for f in fields],
+        "fields_training_evidence": sum(1 for f in fields if f.get("evidence") == "training"),
+        "fields_unverified": sum(1 for f in fields if f.get("evidence") == "unverified"),
+        "identifier_evidence": min((f.get("evidence", "held_out") for f in fields if f["canonical"] in IDENTIFIER_FIELDS),
+                                   key=lambda e: EVIDENCE_ORDER.index(e) if e in EVIDENCE_ORDER else len(EVIDENCE_ORDER),
+                                   default=""),
         "abstained_fields": [a.get("field") for a in result.get("abstentions") or []],
         "unmapped_columns": len(cfg.get("unmapped") or []),
         # coverage, separate from the outcome (who ended the run): a thin validated config shows up here
@@ -117,12 +124,13 @@ def review_rows(source_id: str, summary: dict, item: dict | None, *, runs_dir: P
     """One row per mapped field with three raw-to-value examples from the HELD-OUT rows: the human sheet. Best effort: if the
     table cannot be rebuilt the examples are blank and the row is still written."""
     cfg = summary.get("config") or {}
-    out, examples = [], {}
+    out, examples, table, metadata = [], {}, None, None
     try:
-        from src.engine.extract import run_rows
+        from src.engine.extract import _is_blank, _value_of, run_rows
         from src.part2_agent.agent_table import get_table, load_metadata
         table = get_table(source_id, runs_dir / source_id)
-        obs, _, _ = run_rows(cfg, table.held_rows[:300], load_metadata(source_id))
+        metadata = load_metadata(source_id)
+        obs, _, _ = run_rows(cfg, table.held_rows[:300], metadata)
         for o in obs:
             if o["source_field"] is None:
                 continue
@@ -131,13 +139,65 @@ def review_rows(source_id: str, summary: dict, item: dict | None, *, runs_dir: P
             pair = f"{str(o['raw_value'])[:50]} -> {str(o['value'])[:60]}"
             if len(ex) < 3 and pair not in ex:
                 ex.append(pair)
+        # a sparse field can have no populated held-out example: show TRAINING examples, labelled, so the reviewer
+        # still judges real values (evidence `training` / `unverified` fields are exactly those)
+        sparse = [f for f in cfg.get("fields") or [] if f.get("evidence") in ("training", "unverified")]
+        for f in sparse:
+            src = f["source"] if isinstance(f["source"], str) else "+".join(f["source"])
+            key = f"{f['canonical']}<-{src}"
+            if examples.get(key):
+                continue
+            rows_found = []
+            for row in table.training():
+                if not _is_blank(_value_of(f["source"], row)):
+                    rows_found.append(row)
+                if len(rows_found) >= 3:
+                    break
+            t_obs, _, _ = run_rows(cfg, rows_found, metadata)
+            for o in t_obs:
+                if o["field"] != f["canonical"]:
+                    continue
+                ex = examples.setdefault(key, [])
+                pair = f"(training) {str(o['raw_value'])[:50]} -> {str(o['value'])[:60]}"
+                if len(ex) < 3 and pair not in ex:
+                    ex.append(pair)
     except Exception:
         pass
     for f in cfg.get("fields") or []:
         src = f["source"] if isinstance(f["source"], str) else "+".join(f["source"])
         ex = examples.get(f"{f['canonical']}<-{src}", [])
         out.append({"source_id": source_id, "dataset_id": (item or {}).get("dataset_id", ""), "field": f["canonical"], "source_column": src,
-                    "level": f.get("transform_level", "W"), "field_confidence": f.get("field_confidence"),
+                    "level": f.get("transform_level", "W"), "evidence": f.get("evidence", "held_out"),
+                    "field_confidence": f.get("field_confidence"),
+                    "example_1": ex[0] if len(ex) > 0 else "", "example_2": ex[1] if len(ex) > 1 else "",
+                    "example_3": ex[2] if len(ex) > 2 else "", "wrong": ""})
+    # one row each for a PER-ROW observed_at / valid_from / valid_to: they stamp every observation of the row, so the
+    # reviewer must see them too (a from_metadata observed_at has no per-row parsing to review)
+    for key in ("observed_at", "valid_from", "valid_to"):
+        spec = cfg.get(key)
+        if not isinstance(spec, dict) or not spec.get("source"):
+            continue
+        ex = []
+        if table is not None:
+            try:
+                from src.engine.extract import apply_transforms, _value_of, _is_blank
+                from src.engine.config import normalise_transforms
+                ts = normalise_transforms(spec.get("transforms"))
+                for row in (table.held_rows or list(table.training())[:50]):
+                    raw = _value_of(spec["source"], row)
+                    if _is_blank(raw):
+                        continue
+                    vals, _ev = apply_transforms(raw, ts)
+                    pair = f"{str(raw)[:50]} -> {str(vals[0])[:60] if vals else 'REJECTED'}"
+                    if pair not in ex:
+                        ex.append(pair)
+                    if len(ex) >= 3:
+                        break
+            except Exception:
+                pass
+        out.append({"source_id": source_id, "dataset_id": (item or {}).get("dataset_id", ""), "field": key,
+                    "source_column": spec["source"] if isinstance(spec["source"], str) else "+".join(spec["source"]),
+                    "level": "W", "evidence": "", "field_confidence": "",
                     "example_1": ex[0] if len(ex) > 0 else "", "example_2": ex[1] if len(ex) > 1 else "",
                     "example_3": ex[2] if len(ex) > 2 else "", "wrong": ""})
     return out
@@ -145,7 +205,7 @@ def review_rows(source_id: str, summary: dict, item: dict | None, *, runs_dir: P
 
 def write_review(rows: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    cols = ["source_id", "dataset_id", "field", "source_column", "level", "field_confidence", "example_1", "example_2", "example_3", "wrong"]
+    cols = ["source_id", "dataset_id", "field", "source_column", "level", "evidence", "field_confidence", "example_1", "example_2", "example_3", "wrong"]
     with path.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -171,13 +231,17 @@ def coverage_flags(row: dict) -> tuple[bool, bool]:
 
 def coverage_counts(rows: list[dict]) -> dict:
     """Among VALIDATED configs: how many have a name and an identifier, only one of them, or neither (a thin config)."""
-    out = {"validated": 0, "both": 0, "name_only": 0, "identifier_only": 0, "neither": 0}
+    out = {"validated": 0, "both": 0, "name_only": 0, "identifier_only": 0, "neither": 0, "identifier_unverified": 0}
     for r in rows:
         if r["outcome"] != "validated_config":
             continue
         n, i = coverage_flags(r)
         out["validated"] += 1
         out["both" if n and i else "name_only" if n else "identifier_only" if i else "neither"] += 1
+        # "has an identifier" is not "has a verified identifier": a mapped ABN whose evidence is `unverified` is counted
+        # apart (older tables lack the column and count 0: unknown, not verified)
+        if i and r.get("identifier_evidence") == "unverified":
+            out["identifier_unverified"] += 1
     return out
 
 
@@ -254,10 +318,12 @@ def write_compare(cmp: dict, out_dir: Path, notes: str = "") -> None:
         md.append(f"| {d['dataset_id'][:60]} | {d['format_class']} | " + " | ".join(
             f"{d['outcomes'][l]} ({d['mapped'][l]}) {d['flags'][l]}" for l in labels) + " |")
     md += ["", "## Validated configs: name and identifier coverage", "",
-           "| pass | validated | name + identifier | name only | identifier only | neither |", "|---|---|---|---|---|---|"]
+           "| pass | validated | name + identifier | name only | identifier only | neither | identifier unverified |",
+           "|---|---|---|---|---|---|---|"]
     for l, t in cmp["totals"].items():
         c = t["coverage"]
-        md.append(f"| {l} | {c['validated']} | {c['both']} | {c['name_only']} | {c['identifier_only']} | {c['neither']} |")
+        md.append(f"| {l} | {c['validated']} | {c['both']} | {c['name_only']} | {c['identifier_only']} | {c['neither']} | "
+                  f"{c.get('identifier_unverified', 0)} |")
     for pair, rows in cmp.get("agreement", {}).items():
         md += ["", f"## Did the model agree with itself? passes {pair} (outcome, then mapped fields)", "",
                "| dataset | outcome | same outcome | same fields | differences |", "|---|---|---|---|---|"]

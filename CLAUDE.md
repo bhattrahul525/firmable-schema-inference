@@ -145,3 +145,9 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
   fix the document or tell me.
 - Keep ARCHITECTURE.md under about 400 lines. Details that belong to one module go in
   that module's docstring, with a pointer from the document.
+
+## Testing rule
+- Max 2 tests per changed rule; only rules the code enforces.
+- During build: run only affected test files. Full suite once at the end.
+- Always: pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15
+- Never paste full test output into reports; give count + pass/fail + first failure line.

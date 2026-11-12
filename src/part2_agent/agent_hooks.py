@@ -7,8 +7,18 @@ A config is the engine's config shape (see engine/config.py), written by the mod
 supply `source_id` or `config_version`: code sets them. Field identifiers used by the gate, the critique and the abstain
 hook are `canonical<-source` (for example `entity.legal_name<-Licensee`); an unaccounted column is `column:<name>`.
 
-Code, not the model, computes field_confidence (the LOWER of the model's mapping confidence and the measured parse rate on
-held-out rows; no judged values at all caps it at 0.5), the transform level, and every abstention.
+Code, not the model, computes field_confidence, the transform level, and every abstention.
+
+EVIDENCE STATES (step 3b). A mapped field is judged on the strongest evidence the file gives, and code records which:
+  held_out    MIN_JUDGED (5) or more judged values on the held-out rows. field_confidence = min(model confidence, parse rate).
+  training    fewer on held-out, but 5 or more judged over held-out plus training rows combined (a sparse column). The same
+              90% floor applies to the combined parse rate (a hard failure below it); field_confidence is capped at
+              TRAINING_CAP (0.8): tested, but partly on rows the model saw.
+  unverified  fewer than 5 judged values in the whole file. field_confidence is capped at UNVERIFIED_CAP (0.5), under
+              Part 4's 0.6 low-trust line, so the claim is used only when nothing better exists. A hard failure only when
+              the column has values somewhere but not one of them ever parsed.
+The state, the whole-file counts (populated, judged, ok, rejected) and training examples go into the config, the packet,
+the review sheet and the benchmark table. The same states are computed for a per-row observed_at / valid_from / valid_to.
 """
 
 from __future__ import annotations
@@ -24,7 +34,8 @@ from pathlib import Path
 from src import llm
 from src.engine.config import (CONFIG_DIR, ENGINE_VERSION, approval_path, config_path, load_ontology, normalise_transforms,
                                write_config)
-from src.engine.extract import make_record_id, run_rows
+from src.engine.extract import (FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms, make_record_id,
+                                run_rows)
 from src.engine.readers import ReaderError, iter_table
 from src.part2_agent.agent_prompt import MAPPING_RULES
 from src.part2_agent.agent_table import NoTable, collect_held, get_table, load_metadata
@@ -32,11 +43,14 @@ from src.part2_agent.guard import wrap_untrusted
 from src.part2_agent.llm_steps import ONTOLOGY_PATH
 from src.part2_agent.profile import trim_row
 from src.engine.transforms import clean_whitespace
-from src.part2_agent.validate import DUP_ID_LIMIT, validate
+from src.part2_agent.validate import DUP_ID_LIMIT, MIN_JUDGED, PARSE_FLOOR, validate
 
-AGENT_VERSION = "2.0.0"
+AGENT_VERSION = "2.1.0"
 CRITIQUE_ROWS = 10
-UNVERIFIED_CAP = 0.5
+UNVERIFIED_CAP = 0.5       # evidence "unverified": fewer than MIN_JUDGED judged values in the whole file
+TRAINING_CAP = 0.8         # evidence "training": judged mostly on rows the model saw (sparse on held-out)
+EXAMPLES_PER_FIELD = 3     # training raw-to-value examples carried for sparse fields (packet, review sheet)
+CRITIC_TRAINING_EXAMPLES = 2   # populated training rows shown to the critic for a column blank in its held-out sample
 IDENT_FAIL_WARN = 0.02     # an ABN / ACN column whose 11- / 9-digit values fail the checksum more often than this is suspect
 IDENT_MIN_JUDGED = 20      # ... once at least this many values were judged on the held-out rows
 PLACEHOLDER_HEADER = re.compile(r"^(_blank_\d+(__\d+)?|unnamed([: _]+\d+)?)$", re.I)   # names the reader generates (or a spreadsheet library) for an empty header cell
@@ -175,6 +189,105 @@ def scan_file(table, cfg: dict, check=None) -> dict:
     return out
 
 
+_TRAINING_STATS: dict = {}
+
+
+def _evidence_specs(cfg: dict) -> list[tuple[str, object, list, str | None]]:
+    """(key, source, transforms, canonical) for everything evidence states are computed for: every mapped field, and a
+    per-row observed_at / valid_from / valid_to (their key is the setting's own name; it cannot collide with a field key,
+    which always contains '<-')."""
+    specs = [(field_key(f), f["source"], f["transforms"], f["canonical"]) for f in cfg.get("fields", [])]
+    for key in ("observed_at", "valid_from", "valid_to"):
+        spec = cfg.get(key)
+        if isinstance(spec, dict) and spec.get("source"):
+            specs.append((key, spec["source"], normalise_transforms(spec.get("transforms")), None))
+    return specs
+
+
+def training_stats(table, specs: list, check=None) -> dict:
+    """Stats over the TRAINING rows for the given specs, through the same engine primitives the extractor uses
+    (apply_transforms + the ontology guard), plus up to EXAMPLES_PER_FIELD raw-to-value examples per key.
+    Cached per (file, reader, specs), so repeated validate calls on one config scan once."""
+    st = table.path.stat()
+    cache_key = (str(table.path), st.st_size, st.st_mtime_ns, json.dumps(table.reader, sort_keys=True),
+                 json.dumps([(k, s, t) for k, s, t, _ in specs], sort_keys=True, default=str))
+    if cache_key in _TRAINING_STATS:
+        return _TRAINING_STATS[cache_key]
+    ontology = load_ontology()
+    accs = {key: (FieldStats(), []) for key, _, _, _ in specs}
+    for row in table.training(check):
+        for key, source, transforms, canonical in specs:
+            stats, examples = accs[key]
+            stats.rows += 1
+            raw = _value_of(source, row)
+            if _is_blank(raw):
+                stats.blank += 1
+                continue
+            values, events = apply_transforms(raw, transforms)
+            for kind, reason, _item in events:
+                if kind == "skip":
+                    stats.skip += 1
+                    stats.skip_reasons[reason] += 1
+                else:
+                    stats.reject += 1
+                    stats.reject_reasons[reason] += 1
+            for v in values:
+                why = _ontology_ok(canonical, v, ontology) if canonical else None
+                if why:
+                    stats.reject += 1
+                    stats.reject_reasons[why] += 1
+                else:
+                    stats.ok += 1
+                    if len(examples) < EXAMPLES_PER_FIELD:
+                        examples.append({"raw": str(raw)[:60], "value": str(v)[:60]})
+    out = {key: {"stats": stats.as_dict(), "examples": examples} for key, (stats, examples) in accs.items()}
+    _TRAINING_STATS[cache_key] = out
+    return out
+
+
+def evidence_states(cfg: dict, table, report: dict, check=None) -> tuple[dict, list[dict]]:
+    """The evidence state per key (see the module docstring) plus the hard failures the states add. Training rows are
+    only scanned for keys the held-out rows cannot judge (fewer than MIN_JUDGED judged values)."""
+    specs = _evidence_specs(cfg)
+    held = {key: report["stats"].get(key) or {} for key, _, _, _ in specs}
+    judged = lambda s: (s.get("ok") or 0) + (s.get("reject") or 0)
+    sparse = [sp for sp in specs if judged(held[sp[0]]) < MIN_JUDGED]
+    trained = training_stats(table, sparse, check) if sparse else {}
+    states, failures = {}, []
+    for key, _, _, _ in specs:
+        s = held[key]
+        if judged(s) >= MIN_JUDGED:
+            states[key] = {"evidence": "held_out"}
+            # a FIELD's parse-rate floor is already checked by validate.py's field_failures loop; an envelope setting
+            # (observed_at / valid_from / valid_to, no "<-" in its key) has no such loop, so it is checked here.
+            if "<-" not in key and s.get("parse_rate") is not None and s["parse_rate"] < PARSE_FLOOR:
+                failures.append({"key": key, "reason": f"parse rate {s['parse_rate']:.0%} on held-out rows is below "
+                                                        f"{PARSE_FLOOR:.0%}", "reject_reasons": s.get("reject_reasons", {}),
+                                 "skip_reasons": s.get("skip_reasons", {}), "examples": []})
+            continue
+        t = trained.get(key, {}).get("stats", {})
+        whole = {"populated": (s.get("rows", 0) - s.get("blank", 0)) + (t.get("rows", 0) - t.get("blank", 0)),
+                 "judged": judged(s) + judged(t), "ok": (s.get("ok") or 0) + (t.get("ok") or 0),
+                 "rejected": (s.get("reject") or 0) + (t.get("reject") or 0)}
+        rate = round(whole["ok"] / whole["judged"], 4) if whole["judged"] else None
+        examples = trained.get(key, {}).get("examples", [])
+        if whole["judged"] >= MIN_JUDGED:
+            states[key] = {"evidence": "training", "whole_file": whole, "parse_rate": rate, "examples": examples}
+            if rate is not None and rate < PARSE_FLOOR:
+                failures.append({"key": key, "reason": (f"parse rate {rate:.0%} over held-out and training rows together "
+                                                        f"is below {PARSE_FLOOR:.0%} (too few held-out values to judge alone)"),
+                                 "reject_reasons": t.get("reject_reasons", {}), "skip_reasons": t.get("skip_reasons", {}),
+                                 "examples": []})
+        else:
+            states[key] = {"evidence": "unverified", "whole_file": whole, "parse_rate": rate, "examples": examples}
+            if whole["ok"] == 0 and whole["populated"] > 0:
+                failures.append({"key": key, "reason": ("never produced a valid value anywhere in the file "
+                                                        "although the source column has values"),
+                                 "reject_reasons": t.get("reject_reasons", {}), "skip_reasons": t.get("skip_reasons", {}),
+                                 "examples": []})
+    return states, failures
+
+
 def validate_config(cfg_in, source_id: str, work_dir: Path, check=None) -> dict:
     """The full validation report: the engine on the HELD-OUT rows (as the config's own reader parses them), plus two checks
     over the WHOLE file (scan_file). Raises NoTable if nothing has been read yet."""
@@ -189,13 +302,24 @@ def validate_config(cfg_in, source_id: str, work_dir: Path, check=None) -> dict:
         scan = scan_file(table, cfg, check)
     except ReaderError as e:
         return _empty_report([f"the config's reader failed on the file: {e}"])
-    if not held:
-        return _empty_report(["there are no held-out rows to test on (the file has too few rows, or this reader finds none of them)"])
+    if not held and table.held_fp:
+        return _empty_report(["there are no held-out rows to test on (this reader finds none of them)"])
+    # an EMPTY held_fp means the file was too small for a held-out split: validate runs with no held-out rows and
+    # every field is judged on its training evidence (states `training` / `unverified`), never silently passed.
     report = validate(cfg, headers, held, metadata, scan["empty_columns"])
     for key, default in (("observations", 0), ("rejects", 0), ("id_failure", False)):   # a structural failure returns early
         report.setdefault(key, default)
     report["held_rows"] = len(held)
-    report["warnings"] = list(report["warnings"]) + identifier_warnings(cfg, report["stats"]) + placeholder_header_warnings(cfg)
+    report["no_held_out_split"] = not table.held_fp
+    if not report["structural_errors"]:
+        states, ev_failures = evidence_states(cfg, table, report, check)
+        report["evidence"] = states
+        known = {f["key"] for f in report["field_failures"]}
+        added = [f for f in ev_failures if f["key"] not in known]
+        report["field_failures"] = list(report["field_failures"]) + added
+        report["hard_failure_count"] += len(added)
+    report["warnings"] = (list(report["warnings"]) + identifier_warnings(cfg, report["stats"]) +
+                          placeholder_header_warnings(cfg) + header_like_first_row_warning(cfg, table, check))
     if report["stats"]:   # not a structural failure: swap the held-out-only id check for the whole-file one
         report["hard_failure_count"] += int(scan["fail"]) - int(bool(report["id_failure"]))
         report["id_failure"] = scan["fail"]
@@ -234,6 +358,64 @@ def identifier_warnings(cfg: dict, stats: dict) -> list[dict]:
     return out
 
 
+HEADER_LIKE_SAMPLE = 200   # training rows looked at for the "columns below look numeric/date" check
+HEADER_LIKE_COLUMN_SHARE = 0.5   # a column counts as "looks like data" if this share of sampled rows is digit/date-like
+HEADER_LIKE_COLUMN_FLOOR = 0.5   # at least this share of columns must look like data for the warning to fire
+
+
+def header_like_first_row_warning(cfg: dict, table, check=None) -> list[dict]:
+    """A meaning warning (item E, step 3b) for `header_rows: 0`: if the first DATA row (never held out: see the
+    protected-top-rows rule in agent_table.py) is all text with distinct cells, and most columns below it look like
+    numbers or dates, the file probably has a header that was read as data. Generic and code-computed; it can be
+    wrong on a genuinely all-text table, so it is answerable like any other meaning warning."""
+    from src.part2_agent.profile import _DATE_LIKE
+    if _layout_header_rows(cfg["reader"]) != 0:
+        return []
+    rows = []
+    try:
+        with iter_table(cfg["reader"], table.path, check) as (_headers, table_rows):   # cfg's own reader, not the cached one
+            for fp, row in table_rows:
+                if fp in table.held_fp:
+                    continue
+                rows.append(row)
+                if len(rows) > HEADER_LIKE_SAMPLE:
+                    break
+    except ReaderError:
+        return []
+    if not rows:
+        return []
+    first = rows[0]
+    cells = [clean_whitespace(v) for v in first.values()]
+    if not cells or any(not c for c in cells) or len(set(cells)) != len(cells):
+        return []
+    if any(re.fullmatch(r"-?\d+(\.\d+)?", c) or _DATE_LIKE.match(c) for c in cells):
+        return []   # a number or date in the "header" row: not what a real header looks like
+    below = rows[1:] or rows
+    data_like = 0
+    for h in first:
+        vals = [clean_whitespace(r.get(h)) for r in below]
+        vals = [v for v in vals if v]
+        if not vals:
+            continue
+        rate = sum(1 for v in vals if re.fullmatch(r"-?\d+(\.\d+)?", v) or _DATE_LIKE.match(v)) / len(vals)
+        data_like += rate >= HEADER_LIKE_COLUMN_SHARE
+    if len(first) and data_like / len(first) >= HEADER_LIKE_COLUMN_FLOOR:
+        return [{"id": "header_like_first_row", "text": (
+            "header_rows is 0 (generated column names col_1, col_2, ...), but the first data row looks like a header: "
+            "its cells are distinct text, and most columns below it hold numbers or dates. The real header may have "
+            "been read as data. Check skip_rows, header_rows and skip_rows_after_header (and the first raw rows shown "
+            "by read_table), or say in a meaning_check_responses entry why the file really has no header.")}]
+    return []
+
+
+def _layout_header_rows(reader: dict) -> int:
+    from src.engine.readers import _layout
+    try:
+        return _layout(reader)[1]
+    except ReaderError:
+        return 1   # an unreadable layout is not this check's business; validate's own reader call will fail first
+
+
 def placeholder_header_warnings(cfg: dict) -> list[dict]:
     """A meaning warning when a MAPPED source column has a generated placeholder header (`_blank_N`, `Unnamed...`). It means the
     header cell was empty, which usually means the header rows were misread: a title or label row sits where the header should be, or
@@ -265,11 +447,17 @@ def validate_status(report: dict) -> dict:
 def abstain_config(cfg: dict, identifiers: list, reason: str = "abstained by the harness (failed validation or an "
                                                               "unanswered critique issue)") -> dict:
     """Move the named fields into `unmapped` (code, never the model). An identifier matches a field by its full key, its
-    canonical name (all fields of that canonical) or its source column. `column:<name>` lists an unaccounted column."""
+    canonical name (all fields of that canonical) or its source column. `column:<name>` lists an unaccounted column.
+    `valid_from` / `valid_to` are abstained by DELETING the config key (there is nothing to move to `unmapped`: the
+    gate already treats dropping one as a narrowing, step 3b item D). `observed_at` is never abstained this way: every
+    record needs one, so a failing observed_at stays a hard failure that must be fixed, not dropped."""
     out = copy.deepcopy(cfg)
     out.setdefault("unmapped", [])
     listed = {u.get("source") for u in out["unmapped"] if isinstance(u, dict)}
     ids = [i for i in identifiers if isinstance(i, str)]
+    for key in ("valid_from", "valid_to"):
+        if key in ids and key in out:
+            del out[key]
     keep = []
     for f in out.get("fields", []):
         cols = f["source"] if isinstance(f["source"], list) else [f["source"]]
@@ -347,22 +535,51 @@ def critique_config(cfg_in, source_id: str, work_dir: Path, model: str | None, c
     table = get_table(source_id, work_dir, check)
     metadata = load_metadata(source_id)
     _, held = collect_held(table, cfg["reader"], check)
-    if not held:
+    small_file = not held and not table.held_fp
+    if not held and not small_file:
         raise ValueError("no held-out rows to critique")
+    if small_file:   # the file was too small for a held-out split: the critic reviews training rows and is told so
+        held = list(table.training(check))
+        if not held:
+            raise ValueError("no rows to critique")
     step_rows = [held[i * len(held) // CRITIQUE_ROWS] for i in range(min(CRITIQUE_ROWS, len(held)))]
-    examples = []
-    for row in step_rows:
+
+    def example_of(row: dict, note: str | None = None) -> dict:
         obs, _, _ = run_rows(cfg, [row], metadata)
-        examples.append({"raw": trim_row(row),
-                         "observations": [{"field": o["field"], "value": o["value"], "from": o["source_field"]} for o in obs],
-                         "envelope": {"observed_at": obs[0]["observed_at"] if obs else None,
-                                      "valid_from": obs[0]["valid_from"] if obs else None,
-                                      "valid_to": obs[0]["valid_to"] if obs else None}})
+        ex = {"raw": trim_row(row),
+              "observations": [{"field": o["field"], "value": o["value"], "from": o["source_field"]} for o in obs],
+              "envelope": {"observed_at": obs[0]["observed_at"] if obs else None,
+                           "valid_from": obs[0]["valid_from"] if obs else None,
+                           "valid_to": obs[0]["valid_to"] if obs else None}}
+        if note:
+            ex["note"] = note
+        return ex
+
+    examples = [example_of(row) for row in step_rows]
+    # a SPARSE column can be blank in every sampled row: add up to two populated training rows per such field, marked,
+    # so the critic is never judging a mapping it has not seen one value of
+    blank_fields = [f for f in cfg["fields"] if all(_is_blank(_value_of(f["source"], r)) for r in step_rows)]
+    if blank_fields:
+        needed = {field_key(f): CRITIC_TRAINING_EXAMPLES for f in blank_fields}
+        extra_rows: list[dict] = []
+        for row in table.training(check):
+            hit = [f for f in blank_fields if needed[field_key(f)] > 0 and not _is_blank(_value_of(f["source"], row))]
+            if hit:
+                extra_rows.append(row)
+                for f in hit:
+                    needed[field_key(f)] -= 1
+            if len(extra_rows) >= 2 * CRITIC_TRAINING_EXAMPLES or all(v <= 0 for v in needed.values()):
+                break
+        examples += [example_of(row, note="training row: added because the sampled rows above have no value in a sparse "
+                                          "column this config maps") for row in extra_rows]
     summary = {"reader": cfg["reader"], "record_id": cfg["record_id"], "observed_at": cfg["observed_at"],
+               "valid_from": cfg.get("valid_from"), "valid_to": cfg.get("valid_to"),
                "fields": [{"key": field_key(f), "transforms": f["transforms"], "reason": f.get("reason", "")} for f in cfg["fields"]],
-               "unmapped": cfg["unmapped"]}
-    prompt = ("Review this mapping.\n\nCONFIG:\n" + json.dumps(summary, default=str) + "\n\nEXAMPLES (raw row, then the "
-              "observations produced from it):\n" + wrap_untrusted(examples) + "\n\nReturn the problems you can point to.")
+               "unmapped": cfg["unmapped"], "needs_transform": cfg.get("needs_transform", [])}
+    rows_note = ("training rows: this file was too small for a held-out split" if small_file else "held-out rows")
+    prompt = ("Review this mapping.\n\nCONFIG:\n" + json.dumps(summary, default=str) + "\n\nEXAMPLES (" + rows_note +
+              "; a raw row, then the observations produced from it; an example carrying a `note` is a training row added "
+              "for a sparse column):\n" + wrap_untrusted(examples) + "\n\nReturn the problems you can point to.")
     r = llm.call(prompt, step="agent.critique", source_id=source_id, system=CRITIC_SYSTEM, schema=AGENT_CRITIQUE_SCHEMA,
                  model=model, effort="medium")
     issues = []
@@ -383,12 +600,25 @@ def finalise_config(cfg_in: dict, source_id: str, work_dir: Path, model: str | N
     for f in cfg["fields"]:
         s = report["stats"].get(field_key(f), {})
         rate = s.get("parse_rate")
+        ev = (report.get("evidence") or {}).get(field_key(f)) or {}
+        state = ev.get("evidence")
+        if state is None:   # no evidence computed (a structural failure, or an older report): judge from the held-out stats
+            judged = (s.get("ok") or 0) + (s.get("reject") or 0)
+            state = "held_out" if judged >= MIN_JUDGED and rate is not None else "unverified"
         conf = f.get("mapping_confidence", 0.5)
-        conf = min(conf, rate) if rate is not None else min(conf, UNVERIFIED_CAP)
+        if state == "held_out":
+            conf = min(conf, rate if rate is not None else 1.0)
+        elif state == "training":
+            t_rate = ev.get("parse_rate")
+            conf = min(conf, t_rate if t_rate is not None else 1.0, TRAINING_CAP)
+        else:
+            conf = min(conf, UNVERIFIED_CAP)
         f["field_confidence"] = round(conf, 3)
+        f["evidence"] = state
         f["transform_level"] = "W"   # only whitelisted transforms exist until build step 4 adds the P and G levels
         f["validation"] = {"held_out_rows": s.get("rows"), "blank": s.get("blank"), "ok": s.get("ok"),
-                           "skipped_not_applicable": s.get("skip"), "rejected": s.get("reject"), "parse_rate": rate}
+                           "skipped_not_applicable": s.get("skip"), "rejected": s.get("reject"), "parse_rate": rate,
+                           "evidence": state, "whole_file": ev.get("whole_file")}
     cfg["validation_summary"] = {
         "held_out_rows": report.get("held_rows"), "observations_in_held_out": report.get("observations"),
         "unanswered_meaning_warnings": [w["id"] for w in unanswered(report, cfg)] if report["stats"] else [],
@@ -404,8 +634,68 @@ def _t(f: dict) -> str:
     return " → ".join(parts) or "none"
 
 
+def _envelope_row(cfg: dict, report: dict | None, key: str) -> str | None:
+    """One line for record_id / observed_at / valid_from / valid_to: source, transforms, populated rows, parse rate,
+    evidence state, up to 3 examples (item D1, step 3b). None when the setting is absent."""
+    if key == "record_id":
+        rid = cfg.get("record_id") or {}
+        if rid.get("hash_row"):
+            return "- `record_id`: hash_row (no source column)"
+        cols = rid.get("from") or []
+        dup = (report or {}).get("duplicate_ids") or {}
+        return (f"- `record_id`: from `{', '.join(cols)}`" + (f" — {dup.get('duplicate_rows', dup.get('rows', '?'))} "
+                f"duplicate / blank keys of {dup.get('rows', dup.get('of', '?'))} rows (whole file)" if dup else ""))
+    spec = cfg.get(key)
+    if not isinstance(spec, dict):
+        return None
+    if spec.get("from_metadata"):
+        return f"- `{key}`: from metadata `{spec['from_metadata']}` (one value, applies to every row)"
+    src = spec["source"] if isinstance(spec["source"], str) else "+".join(spec["source"])
+    ts = " → ".join(t["name"] for t in (spec.get("transforms") or [])) or "none"
+    s = ((report or {}).get("stats") or {}).get(key) or {}
+    ev = ((report or {}).get("evidence") or {}).get(key) or {}
+    state = ev.get("evidence", "held_out" if s else "")
+    rate = s.get("parse_rate")
+    rate_s = "n/a" if rate is None else f"{rate:.1%}"
+    whole = ev.get("whole_file")
+    whole_s = f"; whole file {whole['ok']}/{whole['judged']} ok" if whole else ""
+    ex = "; ".join(f"`{e['raw']}` → `{e['value']}`" for e in ev.get("examples", [])[:3])
+    return (f"- `{key}`: from `{src}` ({ts}); held-out parse rate {rate_s}{whole_s}" +
+           (f"; evidence **{state}**" if state else "") + (f"; examples: {ex}" if ex else ""))
+
+
+def _reader_settings_section(cfg: dict, source_id: str, work_dir: Path, report: dict | None = None) -> list[str]:
+    """Item E/D1: the reader options, the layout in code's own words, the first PROTECTED_ROWS raw rows of the file
+    (exactly as read_table showed the agent: never held out, so this is always safe to print), and record_id /
+    observed_at / valid_from / valid_to — settings that stamp every observation of a row but were otherwise invisible
+    to a reviewer of the round-2 packet."""
+    from src.engine.readers import ReaderError, layout_description, raw_head
+    from src.part2_agent.agent_table import PROTECTED_ROWS, input_path
+    L = ["\n## Reader and record settings\n", f"- reader: `{json.dumps(cfg['reader'], default=str)}`"]
+    words = layout_description(cfg["reader"])
+    if words:
+        L.append(f"- layout: {words}")
+    for key in ("record_id", "observed_at", "valid_from", "valid_to"):
+        row = _envelope_row(cfg, report, key)
+        if row:
+            L.append(row)
+    try:
+        path = input_path(work_dir)
+        rows = raw_head(cfg["reader"], path, PROTECTED_ROWS)
+        L.append(f"\nFirst {len(rows)} raw rows of the file (numbered as skip_rows counts them; never held out):\n")
+        if cfg["reader"].get("format") == "json":
+            L += [f"{i}. `{json.dumps(r[0], default=str)[:200]}`" for i, r in enumerate(rows, 1)]
+        else:
+            for i, r in enumerate(rows, 1):
+                cells = " | ".join("∅" if c in (None, "") else str(c)[:40] for c in r[:15])
+                L.append(f"{i}. {cells}")
+    except Exception:
+        L.append("\n(the first raw rows could not be re-read for this packet)")
+    return L
+
+
 def _packet_markdown(result, cfg: dict | None, report: dict | None, metadata: dict | None, questions: list,
-                     critiques: list, trace_path: str) -> str:
+                     critiques: list, trace_path: str, source_id: str = "", work_dir: Path | None = None) -> str:
     L = [f"# Review packet (round-2 agent): {result.outcome}\n"]
     if metadata:
         flag = "  ⚠️ **LICENCE FLAGGED: check terms before use**" if metadata.get("licence_flag") else ""
@@ -424,16 +714,31 @@ def _packet_markdown(result, cfg: dict | None, report: dict | None, metadata: di
         L.append("\n## Questions the agent asked a human\n")
         L += [f"- {q['question']} → " + (f"answer: {q['answer']}" if q.get("answer") else "no human was available") for q in questions]
     if cfg:
+        L += _reader_settings_section(cfg, source_id, work_dir or Path("."), report)
         L.append(f"\n## Mapped fields (config v{cfg['config_version']}): mark any that are WRONG when you run `approve`\n")
-        L.append("| # | Source column | → Canonical field | Transforms | Level | Mapping conf. (model) | Parse rate (held-out) | **Field conf.** |")
-        L.append("|---|---|---|---|---|---|---|---|")
+        L.append("| # | Source column | → Canonical field | Transforms | Level | Evidence | Mapping conf. (model) | Parse rate (held-out) | **Field conf.** |")
+        L.append("|---|---|---|---|---|---|---|---|---|")
         for i, f in enumerate(cfg["fields"], 1):
             v = f.get("validation", {})
             rate = "n/a" if v.get("parse_rate") is None else f"{v['parse_rate']:.1%}"
             L.append(f"| {i} | `{_src(f)}` | `{f['canonical']}` | {_t(f)} | {f.get('transform_level', '?')} | "
-                     f"{f['mapping_confidence']:.2f} | {rate} | **{f.get('field_confidence', 0):.2f}** |")
+                     f"{f.get('evidence', 'held_out')} | {f['mapping_confidence']:.2f} | {rate} | **{f.get('field_confidence', 0):.2f}** |")
         L.append("\nThe model's reasons per field (its words, not verified):\n")
         L += [f"{i}. `{f['canonical']}` ← `{_src(f)}`: {f.get('reason', '')}" for i, f in enumerate(cfg["fields"], 1)]
+        sparse = [f for f in cfg["fields"] if f.get("evidence") in ("training", "unverified")]
+        if sparse or (report or {}).get("no_held_out_split"):
+            L.append("\n## Fields without enough held-out evidence\n")
+            if (report or {}).get("no_held_out_split"):
+                L.append("No held-out test was possible: the file has too few rows, so every field is judged on rows "
+                         "the agent saw (evidence `training`) or on nothing (`unverified`).")
+            for f in sparse:
+                ev = ((report or {}).get("evidence") or {}).get(field_key(f)) or {}
+                w = f.get("validation", {}).get("whole_file") or ev.get("whole_file") or {}
+                ex = "; ".join(f"`{e['raw']}` → `{e['value']}`" for e in ev.get("examples", [])) or "none"
+                L.append(f"- `{field_key(f)}`: evidence **{f['evidence']}** (capped at "
+                         f"{TRAINING_CAP if f['evidence'] == 'training' else UNVERIFIED_CAP}); whole file: "
+                         f"{w.get('populated', '?')} populated, {w.get('judged', '?')} judged, {w.get('ok', '?')} ok, "
+                         f"{w.get('rejected', '?')} rejected. Training examples: {ex}")
         L.append("\n## Left unmapped (not guessed)\n")
         L += [f"- `{u['source']}`: {u['reason']}" for u in cfg["unmapped"]] or ["- none"]
         L.append("\n## Needs a transform the engine does not have\n")
@@ -492,7 +797,7 @@ def write_agent_outputs(result, *, source_id: str, work_dir: Path, model: str | 
         packet = target_dir / f"{source_id}.review.md"
     else:
         packet = work_dir / "outcome.md"
-    md = _packet_markdown(result, cfg, report, metadata, questions, critiques, trace_path)
+    md = _packet_markdown(result, cfg, report, metadata, questions, critiques, trace_path, source_id, work_dir)
     if cfg and report and report.get("stats"):
         md = md.replace("\n---\nTo review", "\n".join(_held_examples(cfg, source_id, work_dir, metadata)) + "\n---\nTo review", 1)
     packet.write_text(md)

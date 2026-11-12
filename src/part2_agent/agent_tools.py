@@ -38,14 +38,14 @@ from src.common.ckan import PORTAL_DATASET_PAGE
 from src.common.ids import digits_only
 from src.engine.config import _check_transforms, load_ontology, normalise_transforms
 from src.engine.extract import FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms
-from src.engine.readers import (ALL_FORMATS, ARCHIVES, MAX_DECOMPRESSED_BYTES, ReaderError, _open_binary, workbook_sheets,
-                                zip_members)
+from src.engine.readers import (ALL_FORMATS, ARCHIVES, MAX_DECOMPRESSED_BYTES, ReaderError, _open_binary, layout_description,
+                                raw_head, workbook_sheets, zip_members)
 from src.engine.transforms import _COMPANY_END, CATALOGUE, clean_whitespace
 from src.part1_triage.pull import slim
 from src.part1_triage.run import licence_of
 from src.part2_agent import agent_hooks as hooks_mod
-from src.part2_agent.agent_table import (RAW_DIR, NoTable, build_table, get_table, input_info, input_path, remember_table,
-                                         save_input)
+from src.part2_agent.agent_table import (PROTECTED_ROWS, RAW_DIR, NoTable, build_table, get_table, input_info, input_path,
+                                         remember_table, save_input)
 from src.part2_agent.guard import HARNESS_MAX_USES, FetchRefused
 from src.part2_agent.loop import FinaliseHooks
 from src.part2_agent.profile import _DATE_LIKE, trim_row
@@ -208,6 +208,7 @@ class AgentKit:
             "format": {"type": "string", "enum": list(ALL_FORMATS)},
             "encoding": {"type": "string"}, "delimiter": {"type": "string"}, "quote": {"type": "string"},
             "skip_rows": {"type": "integer"}, "header_rows": {"type": "integer"}, "skip_footer_rows": {"type": "integer"},
+            "skip_rows_after_header": {"type": "integer"},
             "drop_empty_columns": {"type": "boolean"}, "sheet": {"type": "string"}, "records_path": {"type": "string"},
             "flatten_depth": {"type": "integer"}, "ndjson": {"type": "boolean"},
             "archive": {"type": "string", "enum": list(ARCHIVES)}, "member": {"type": "string"}}
@@ -234,12 +235,14 @@ class AgentKit:
                               "12 raw lines. Use it before read_table.",
                      {"type": "object", "additionalProperties": False, "properties": {"member": {"type": "string"}}},
                      self.t_sniff, max_rows=12, max_cell_chars=300, timeout_seconds=20),
-            ToolSpec("read_table", "Read the file with the reader options you choose and return the column names, the row "
-                                   "count and the first rows. `format` is required. header_rows: 0 (no header), 1, or n rows "
-                                   "merged into one name; skip_rows drops rows above the header; for a zip give archive "
-                                   "'zip' and `member`; for NDJSON set ndjson true; for GeoJSON records_path 'features'. A "
-                                   "random sample of rows is held out for validation and never shown to you. Later tools "
-                                   "use the reader of your latest successful read_table.",
+            ToolSpec("read_table", "Read the file with the reader options you choose and return the column names, the first "
+                                   "RAW rows of the file exactly as they are (numbered; never held out), the row count and "
+                                   "the first training rows. `format` is required. header_rows: 0 (no header), 1, or n rows "
+                                   "merged into one name; skip_rows drops rows above the header; skip_rows_after_header "
+                                   "drops label or note rows between the header and the data (needs header_rows >= 1); for "
+                                   "a zip give archive 'zip' and `member`; for NDJSON set ndjson true; for GeoJSON "
+                                   "records_path 'features'. A random sample of rows is held out for validation and never "
+                                   "shown to you. Later tools use the reader of your latest successful read_table.",
                      {"type": "object", "additionalProperties": False, "required": ["format"], "properties": reader_props},
                      self.t_read_table, max_rows=20, max_cols=40, max_cell_chars=100, timeout_seconds=60),
             ToolSpec("profile", "Per-column profile of the training rows: fill rate, distinct count, most common values, "
@@ -564,17 +567,45 @@ class AgentKit:
 
     # ---- read_table and the tools that use it ---------------------------------------------------------------------------
 
+    def _raw_top(self, path: Path, reader: dict) -> list[dict] | None:
+        """The first PROTECTED_ROWS raw rows, numbered as `skip_rows` counts them (blank rows included), cells cut short.
+        These rows are never held out, so showing them reveals nothing about the held-out set. Best effort: None when even
+        a layout-free read fails."""
+        try:
+            rows = raw_head(reader, path, PROTECTED_ROWS)
+        except (ReaderError, Exception):
+            return None
+        out = []
+        for i, cells in enumerate(rows, 1):
+            if reader.get("format") == "json":
+                out.append({"row": i, "record": json.dumps(cells[0], default=str)[:300]})
+            else:
+                out.append({"row": i, "cells": [("" if c in (None, "") else str(c)[:30]) for c in cells[:25]]})
+        return out
+
+    @staticmethod
+    def _layout_words(reader: dict, table) -> str:
+        """The applied layout, in words written by code, so an off-by-one is visible next to the numbered raw rows."""
+        d = layout_description(reader)
+        return f" Layout: {d}" if d else ""
+
     def t_read_table(self, args: dict, ctx: ToolContext) -> ToolResult:
         reader = {k: v for k, v in args.items() if v is not None and v != ""}
         try:
             path = self._input()
-            table = build_table(self.sid, self.wd, path, reader, ctx.check_deadline)
         except NoTable as e:
             return fail(str(e))
+        raw_top = self._raw_top(path, reader)
+        try:
+            table = build_table(self.sid, self.wd, path, reader, ctx.check_deadline)
         except ReaderError as e:
-            return fail("read_table failed: the reader could not read the file with these options (reason below).", str(e))
+            return fail("read_table failed: the reader could not read the file with these options (reason below). The first "
+                        "raw rows of the file are shown unchanged, numbered as skip_rows counts them.",
+                        {"error": str(e), "raw_top": raw_top})
         if table.n_rows == 0:
-            return fail("read_table failed: these options produced no data rows. Check skip_rows, header_rows and the format.")
+            return fail("read_table failed: these options produced no data rows. Check skip_rows, header_rows and the format. "
+                        "The first raw rows of the file are shown unchanged, numbered as skip_rows counts them.",
+                        {"raw_top": raw_top})
         remember_table(self.sid, self.wd, table)
         first = []
         for row in table.training(ctx.check_deadline):
@@ -582,15 +613,20 @@ class AgentKit:
             if len(first) >= 20:
                 break
         blank = sum(1 for h in table.headers if h.startswith("_blank_"))
+        held_text = (f"{len(table.held_fp)} rows are held out for validation and never shown to you; {table.visible_n:,} "
+                     f"training rows remain." if table.held_fp else
+                     "The file is too small for a held-out set: none was made, and validation will judge fields on rows "
+                     "you can see (the packet will say so).")
         text = (f"Read {table.n_rows:,} data rows and {len(table.headers)} columns"
-                f"{f' ({blank} with a blank header)' if blank else ''}. {len(table.held_fp)} rows are held out for validation and "
-                f"never shown to you; {table.visible_n:,} training rows remain. The column names and the first training rows "
-                f"are below.")
+                f"{f' ({blank} with a blank header)' if blank else ''}.{self._layout_words(reader, table)} {held_text}"
+                f" The column names, the first {PROTECTED_ROWS} RAW rows of the file (numbered as skip_rows counts them, "
+                f"never held out) and the first training rows are below.")
         if table.resplit:
             text += " NOTE: the held-out split was re-made because the first parse of the file did not match this one."
         if len(table.headers) > 40:
             text += f" Only the first 40 columns are shown; use `profile` with `columns` for the rest."
-        return ToolResult(text=text, payload={"columns": {str(i): h for i, h in enumerate(table.headers)}, "first_rows": first},
+        return ToolResult(text=text, payload={"columns": {str(i): h for i, h in enumerate(table.headers)},
+                                              "raw_top": raw_top, "first_rows": first},
                           status={"rows": table.n_rows, "columns": len(table.headers)})
 
     def _table(self, ctx: ToolContext):

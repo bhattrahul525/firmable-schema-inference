@@ -1,0 +1,193 @@
+what_it_is: Queensland Children's Hospital and Health Service (CHHHS) contract disclosure register entries for financial
+  year 2020/21, one row per disclosed contract or order form with supplier name and address.
+one_row_is: one disclosed contract or order form awarded by CHHHS to a supplier
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 2
+  header_rows: 1
+  skip_rows_after_header: 2
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Column labelled Supplier name; the row's subject is the supplier party.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 0
+    ok: 24
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Supplier address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Supplier address column for the supplier party.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 1
+    ok: 23
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Supplier ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Column labelled Supplier ABN for the supplier party; checksum validated.
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 23
+    ok: 1
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: unverified
+    whole_file:
+      populated: 1
+      judged: 1
+      ok: 1
+      rejected: 0
+unmapped:
+- source: Description
+  reason: empty column
+- source: Agency (Dept or Stat Body)
+  reason: government buyer, not the supplier entity
+- source: Agency address
+  reason: address of the government buyer
+- source: Contract description/name
+  reason: contract title, not an entity attribute
+- source: Award contract date
+  reason: date of the contract event, not when the entity's identity became true
+- source: Contract value
+  reason: contract financial value, not mapped to ontology
+- source: Variation to contract (Yes/No)
+  reason: contract attribute
+- source: Specific confidentiality provision used
+  reason: contract attribute
+- source: Procurement method
+  reason: contract attribute
+- source: Form of contract
+  reason: contract attribute
+- source: Number of offers sought
+  reason: contract attribute
+- source: Evaluation criteria and weightings
+  reason: contract attribute
+- source: Deliverables
+  reason: contract attribute
+- source: Contract milestones
+  reason: contract attribute
+- source: Contract performance management
+  reason: contract attribute
+- source: Contract reference number
+  reason: contract identifier, not entity identifier
+- source: Contract category group
+  reason: procurement category, not ANZSIC industry code
+- source: Parent contract number/SOA
+  reason: contract identifier
+- source: Commence date
+  reason: contract event date, sparse
+- source: Finish date
+  reason: contract end date for the disclosed contract, an event date not the entity's own status end
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.6
+  classification: 0.3
+  contact: 0.5
+source_reliability_basis: Government disclosure register of contracts by a health service; names are self-reported
+  in the disclosure with inconsistent trailing spaces and abbreviations; ABN sparsely supplied and not verified
+  beyond checksum.
+meaning_check_responses: []
+source_id: bench_dev1f_04
+config_version: 1
+validation_summary:
+  held_out_rows: 24
+  observations_in_held_out: 72
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-f92fffaa
+    field: entity.abn<-Supplier ABN
+    problem: Supplier ABN is listed as unmapped on the grounds that it is empty in training rows. The held-out row
+      for Rauland Australia carries a populated value ('63 056 360 653'), so the stated reason does not hold and
+      the column is not being used. Rule 6 requires an identifier column like this to go through the abn transform.
+    severity: advisory
+    suggested_fix: Map Supplier ABN to entity.abn with the abn checksum transform (separate spaces before validation),
+      and state the reason accurately if any rows remain blank.
+  - id: c-12565ba6
+    field: Finish date
+    problem: Finish date is marked as an empty column, but the held-out row for Rauland Australia has a value ('1/02/2026').
+      The reason is inaccurate. Leaving it unmapped is still defensible, because it is a contract end date and not
+      the entity's registration or status end date.
+    severity: advisory
+    suggested_fix: Correct the unmapped reason to say it is a contract event date, not the entity's own status end,
+      and keep it unmapped.
+  - id: c-21800164
+    field: address.full<-Supplier address
+    problem: The supplier address contains a state and postcode in several rows (e.g. '249 Boundary Street, West
+      End 4101', '21 Enmore Street Manoora QLD', '38 Redden Street, Cairns'), but only the full string is mapped.
+      Components the source states could be parsed further.
+    severity: advisory
+    suggested_fix: Consider parsing address.state and address.postcode from the supplier address where the source
+      states them explicitly, keeping address.full as the raw string. Leave them unmapped where the text does not
+      state them.
+  - id: c-4f7b3a15
+    field: address.full<-Supplier address
+    problem: The supplier address is mapped only as a whole string with whitespace cleaning. Several rows contain
+      a state and postcode (e.g. '249 Boundary Street, West End 4101', '3 Acacia Place, Notting Hill, Victoria'),
+      which could be parsed into address.locality, address.state and address.postcode. The state is also written
+      inconsistently ('Victoria' versus 'QLD' and 'NSW'), and the enum requires codes such as VIC.
+    severity: advisory
+    suggested_fix: Keep address.full, and consider adding parsed locality, state (normalised to the enum codes)
+      and postcode sourced from the same column, or record that parsing was not attempted.
+  - id: c-6ba31df8
+    field: entity.legal_name<-Supplier name
+    problem: The column is labelled 'Supplier name', which meets the legal_name rule. The names shown, such as 'Stryker',
+      'Bidfood Cairns' and 'Deloitte Touche Tohmatsu', look like trading or brand names rather than registered names.
+      Nothing in the source confirms registration, so the claim is only as strong as the supplier label.
+    severity: advisory
+    suggested_fix: Keep the mapping, since the label supports it, but consider a lower mapping_confidence or a source_reliability
+      note stating that the name is the supplier name as given in the contract, not a checked registered name.
+  - id: c-7dd30fd1
+    field: reader
+    problem: The config skips 2 rows before the header and 2 rows after it. This is unusual for a contract export
+      and could drop or misalign data if the layout differs from what was sampled. It is not a meaning error on
+      the rows shown.
+    severity: advisory
+    suggested_fix: Confirm the skip counts against the raw file layout and document why they are needed.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:54:27+00:00'

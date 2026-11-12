@@ -1,0 +1,336 @@
+what_it_is: Australian IP research panel of IP-filing parties (designs, plant breeder's rights, trade marks) with
+  yearly filing and grant counts, from the IPLORD longitudinal dataset.
+one_row_is: one IP party (anonymised party_id or ABN) in one financial year, with its filing/grant counts for that
+  year.
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - lord_party_id
+  - lord_party_id_type
+  - financial_year
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source:
+  - lord_party_id_type
+  - lord_party_id
+  canonical: entity.abn
+  transforms:
+  - name: join_nonempty
+    arg: ':'
+  - name: regex_extract
+    arg: ^abn:(\d{11})\.0$
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: 'Gated on lord_party_id_type=abn: only those rows carry 11-digit ABNs stored as float text (e.g. 11000002568.0);
+    the checksum is applied.'
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 91
+    skipped_not_applicable: 209
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: party_name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: regex_extract
+    arg: ^(?!t?[0-9a-f]{32}$)(.+)$
+  group: main
+  mapping_confidence: 0.5
+  reason: IP register filer name, not labelled as registered name, so trading name at low confidence. Anonymised
+    32-hex party hashes are excluded.
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 225
+    skipped_not_applicable: 75
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: country_code
+  canonical: address.country
+  transforms:
+  - name: upper
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: ISO-style country code of the filer.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 7
+    ok: 293
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: state_code
+  canonical: address.state
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Australian state code; overseas regions are rejected by the engine.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 106
+    ok: 186
+    skipped_not_applicable: 0
+    rejected: 8
+    parse_rate: 0.9588
+    evidence: held_out
+    whole_file: null
+- source: post_code
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Postcode of the filer.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 105
+    ok: 185
+    skipped_not_applicable: 0
+    rejected: 10
+    parse_rate: 0.9487
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: lord_party_id_type
+  reason: Used only to gate lord_party_id as ABN; not a canonical field.
+- source: financial_year
+  reason: Reporting period of the count; not a claim start/end date for the entity.
+- source: d_first_earliest_filed_financial_year
+  reason: Year of first filing, not a registration date.
+- source: pbr_first_earliest_filed_financial_year
+  reason: Year of first filing, not a registration date.
+- source: tm_first_earliest_filed_financial_year
+  reason: Year of first filing, not a registration date.
+- source: d_first_gained_enforceable_status_financial_year
+  reason: IP enforceability year, not an entity status.
+- source: pbr_first_gained_enforceable_status_financial_year
+  reason: IP enforceability year, not an entity status.
+- source: tm_first_gained_enforceable_status_financial_year
+  reason: IP enforceability year, not an entity status.
+- source: d_filed_count
+  reason: IP activity count; no ontology field.
+- source: pbr_filed_count
+  reason: IP activity count; no ontology field.
+- source: tm_filed_count
+  reason: IP activity count; no ontology field.
+- source: d_granted_count
+  reason: IP activity count; no ontology field.
+- source: pbr_granted_count
+  reason: IP activity count; no ontology field.
+- source: tm_granted_count
+  reason: IP activity count; no ontology field.
+- source: d_retired_count
+  reason: IP activity count; no ontology field.
+- source: pbr_retired_count
+  reason: IP activity count; no ontology field.
+- source: tm_retired_count
+  reason: IP activity count; no ontology field.
+- source: d_enforceable_count
+  reason: IP activity count; no ontology field.
+- source: pbr_enforceable_count
+  reason: IP activity count; no ontology field.
+- source: tm_enforceable_count
+  reason: IP activity count; no ontology field.
+- source: tm_services_filed_count
+  reason: IP activity count; no ontology field.
+- source: tm_services_granted_count
+  reason: IP activity count; no ontology field.
+- source: tm_services_retired_count
+  reason: IP activity count; no ontology field.
+- source: tm_services_enforceable_count
+  reason: IP activity count; no ontology field.
+- source: d_filed_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: pbr_filed_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_filed_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: d_granted_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: pbr_granted_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_granted_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: d_retired_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: pbr_retired_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_retired_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: d_enforceable_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: pbr_enforceable_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: d_enforceable_class_scope
+  reason: IP classification scope; no ontology field.
+- source: d_enforceable_modal_class
+  reason: IP classification detail; no ontology field.
+- source: d_filed_class_scope
+  reason: IP classification scope; no ontology field.
+- source: d_filed_modal_class
+  reason: IP classification detail; no ontology field.
+- source: d_granted_class_scope
+  reason: IP classification scope; no ontology field.
+- source: d_granted_modal_class
+  reason: IP classification detail; no ontology field.
+- source: d_retired_class_scope
+  reason: IP classification scope; no ontology field.
+- source: pbr_enforceable_class_scope
+  reason: IP classification scope; no ontology field.
+- source: pbr_enforceable_modal_class
+  reason: IP classification detail; no ontology field.
+- source: pbr_filed_class_scope
+  reason: IP classification scope; no ontology field.
+- source: pbr_filed_modal_class
+  reason: IP classification detail; no ontology field.
+- source: pbr_granted_class_scope
+  reason: IP classification scope; no ontology field.
+- source: pbr_granted_modal_class
+  reason: IP classification detail; no ontology field.
+- source: pbr_retired_class_scope
+  reason: IP classification scope; no ontology field.
+- source: pbr_retired_modal_class
+  reason: IP classification detail; no ontology field.
+- source: tm_enforceable_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_enforceable_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_filed_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_granted_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_retired_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_services_enforceable_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_services_enforceable_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_services_filed_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_services_filed_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_services_granted_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_services_granted_weighted_count
+  reason: IP activity measure; no ontology field.
+- source: tm_services_retired_class_scope
+  reason: IP classification scope; no ontology field.
+- source: tm_services_retired_weighted_count
+  reason: IP activity measure; no ontology field.
+needs_transform: []
+source_reliability:
+  identity: 0.5
+  address: 0.6
+  classification: 0.3
+  contact: 0.1
+source_reliability_basis: Research extract of IP filings with anonymised party IDs and filer names; names and addresses
+  are as filed, not verified against a business register.
+meaning_check_responses:
+- check_id: identifier_checksum_abn
+  action: kept
+  reason: The abn transform rejects checksum failures, so only checksum-valid ABNs are emitted; the gated type=abn
+    rows are the ones mapped.
+source_id: bench_dev1f_06
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1277
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-159cb32d
+    field: entity.trading_name<-party_name
+    problem: Some party_name values are anonymised hashes (for example 'tde4084c80e515ae77542c13d29cf7430'), not
+      names. Mapping them as the entity's trading name states a trading name the source does not support.
+    severity: blocking
+    suggested_fix: Do not map values that are hex hashes or placeholders to entity.trading_name. Add a rule that
+      drops them, or leave them unmapped with a reason.
+  - id: c-4aacda0a
+    field: entity.abn<-lord_party_id
+    problem: The config says only rows with lord_party_id_type=abn carry ABNs, but the regex and checksum do not
+      check the type column. A party_id value that is 11 digits with a '.0' suffix and a valid checksum would be
+      emitted as an ABN, which the source does not state.
+    severity: blocking
+    suggested_fix: Gate the entity.abn mapping on lord_party_id_type == 'abn' (a conditional or pre-filter transform),
+      not only on the regex and checksum.
+  - id: c-f8e44550
+    field: entity.trading_name<-party_name
+    problem: Rows such as 'francesca garreffa' are person names with only an anonymised party_id and no business
+      identifier. Rule 18 says these should be no_business_entities, but the config maps them as business entities.
+    severity: advisory
+    suggested_fix: Consider flagging individual filers without an ABN as non-entity rows, or document that the IP
+      register lists individuals as filers.
+  - id: c-81c519b4
+    field: entity.trading_name<-party_name
+    problem: party_name is an IP register filer name that the data does not label as registered or licensee. Mapping
+      it to trading_name is correct under rule 5, but the mapping_confidence should be stated at 0.6 or lower.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.6 or lower for this column and record that it is an unlabelled filer
+      name.
+  - id: c-670a9016
+    field: entity.trading_name<-party_name
+    problem: The row for 'francesca garreffa' (party_id type, no ABN) is mapped as an entity trading name. Rule
+      18 treats individuals with no business identifier as not business entities. The party_name is a person-like
+      name with no business identifier, so the mapping does not say the person is an entity.
+    severity: advisory
+    suggested_fix: Gate the entity-level trading_name observation on the row having a business identifier (abn type),
+      or record a caveat that party_id-type person filers are IP registrants, not confirmed business entities.
+  - id: c-7afde8b9
+    field: entity.trading_name<-party_name
+    problem: party_name is an IP register filer name that is not labelled as the registered name, so it is mapped
+      to trading_name. The config gives no mapping_confidence, and the rule requires 0.6 or lower for such a column.
+    severity: advisory
+    suggested_fix: State mapping_confidence at 0.6 or lower for this claim and set source_reliability_basis to explain
+      that the IP register filer name is not a registered name.
+  - id: c-012b46f2
+    field: record_id
+    problem: record_id is built from lord_party_id, lord_party_id_type and financial_year without a stated check_unique.
+      Each row is a party for one financial year, so the composite is probably unique, but the config does not say
+      it was verified.
+    severity: advisory
+    suggested_fix: Run check_unique on the composite key and record the result, or switch to hash_row=true if duplicates
+      appear.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:58:20+00:00'

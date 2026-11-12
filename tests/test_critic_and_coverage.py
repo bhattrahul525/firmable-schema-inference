@@ -208,7 +208,8 @@ class TestCoverageFlags(unittest.TestCase):
                 {"outcome": "validated_config", "mapped_fields": "address.state<-s"},
                 {"outcome": "partial_config", "mapped_fields": "entity.legal_name<-a; entity.abn<-b"},
                 {"outcome": "no_business_entities", "mapped_fields": ""}]
-        self.assertEqual(R.coverage_counts(rows), {"validated": 5, "both": 1, "name_only": 1, "identifier_only": 1, "neither": 2})
+        self.assertEqual(R.coverage_counts(rows), {"validated": 5, "both": 1, "name_only": 1, "identifier_only": 1, "neither": 2,
+                                                   "identifier_unverified": 0})
 
     def test_the_comparison_table_shows_the_flags_and_the_per_pass_coverage(self):
         with tempfile.TemporaryDirectory() as d:

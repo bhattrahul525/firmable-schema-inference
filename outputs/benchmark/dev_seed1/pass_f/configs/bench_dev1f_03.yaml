@@ -1,0 +1,121 @@
+what_it_is: 'Victorian government school ABN register: each row links a Victorian government school (by school number)
+  to its ABN for a financial period.'
+one_row_is: one Victorian government school's ABN details for one financial period (Fin_Period)
+reader:
+  format: xlsx
+  sheet: Sheet1
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - SchoolNumber
+  - Fin_Period
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Column labelled ABN holding 11-digit Australian Business Numbers; checksum validated.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 297
+    skipped_not_applicable: 3
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SchoolName
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: School name; the source does not label it as a registered name, so mapped to trading_name at low confidence.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: SchoolNumber
+  reason: Internal school number; used only as part of the record key.
+- source: Fin_Period
+  reason: Financial period code of the extract; not a registration or status date. Used as part of the record key.
+- source: LoadDate
+  reason: Internal load timestamp of the extract, not a statement by the source about the entity.
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: 'Official Victorian Government publication of school ABNs; authoritative for the ABN link.
+  Caveat: government schools may hold ABNs registered to a parent education department rather than the individual
+  school (not verified against the ABR). File has no registration detail and some ABNs are malformed (8 or 9 digits,
+  skipped by the abn transform).'
+meaning_check_responses: []
+source_id: bench_dev1f_03
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 897
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-675f1a21
+    field: record_id
+    problem: The record_id is a composite of SchoolNumber and Fin_Period, but the config does not show a check_unique
+      result. The examples show distinct school numbers within one period, yet uniqueness across the whole extract
+      is not demonstrated.
+    severity: advisory
+    suggested_fix: Run check_unique on the composite key over the full extract, or fall back to hash_row=true if
+      duplicates appear.
+  - id: c-170d1e3d
+    field: entity.abn<-ABN
+    problem: The ABN column is mapped as the school's own identifier. Government schools often hold ABNs registered
+      to a parent education department rather than to the individual school. The examples do not show which entity
+      the ABN belongs to, so the claim that this ABN identifies the school is not confirmed by the source.
+    severity: advisory
+    suggested_fix: Check a sample of ABNs against the ABR to see whether they belong to the school or to a parent
+      government body. If they belong to the parent, record the link at lower confidence or note the caveat in source_reliability_basis.
+  - id: c-e3763f73
+    field: entity.trading_name<-SchoolName
+    problem: The config gives no mapping_confidence for this mapping. Rule 5 requires confidence of 0.6 or lower
+      for a name the data does not label as registered. The school name is a reasonable reading of trading_name,
+      but the source does not say it is a registered or trading name.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.6 or lower and record that the SchoolName column carries no registered-name
+      label.
+  - id: c-979d74af
+    field: observed_at
+    problem: observed_at uses resource_last_modified, which is a publication timestamp for the file. The LoadDate
+      column is an internal load stamp and is correctly unmapped, but the config gives no reason for choosing the
+      metadata date over the period in Fin_Period.
+    severity: advisory
+    suggested_fix: Keep resource_last_modified and add a short note that Fin_Period is a period code, not a statement
+      date.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:54:01+00:00'

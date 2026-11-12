@@ -8,6 +8,9 @@ The readers are hand-written and tested. The agent only chooses OPTIONS; it neve
   skip_rows         rows dropped before the header
   header_rows       0 (no header: col_1, col_2 ...), 1 (default) or n (n rows merged into one name; the upper rows are
                     filled rightwards over blanks, because merged header cells come out blank after the first column)
+  skip_rows_after_header  raw rows dropped AFTER the header rows and before the data (label or note rows under the real
+                    header). A count like skip_rows (blank lines count). Needs header_rows >= 1 (with 0 use skip_rows);
+                    refused for json. Default 0, so every config without it reads exactly as before
   skip_footer_rows  last n NON-BLANK rows dropped
   drop_empty_columns  drop columns with a blank header that are also empty in the first 1,000 data rows
   sheet             xlsx / xls sheet name (default: the first)
@@ -305,19 +308,23 @@ def workbook_sheets(reader: dict, path: Path) -> list[dict]:
 
 # ---- header handling -----------------------------------------------------------------------------------------------
 
-def _layout(reader: dict) -> tuple[int, int, int]:
-    """(skip_rows, header_rows, skip_footer_rows), with the round-1 `header_row` accepted."""
+def _layout(reader: dict) -> tuple[int, int, int, int]:
+    """(skip_rows, header_rows, skip_footer_rows, skip_rows_after_header), with the round-1 `header_row` accepted."""
     def num(key, default):
         v = reader.get(key, default)
         if isinstance(v, bool) or not isinstance(v, int) or v < 0:
             raise ReaderError(f"{key} must be a non-negative integer")
         return v
+    drop = num("skip_rows_after_header", 0)
     if "header_row" in reader and "skip_rows" not in reader and "header_rows" not in reader:
         hr = reader["header_row"]
         if isinstance(hr, bool) or not isinstance(hr, int) or hr < 1:
             raise ReaderError("header_row must be an integer of at least 1")
-        return hr - 1, 1, num("skip_footer_rows", 0)
-    return num("skip_rows", 0), num("header_rows", 1), num("skip_footer_rows", 0)
+        return hr - 1, 1, num("skip_footer_rows", 0), drop
+    nh = num("header_rows", 1)
+    if drop and nh == 0:
+        raise ReaderError("skip_rows_after_header needs header_rows of at least 1; with header_rows 0 use skip_rows")
+    return num("skip_rows", 0), nh, num("skip_footer_rows", 0), drop
 
 
 def _merge_headers(rows: list[list]) -> list:
@@ -342,7 +349,7 @@ def _merge_headers(rows: list[list]) -> list:
 
 
 def _table_from_matrix(reader: dict, matrix: Iterator[list], check: Callable | None):
-    skip, nh, footer = _layout(reader)
+    skip, nh, footer, drop = _layout(reader)
     it = iter(matrix)
     seen_rows = 0
     for _ in range(skip):
@@ -363,6 +370,9 @@ def _table_from_matrix(reader: dict, matrix: Iterator[list], check: Callable | N
                 raise ReaderError(f"header_rows {nh} (after skip_rows {skip}) is outside the file")
             head.append(r)
         headers = _name_headers(head[0] if nh == 1 else _merge_headers(head))
+        for _ in range(drop):   # label or note rows directly under the header: raw rows, blank lines count
+            if next(it, None) is None:
+                raise ReaderError(f"skip_rows_after_header {drop} (after the header rows) is outside the file")
     keep = list(range(len(headers)))
     peek: list = []
     if reader.get("drop_empty_columns"):
@@ -437,6 +447,8 @@ def _json_records(reader: dict, stack: ExitStack, path: Path) -> Iterator[dict]:
 
 
 def _json_table(reader: dict, stack: ExitStack, path: Path, check: Callable | None):
+    if reader.get("skip_rows_after_header"):
+        raise ReaderError("skip_rows_after_header applies to the table formats (csv, tsv, xlsx, xls), not json")
     depth = reader.get("flatten_depth", 1)
     if isinstance(depth, bool) or not isinstance(depth, int) or depth < 0:
         raise ReaderError("flatten_depth must be a non-negative integer")
@@ -479,6 +491,35 @@ def read_rows(reader: dict, path: Path) -> tuple[list[str], list[dict]]:
         return headers, [r for _, r in rows]
 
 
+def raw_head(reader: dict, path: Path, n: int = 12) -> list[list]:
+    """The first n RAW rows of the file with NO layout applied (skip_rows, header_rows, skip_rows_after_header and
+    skip_footer_rows are ignored; format, encoding, delimiter, quote, sheet, archive/member and the json options are
+    honoured). Matrix formats return cell lists, blank rows included, numbered as `skip_rows` counts them; json returns
+    the first n raw records. The agent's held-out split protects exactly these rows (agent_table.py), so showing them
+    never reveals a held-out row."""
+    fmt = reader.get("format")
+    if fmt not in ALL_FORMATS:
+        raise ReaderError(f"unsupported format {fmt!r}; supported: {ALL_FORMATS}")
+    keep = ("format", "encoding", "delimiter", "quote", "sheet", "archive", "member", "records_path", "flatten_depth", "ndjson")
+    base = {k: reader[k] for k in keep if k in reader}
+    with ExitStack() as stack:
+        if fmt == "json":
+            return [[r] for r in islice(_json_records(base, stack, path), n)]
+        matrix = {"csv": _csv_matrix, "tsv": _csv_matrix, "xlsx": _xlsx_matrix, "xls": _xls_matrix}[fmt](base, stack, path)
+        return [list(r) for r in islice(matrix, n)]
+
+
+def raw_head_fingerprints(reader: dict, path: Path, n: int = 12) -> frozenset:
+    """Fingerprints of the first n raw rows (blank rows have none). For json, the record fingerprint _json_table uses."""
+    if reader.get("format") == "json":
+        fps = []
+        for (rec,) in raw_head(reader, path, n):
+            fps.append(hashlib.blake2b(json.dumps(rec, sort_keys=True, default=str).encode(), digest_size=12).digest())
+        return frozenset(fps)
+    return frozenset(row_fingerprint(r) for r in raw_head(reader, path, n)
+                     if any(c not in (None, "") for c in r))
+
+
 def read_raw_lines(path: Path, fmt: str, n: int = 12, encoding: str = "utf-8-sig") -> list[list]:
     """First n raw lines/rows with no interpretation, so the agent can see what the file is.
     Used by the round-1 inspect step before any reader settings are known."""
@@ -494,6 +535,23 @@ def read_raw_lines(path: Path, fmt: str, n: int = 12, encoding: str = "utf-8-sig
         return [[path.open(encoding=encoding).read(3000)]]
     with path.open(encoding=encoding, errors="replace") as f:
         return [[line.rstrip("\r\n")[:400]] for _, line in zip(range(n), f)]
+
+
+def layout_description(reader: dict) -> str:
+    """The applied layout in words written by CODE (not the model): which raw row gave the column names, which raw
+    rows were dropped, and where data starts. Used by read_table's result and the review packet, so the human and the
+    agent see the same sentence next to the numbered raw rows (item A/E, step 3b)."""
+    if reader.get("format") == "json":
+        return ""
+    try:
+        skip, nh, _footer, drop = _layout(reader)
+    except ReaderError:
+        return ""
+    if nh == 0:
+        return f"no header row (generated column names); data starts at raw row {skip + 1}."
+    dropped = f" raw rows {skip + nh + 1}-{skip + nh + drop} dropped;" if drop else ""
+    names = f"raw row {skip + 1}" if nh == 1 else f"raw rows {skip + 1}-{skip + nh} (merged)"
+    return f"column names from {names};{dropped} data starts at raw row {skip + nh + drop + 1}."
 
 
 def sheet_names(path: Path) -> list[str]:

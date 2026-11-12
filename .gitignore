@@ -12,3 +12,5 @@ data/raw/
 # OS / editor
 .DS_Store
 .vscode/
+
+.serena/

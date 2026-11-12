@@ -310,7 +310,7 @@ class TestReadTable(Env):
     def test_a_failed_read_is_an_error_with_the_reason_in_the_payload(self):
         res, _ = self.call("read_table", {"format": "xlsx"})
         self.assertTrue(res.is_error)
-        self.assertIn("xlsx", res.payload)
+        self.assertIn("xlsx", res.payload["error"])   # step 3b: the payload also carries raw_top (best effort)
         res, _ = self.call("read_table", {"format": "csv", "skip_rows": 5000})
         self.assertTrue(res.is_error)
 

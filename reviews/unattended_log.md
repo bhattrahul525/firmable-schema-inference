@@ -143,3 +143,15 @@ round2_total=0.3547 session_spend=0.3094 remaining=2.6906 (limit $3.00). Phase A
 - Done: rule 18 amended to ARCHITECTURE.md section d (wording shared, drift test); name rule in rule 5 (both prompts); validate warns on a mapped placeholder header; step 4a open item recorded (conditional mapping, not built); tests 464; mutation check 26 mutations, 0 survivors; pass dev1e (Haiku) on seed 1; ARCHITECTURE 2.11 (414 lines, about 14 over the guideline: details to move into module docstrings at step 4).
 - this round $0.0888 of the $0.25 limit
 - dev1e: validated 7 / no business 2 / could not read 2; individual-ABN file validated again (7 fields); placeholder-header warning did not fire in any run (tested offline only).
+
+## Resume (status check before continuing) - local edits only, NO git commands run
+Status of reviews/step3b_plan.md items, checked against code and a full test run (522 passed, 0 failed):
+- C (evidence states): DONE. `evidence_states`/`training_stats` in agent_hooks.py, caps 0.8/0.5 wired into `finalise_config`, packet section, benchmark columns. Tested (tests/test_step3b.py).
+- B (protected top rows, raw_top): DONE. `raw_head`/`raw_head_fingerprints` in readers.py, `PROTECTED_ROWS=12` in agent_table.py, `read_table` returns `raw_top`. Tested.
+- A (skip_rows_after_header): DONE in readers.py + agent_tools.py schema/description. Tested (tests/test_readers.py).
+- E (raw rows in packet, header-like warning): DONE (`header_like_first_row_warning`, `_reader_settings_section`). Tested.
+- D (valid_from/valid_to visibility, engine stats, strict rule): DONE. Critic summary carries valid_from/valid_to/needs_transform; extract.py tracks stats/rejects for them; `abstain_config` deletes the key; rule 10 strict wording in agent_prompt.py. Six-source reject diff measured read-only (zero new rejects on asic_credit_licensee / wa_tenders_awards_2023_24); no round-1 file touched.
+- F (rule 5 register exception): DONE, prompt wording only, no code caps/word lists added (as decided).
+- G (reasoning summary / live check): NOT STARTED this session.
+- ARCHITECTURE.md: NOT YET UPDATED (still v2.11) for any of C/B/A/E/D/F — this is the main gap before committing.
+Continuing: G, then ARCHITECTURE.md for all items, then dev1f.

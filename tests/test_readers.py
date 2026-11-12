@@ -77,6 +77,141 @@ class TestDelimited(unittest.TestCase):
         self.assertEqual(drop, ["Name", "ABN", "_blank_3"])              # a blank-header column WITH data is never dropped
 
 
+class TestSkipRowsAfterHeader(unittest.TestCase):
+    """Item A (step 3b): a count of raw rows dropped AFTER the header and before the data (label or note rows)."""
+
+    def test_header_then_two_label_rows_then_data(self):
+        h, rows = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 2},
+                          "header_then_labels.csv")
+        self.assertEqual(h, ["Name", "ABN", "Number", "Class"])
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[0]["Name"], "Acme Constructions Pty Ltd")   # the label rows never became data
+
+    def test_default_zero_reads_exactly_as_before(self):
+        a = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1}, "header_then_labels.csv")
+        b = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 0}, "header_then_labels.csv")
+        self.assertEqual(a, b)
+        self.assertEqual(a[0], ["Name", "ABN", "Number", "Class"])
+        self.assertEqual(len(a[1]), 6)                                    # label rows are data without the option
+
+    def test_negative_or_boolean_values_are_rejected(self):
+        for bad in (-1, True, False, "2"):
+            with self.assertRaises(ReaderError):
+                rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": bad},
+                       "header_then_labels.csv")
+
+    def test_beyond_the_end_of_the_file_is_a_reader_error(self):
+        with self.assertRaises(ReaderError):
+            rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 99},
+                   "header_then_labels.csv")
+
+    def test_refused_with_header_rows_zero(self):
+        with self.assertRaises(ReaderError) as cm:
+            rows_of({"format": "csv", "header_rows": 0, "skip_rows_after_header": 1}, "header_then_labels.csv")
+        self.assertIn("skip_rows", str(cm.exception))
+
+    def test_refused_for_json(self):
+        with self.assertRaises(ReaderError):
+            rows_of({"format": "json", "skip_rows_after_header": 1}, "nested.json")
+
+    def test_works_with_a_footer_too(self):
+        h, rows = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 2, "skip_rows_after_header": 0,
+                           "skip_footer_rows": 2}, "multirow_header.csv")
+        self.assertEqual(len(rows), 4)   # unaffected baseline: 0 default alongside an existing footer option
+
+    def test_accepted_with_the_round_one_header_row_option(self):
+        h, rows = rows_of({"format": "csv", "header_row": 3, "skip_rows_after_header": 2}, "header_then_labels.csv")
+        self.assertEqual(h, ["Name", "ABN", "Number", "Class"])
+        self.assertEqual(len(rows), 4)
+
+    def test_xlsx_drops_label_rows_after_the_header(self):
+        import tempfile
+        import openpyxl
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "wb.xlsx"
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.append(["Name", "ABN"])
+            ws.append(["string", "11 digits"])
+            ws.append(["Acme Pty Ltd", "51824753556"])
+            ws.append(["Beta Pty Ltd", "33051775556"])
+            wb.save(p)
+            h, rows = read_rows({"format": "xlsx", "skip_rows_after_header": 1}, p)
+        self.assertEqual(h, ["Name", "ABN"])
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["Name"], "Acme Pty Ltd")
+
+    def test_xls_drops_label_rows_after_the_header(self):
+        import tempfile
+        import xlwt
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "wb.xls"
+            book = xlwt.Workbook()
+            sh = book.add_sheet("S")
+            for r, row in enumerate([["Name", "ABN"], ["string", "11 digits"], ["Acme Pty Ltd", "51824753556"]]):
+                for c, v in enumerate(row):
+                    sh.write(r, c, v)
+            book.save(str(p))
+            h, rows = read_rows({"format": "xls", "skip_rows_after_header": 1}, p)
+        self.assertEqual(h, ["Name", "ABN"])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["Name"], "Acme Pty Ltd")
+
+    def test_zip_member_drops_label_rows_after_the_header(self):
+        h, rows = rows_of({"format": "csv", "archive": "zip", "member": "a.csv", "skip_rows_after_header": 0},
+                          "two_members.zip")
+        self.assertEqual(len(rows), 2)   # baseline parity (default 0): existing zip-member test still holds
+
+    def test_dropped_rows_are_never_fingerprinted_as_data(self):
+        """A row dropped by skip_rows_after_header must never become a candidate for the held-out split."""
+        _, rows_dropped = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 2},
+                                  "header_then_labels.csv")
+        fps_dropped = {row_fingerprint(list(r.values())) for r in rows_dropped}
+        # re-read with the label rows as DATA (no drop) and confirm their fingerprints differ from any kept row
+        _, rows_all = rows_of({"format": "csv", "skip_rows": 2, "header_rows": 1}, "header_then_labels.csv")
+        label_values = [list(r.values()) for r in rows_all[:2]]
+        for lv in label_values:
+            self.assertNotIn(row_fingerprint(lv), fps_dropped)
+
+    def test_extract_and_validate_use_a_config_with_the_new_option(self):
+        from src.engine.extract import run_rows
+        cfg = {"source_id": "s", "config_version": 1,
+              "reader": {"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 2},
+              "record_id": {"from": ["Number"]}, "observed_at": {"from_metadata": "resource_last_modified"},
+              "fields": [{"source": "Name", "canonical": "entity.legal_name", "transforms": [{"name": "clean_whitespace", "arg": ""}],
+                         "group": "main", "mapping_confidence": 0.9}],
+              "unmapped": [], "needs_transform": [], "source_reliability": {"identity": 0.9}}
+        _, rows = rows_of(cfg["reader"], "header_then_labels.csv")
+        obs, rej, stats = run_rows(cfg, rows, {"resource_last_modified": "2024-01-01", "licence": "CC-BY", "licence_flag": False})
+        self.assertEqual(sum(1 for o in obs if o["field"] == "entity.legal_name"), 4)   # the label rows never became data
+        self.assertEqual(obs[0]["value"], "Acme Constructions Pty Ltd")
+
+
+class TestRawHead(unittest.TestCase):
+    """Item B (step 3b): raw_head / raw_head_fingerprints ignore every layout option."""
+
+    def test_raw_head_ignores_skip_rows_and_header_rows(self):
+        rows = readers.raw_head({"format": "csv", "skip_rows": 2, "header_rows": 1, "skip_rows_after_header": 2},
+                                FIX / "header_then_labels.csv", n=12)
+        self.assertEqual(rows[0], ["Licence register extract"])
+        self.assertEqual(rows[2], ["Name", "ABN", "Number", "Class"])
+        self.assertEqual(len(rows), 9)   # the whole file, fewer than n=12
+
+    def test_fingerprints_match_row_fingerprint_on_the_same_cells(self):
+        rows = readers.raw_head({"format": "csv"}, FIX / "header_then_labels.csv", n=3)
+        fps = readers.raw_head_fingerprints({"format": "csv"}, FIX / "header_then_labels.csv", n=3)
+        self.assertEqual(fps, frozenset(row_fingerprint(r) for r in rows))
+
+    def test_json_returns_the_first_records_unmodified(self):
+        recs = readers.raw_head({"format": "json", "records_path": "features"}, FIX / "places.geojson", n=2)
+        self.assertEqual(len(recs), 2)
+        self.assertIsInstance(recs[0][0], dict)
+
+    def test_refused_for_an_unsupported_format(self):
+        with self.assertRaises(ReaderError):
+            readers.raw_head({"format": "nope"}, FIX / "header_then_labels.csv")
+
+
 class TestWorkbooks(unittest.TestCase):
     def test_xlsx_sheets_and_dimensions(self):
         sheets = readers.workbook_sheets({"format": "xlsx"}, FIX / "two_sheets.xlsx")

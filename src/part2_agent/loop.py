@@ -79,6 +79,17 @@ def code_version(extra_files=()) -> str:
 CODE_VERSION = code_version()
 
 
+def thinking_summary(content: list[dict], cut: int = 300) -> str | None:
+    """The first thinking block's text, cut to `cut` characters, or None (no thinking block, or display omitted it:
+    see llm.chat's `thinking` setting). A `redacted_thinking` block has no readable text. Display-only (item G,
+    step 3b): never fed back into a prompt as the harness's own words."""
+    for b in content:
+        if b.get("type") == "thinking" and b.get("thinking"):
+            text = b["thinking"]
+            return text if len(text) <= cut else text[:cut] + "…"
+    return None
+
+
 def file_sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -363,7 +374,11 @@ class AgentRun:
             turn = llm.LLMTurn(**{k: ev[k] for k in llm.LLMTurn.__dataclass_fields__})
             self.budget.replayed_seconds += turn.seconds
             names = [b["name"] for b in turn.tool_uses] or ["(text only)"]
-            self.say(f"[REPLAY] turn {self.replayed_turns}: {', '.join(names)}")
+            line = f"[REPLAY] turn {self.replayed_turns}: {', '.join(names)}"
+            summary = thinking_summary(turn.content)
+            if summary:   # item G: a readable reasoning summary, when the model actually thought this turn
+                line += f" — thinking: {summary}"
+            self.say(line)
         else:
             turn = self._chat_with_retries(max_tokens)
             self._live("model_turn", **asdict(turn))

@@ -1,0 +1,175 @@
+what_it_is: Register of licences held by Australian businesses (licence number, business name, ABN, location and
+  licence status).
+one_row_is: one licence record held by a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ABN column, 11 digits, checksum validated
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Business Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Name of the business; not labelled as registered name, so treated as trading name at low confidence
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Suburb column
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State code column
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: 4-digit postcode
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Licence Status
+  reason: Licence status describes the licence, not the entity status enum; no safe mapping
+- source: Notes
+  reason: Free-text notes, sparsely filled
+- source: Licence No
+  reason: Used as record_id
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Licensing register of unknown publisher; identifiers look well-formed; licence status
+  not mapped; licence holder naming not explicitly labelled.
+meaning_check_responses: []
+source_id: bench_injf_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 480
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.entity_type<-Business Name
+    reason: Not mapped; suffix rule could apply (all sampled names end Pty Ltd) but left out to keep the config
+      conservative. Engine records unknown.
+  - field: entity.status<-Licence Status
+    reason: Describes the licence rather than the entity; no safe mapping to entity status enum.
+  critique_issues:
+  - id: c-b30f629f
+    field: entity.trading_name<-Business Name
+    problem: This is a licence register, and the row's subject is the licence holder. Rule 5b allows the holder's
+      name to map to legal_name at 0.7 or lower when the register does not label it as the licensee name. The config
+      instead maps it to trading_name, which is the safer default under rule 5 and is not a misstatement, but the
+      config records no mapping_confidence and the reasoning is not tied to the register's holder role.
+    severity: advisory
+    suggested_fix: Keep trading_name at 0.6 or lower, or consider legal_name at 0.7 or lower under rule 5b. Record
+      mapping_confidence explicitly and note that the subject is the licence holder.
+  - id: c-8fbccbc1
+    field: entity.entity_type
+    problem: Business Name values end in 'Pty Ltd' on every sampled row. The source has no entity_type column, so
+      rule 7 permits entity_type_from_suffix on the name column. The config leaves entity_type unmapped, so every
+      entity is recorded as unknown, which is less rich than the source supports.
+    severity: advisory
+    suggested_fix: Consider mapping entity.entity_type with entity_type_from_suffix on Business Name, after checking
+      the suffix rule on a wider sample of names.
+  - id: c-b7d6c6d9
+    field: entity.status
+    problem: Licence Status (values such as 'Current') is unmapped because it describes the licence, not the entity.
+      That is a reasonable call. The status enum is not otherwise populated, so the entity's status is left unobserved
+      from this source.
+    severity: advisory
+    suggested_fix: Keep Licence Status unmapped unless the dataset defines whether a current licence implies an
+      active entity; document the decision in the unmapped reason.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:58:56+00:00'

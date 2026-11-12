@@ -1,0 +1,96 @@
+what_it_is: Victorian state government schools' parent voluntary contributions totals by school for 2011-2013.
+one_row_is: One Victorian state school with its yearly total of parent voluntary payments.
+reader:
+  format: xlsx
+  sheet: data lrf
+  header_rows: 1
+  skip_rows: 1
+  encoding: utf-8-sig
+record_id:
+  from:
+  - School No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: School Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.5
+  reason: School name of a government body; the column is not labelled as a registered, licensee or supplier name,
+    so it is mapped as trading name at low confidence per rule 5.
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: School No
+  reason: Internal school number, not an ABN/ACN; used only as record_id (checked unique across 1,220 training rows,
+    0 repeats).
+- source: '2011'
+  reason: Yearly parent voluntary payment total; a measurement, not an entity attribute.
+- source: '2012'
+  reason: Yearly parent voluntary payment total; a measurement, not an entity attribute.
+- source: '2013'
+  reason: Yearly parent voluntary payment total; a measurement, not an entity attribute.
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.3
+  classification: 0.5
+  contact: 0.2
+source_reliability_basis: Victorian government education publication of school names; no identifiers, addresses
+  or contact details are provided, so reliability for those is low. Use of 0.5 for classification reflects no explicit
+  entity-type column.
+meaning_check_responses: []
+source_id: bench_dev1f_09
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 600
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-1901df64
+    field: entity.trading_name<-School Name
+    problem: The column is labelled 'School Name' and has no registered or licensee label. Rule 5 allows this mapping
+      to trading_name, but only at 0.6 or lower. The config gives 'low confidence' in its reason but no numeric
+      mapping_confidence, so the confidence level is not recorded.
+    severity: advisory
+    suggested_fix: Set an explicit mapping_confidence of 0.6 or lower on this mapping and record it in the config.
+  - id: c-787ffd3e
+    field: record_id
+    problem: record_id is set from 'School No' but the config does not show a check_unique result or a statement
+      that the column is unique across rows. Rule 15 requires that.
+    severity: advisory
+    suggested_fix: Confirm School No is unique across the sheet, or use hash_row=true.
+  - id: c-74bd008c
+    field: source_reliability
+    problem: The config has no source_reliability value or basis for the claims. Rule 16 requires one per claim
+      kind.
+    severity: advisory
+    suggested_fix: Add source_reliability per claim kind with a short basis, for example noting that this is a government
+      education dataset.
+  - id: c-c38cc5a0
+    field: reader
+    problem: The config sets header_rows 1 and skip_rows 1 on sheet 'data lrf'. The examples show clean headers,
+      so the skipped row is not visible here. The reader settings should be checked against the file.
+    severity: advisory
+    suggested_fix: Verify the skipped row and header row against the raw sheet, and document why one row is skipped.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:55:00+00:00'

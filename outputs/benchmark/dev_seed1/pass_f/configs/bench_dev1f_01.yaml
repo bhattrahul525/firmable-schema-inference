@@ -1,0 +1,136 @@
+what_it_is: ASIC register of approved SMSF auditors (individuals and their audit-firm capacities, conditions and
+  status)
+one_row_is: one condition or capacity attribute of a registered SMSF auditor
+reader:
+  format: tsv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: SMSF_REG_DT
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: SMSF_PERSON_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Person ABN, checksum validated; blank for most rows, so only rows with their own ABN yield an entity claim
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 302
+    blank: 250
+    ok: 50
+    skipped_not_applicable: 0
+    rejected: 2
+    parse_rate: 0.9615
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: REGISTER_NAME
+  reason: constant label 'SMSF Auditor'
+- source: SMSF_NUM
+  reason: auditor number; not a business identifier and not unique per row (one auditor has several condition rows);
+    row key is hashed
+- source: SMSF_NAME
+  reason: individual auditor name; rows without their own ABN are individuals with no business identifier, so the
+    name is not emitted as an entity claim
+- source: SMSF_STATUS
+  reason: registration status; not emitted because the rows without an ABN are not entities
+- source: SMSF_REG_DT
+  reason: registration date; not emitted because the rows without an ABN are not entities (used only as valid_from)
+- source: SMSF_SUSP_START_DT
+  reason: suspension dates; no canonical field
+- source: SMSF_SUSP_END_DT
+  reason: suspension dates; no canonical field
+- source: SMSF_LOCALITY
+  reason: address of individual auditors; not emitted without a business identifier
+- source: SMSF_POST_CODE
+  reason: address of individual auditors; not emitted without a business identifier
+- source: SMSF_STATE
+  reason: address of individual auditors; not emitted without a business identifier
+- source: SMSF_ATTRIBUTE_TYPE
+  reason: row kind (condition/capacity) only
+- source: SMSF_CAPACITY
+  reason: auditor capacity detail; no canonical field
+- source: SMSF_CONDITION_NUMBER
+  reason: condition id; no canonical field
+- source: SMSF_CAPACITY_FIRM_NAME
+  reason: audit firm named in capacity; not the subject entity
+- source: SMSF_CAPACITY_START_DT
+  reason: capacity start date; event of the attribute
+- source: SMSF_CONDITION
+  reason: condition title; no canonical field
+- source: SMSF_CONDITION_DTL
+  reason: condition text; no canonical field
+- source: SMSF_CONDITION_START_DT
+  reason: condition start date; no canonical field
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Official ASIC register extract. Most rows are individual auditors with no ABN and are
+  not entities, so only the ABN claim is emitted.
+meaning_check_responses:
+- check_id: identifier_checksum_abn
+  action: kept
+  reason: The abn transform rejects checksum failures rather than emitting them.
+source_id: bench_dev1f_01
+config_version: 1
+validation_summary:
+  held_out_rows: 302
+  observations_in_held_out: 100
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-316945eb
+    field: entity.legal_name<-SMSF_NAME
+    problem: The register lists individual approved SMSF auditors. Most rows have a blank SMSF_PERSON_ABN, and the
+      example rows without an ABN (e.g. Bradley Donnelly, Richard Wytkin) are mapped as entity.legal_name with entity_type
+      unknown. Rule 18 says a person-like name is an entity only when it has its own valid ABN. Rows with no business
+      identifier belong in no_business_entities, so the source does not support treating them as business entities.
+    severity: blocking
+    suggested_fix: Gate the entity claims on a valid SMSF_PERSON_ABN, or route rows with no ABN to no_business_entities.
+      Keep the address and status claims only where the row is a valid entity, and document the rule.
+  - id: c-f08aae01
+    field: record_id
+    problem: Each row is one condition attached to an auditor, so one auditor can appear on several rows. SMSF_NUM
+      is therefore not unique per row, and hash_row=true is the correct choice. The unmapped reason for SMSF_NUM
+      should say it is not a unique row key, so the choice is not read as a judgement about the number itself.
+    severity: advisory
+    suggested_fix: Keep hash_row=true. Reword the SMSF_NUM unmapped reason to say the auditor number is not unique
+      per row and is not a business identifier.
+  - id: c-a3487337
+    field: entity.status<-SMSF_STATUS
+    problem: The map covers only 'Registered' and 'Suspended'. The profile for the full dataset is not shown, so
+      other status values may exist and be silently dropped. Each condition row also carries its own status, so
+      the status claim may describe the auditor rather than the condition.
+    severity: advisory
+    suggested_fix: Confirm the full set of SMSF_STATUS values in the profile and map any others explicitly or leave
+      them unmapped. Confirm the status describes the auditor's registration, not the condition.
+  - id: c-6713e68a
+    field: entity.legal_name<-SMSF_NAME
+    problem: The legal_name mapping relies on the register-holder rule (5b). The column label SMSF_NAME does not
+      itself say registered or licensee name, so the mapping_confidence for this claim should be 0.7 or lower unless
+      the register label is read as the holder.
+    severity: advisory
+    suggested_fix: Set mapping_confidence at or below 0.7 for this claim and keep the holder reason in the config.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e7bb925a0f1a
+  generated_at: '2026-11-12T22:54:27+00:00'

@@ -1,8 +1,8 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.11
-Last updated: 2026-11-12
+Version: 2.12
+Last updated: 2026-11-13
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
 DECISIONS.md. This document is the round-2 design that answers the CTO's feedback: a tool-using agent that can
@@ -43,6 +43,16 @@ version. Every string written to the trace or to `llm_calls.jsonl` is redacted B
 bearer and basic credentials, whole header values), so a line is always valid JSON. A split key (one secret spread over
 two fields) is not caught.
 
+**Reasoning summary (step 3b, item G).** Every call requests `thinking: {"type": "adaptive", "display": "summarized"}`
+(the one place provider code lives, `llm.chat`). Confirmed live on both Haiku 5.5 and Sonnet 5.5 before building on it:
+accepted with no error, readable text on a turn where the model actually thinks, no extra token cost over the default
+`display: "omitted"` (thinking is billed the same regardless of display). The block is stored in the trace like any
+other content block (no structural change: the trace already records every block) and passed back unmodified on the
+next turn. A replayed turn now prints the first thinking block's text, cut to 300 characters, after the tool names
+(`[REPLAY] turn N: tool — thinking: ...`); display-only, never fed back into a prompt as the harness's own words. No
+required per-call `note` was added (the alternative in the step 3b plan): it would have added refusals for no
+reasoning guarantee beyond what the summary already gives on the turns that have one.
+
 **API errors.** Transient errors are retried with backoff (2 s, then 4 s), at most 3 attempts, each recorded as an
 `api_retry` event. Transient means connection and timeout errors, and exactly these statuses: 408, 429, 500, 502, 503,
 504 and 529 (501, 505 and every 4xx other than 408 and 429 are not). In `llm.chat` (the agent) the SDK's own retries
@@ -58,20 +68,21 @@ spend never changes the round-1 figures quoted in the first submission.
 | `fetch` | Only the task's reference. No arguments: lists its resources (index, name, description, format, size, last modified; never URLs; for a CKAN id this is the dataset's resource list; all of it is the publisher's text, so it is untrusted data in the payload, descriptions capped at 300 characters). `resource_index`: downloads that one, into `data/raw/sources/<source_id>/` with a `metadata.json` in Part 1's shape (licence from CKAN, `unknown` + flag otherwise). One run onboards one table, but the agent may SWITCH resource once: `resource_index` plus a `reason` (traced as an `input_switched` event); at most two downloads per run (a failed attempt counts), each under the cap; the second replaces the first (its file, table and held-out split are discarded; the harness gate forgets what it learned about the first) and the pinned hash is the final one. The same index returns the cached file. A human can pin the resource with `onboard --resource-index N`: only that resource is listed or fetchable and there is no switch (the trace header records the pin). The model never supplies a URL or path. Fetch safety: CKAN targets and every redirect hop (followed by the harness, max 5, each re-checked) must be http or https and must not resolve to a loopback, private or link-local address; a local path is allowed only as the human-supplied reference; the final URL is traced. Streams; a progress line every 10 MB goes in the trace. A network or download failure, or exceeding the cap, returns `status.download_failed`; a refused index, URL or redirect hop does not | 200 MB enforced while streaming, and up front if the server declares a size (1,956 of 2,440 pool datasets publish no size) |
 | `list_members` / `list_sheets` | Archive members; workbook sheets with dimensions. `list_members` returns `archive_has_no_tabular_member` only when code can show it: at most 20 members, none with a tabular extension, none whose first bytes look like delimited text, JSON, a workbook or an archive | 50 entries; 1 GB decompressed per member, counted while decompressing (a zip header can lie; a gz has no size at all) |
 | `sniff` | Magic bytes, encoding, delimiter guess, raw head. Also classifies the FILE (not one archive member) with a fixed reason code in `status` when it is not tabular or unsupported: `empty_file`, `pdf_document`, `html_page`, `xml_unsupported`, `binary_unknown` | 12 lines x 300 chars |
-| `read_table` | Runs a parametric reader; returns headers, row count, the first TRAINING rows, or the error. Later tools use the reader of the latest successful call | 20 rows x 40 cols x 100 chars |
+| `read_table` | Runs a parametric reader; returns headers, row count, the first TRAINING rows, the applied layout in code's own words, and `raw_top` (the first 12 raw rows, numbered as `skip_rows` counts them, never held out, shown on success and on a failed read), or the error. Later tools use the reader of the latest successful call | 20 rows x 40 cols x 100 chars |
 | `profile` | Per-column fill, distinct count, shapes, over training rows | 60 columns; distinct counts above 200k marked `capped` |
 | `check_unique` | Uniqueness of named columns over training rows (streamed; 128-bit key digests, so a collision is not a practical concern) | one answer |
 | `sample` / `search` | Rows by strategy (head, spread, random, by_column) or regex, from the training partition only | 30 / 10 rows |
 | `try_transform` | Real engine on up to 1,000 TRAINING rows (spread): parse rate and rejects. Level W only until build step 4 adds P | 5 examples |
 | `define_transform` | Level-G generated transform (section c) | 40 lines of code |
-| `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file (unaccounted columns, `record_id` uniqueness) and meaning warnings when an ABN / ACN field fails its checksum on more than 2% of judged values (a column mixing real identifiers with look-alikes of the same length) and when a MAPPED column has a generated placeholder header (`_blank_N`, `Unnamed`: the header rows may be misread; the text names `skip_rows` and `header_rows`) | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
-| `critique` | Separate model call, fresh context: raw rows beside their observations, reviewed against the SAME mapping rules text the agent has (`agent_prompt.MAPPING_RULES`) | 10 examples |
+| `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file (unaccounted columns, `record_id` uniqueness), an EVIDENCE state per mapped field and envelope setting (`held_out` / `training` / `unverified`; step 3b item C — see below), and meaning warnings when an ABN / ACN field fails its checksum on more than 2% of judged values (a column mixing real identifiers with look-alikes of the same length), when a MAPPED column has a generated placeholder header (`_blank_N`, `Unnamed`: the header rows may be misread; the text names `skip_rows`, `header_rows` and `skip_rows_after_header`), and when `header_rows` is 0 and the first data row looks like a misread header (`header_like_first_row`: distinct all-text cells, most columns below them numeric or date-like) | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
+| `critique` | Separate model call, fresh context: raw rows beside their observations, reviewed against the SAME mapping rules text the agent has (`agent_prompt.MAPPING_RULES`). The config summary it sees includes `valid_from` / `valid_to` / `needs_transform` (step 3b item D2); for a field with no populated example among the sampled rows, up to 2 populated TRAINING rows are added, marked as such | 10 examples |
 | `ask_human` | Question goes into the packet. On a terminal the run waits for the answer (the wait is excluded from the time budget and traced as `human_wait_seconds`); without a human the model is told so. The answer is data in a `<data>` block, never approval: only `approve` approves | 1 per run |
 | `finish` | Declares an outcome | see below |
 
 **Enforced by the harness**
 - `fetch` accepts no argument except `resource_index`; a URL or path found inside a cell is never fetched.
 - The held-out split is made when a table is first read (a seeded reservoir of up to 300 rows, or half the rows if fewer than 600) and is stored as row FINGERPRINTS (a hash of the raw cells), so a later read with other options still excludes them. `read_table` (first rows), `sample`, `search`, `profile`, `check_unique` and `try_transform` see training rows only; only `validate`, `critique` and the harness's own hooks read held-out rows. If the first read was a wrong parse and fewer than half the fingerprints match a later parse, the split is re-made and the tool says so. Identical rows share a fingerprint, so copies of a held-out row are all held out. `validate` shows example values on its first call only (later calls: counts, with raw values scrubbed from reject reasons), which limits what repeated calls can reveal (counts still carry some information; the cap bounds it).
+- **Protected top rows (step 3b, item B).** The first 12 raw rows of the file (`PROTECTED_ROWS`, a layout-free read so it holds whatever `skip_rows` / `header_rows` end up being) are NEVER candidates for the held-out set; a data row identical to one of them is protected too. This closes two leaks found in the dev draw: a title or the real header row could land in the held-out set and be hidden from the agent for the whole run, and `sniff` already showed the first 12 raw lines regardless of the split, so a row shown there could later be tested as "unseen". `read_table` always returns these 12 rows as `raw_top`, numbered as `skip_rows` counts them, on success and on a failed read; no prompt hint and no finish gate enforce this (a hint already existed and Sonnet never followed it). A file with fewer than 10 rows eligible after the top is protected gets NO held-out split at all (`held_fp` empty); its fields are judged on training evidence instead (item C) and the packet says so.
 - Every tool has a per-call time limit (`ToolSpec.timeout_seconds`, default 60 s; sniff and list tools 20-30 s, `critique` 150 s). `fetch` (a download) and `ask_human` (a human) have none. On POSIX in the main thread a SIGALRM timer interrupts the tool, including a runaway regex (measured: `(a+)+$` was stopped at the limit); everywhere the row loops also check a cooperative deadline. A timeout is an error result. On Windows only the cooperative check exists, so a catastrophic regex is not interrupted there.
 - `finish` runs `validate` ITSELF (code) on the submitted config, so "validate has not run" is never a refusal reason; it
   refuses only if validation fails. It also needs a `critique`, with one exception, the NARROWING rule: a config that only
@@ -105,6 +116,13 @@ spend never changes the round-1 figures quoted in the first submission.
   name WITH ITS OWN valid ABN may be an entity, `entity_type` stays `unknown` unless a source states otherwise); a name column the
   data does not label registered, licensee or supplier maps to `entity.trading_name` at 0.6 or lower, never left unmapped for that.
   Not settled by this: whether the agent chose well what to drop (that needs the human review).
+- **Register exception (step 3b, item F; both prompts, rule 5).** A name maps to `legal_name` when the data labels the column
+  as registered/legal/licensee/supplier, OR (5b) the dataset is a register kept by a regulator or licensing body and the row's
+  subject is the person or organisation the register lists as HOLDING a licence, registration, accreditation or approval (the
+  holder, not a premises, venue or product the licence covers); without a label, `mapping_confidence` is 0.7 or lower under 5b.
+  Rule 4 points individuals at 5b instead of restating it. Prompt wording only: NO code cap enforces the 0.7/0.6 numbers and no
+  header-word-list check exists yet. DEFERRED, not built: a code cap on `legal_name` (0.7) / `trading_name` (0.6) unless the
+  source header carries a matching word from two short fixed lists, applied where `field_confidence` is computed.
 - Harness constants, not tool settings: `critique` at most 2 per run, `ask_human` at most 1, `validate` at most 6 (a tool
   spec may only tighten them). The harness's own critique inside a forced end is not one of the model's rounds.
 - Whole-file checks (one streamed pass per config, cached): a column may be ignored only if it is empty in the whole file (a column empty in the held-out rows but filled elsewhere must be mapped or listed in `unmapped`); a `record_id` made of columns FAILS validation on any repeated key, or on more than 1% blank keys; `hash_row` fails only if more than 1% of rows are exact repeats of another row. This is code: it holds whatever the model did or did not check. A failing id is a hard failure but not a field, so abstaining cannot fix it (a run that cannot fix it ends `incomplete`).
@@ -120,8 +138,44 @@ spend never changes the round-1 figures quoted in the first submission.
   well-formed result, or reports a non-finite or negative cost is turned into an error result, never a crash; exception
   text reaches the model only inside `<data>`. A model-calling tool's cost is taken from the call log, not from what
   the tool reports. A tool's reported download time is capped at the time the harness measured for the call.
-- Code computes `field_confidence` (lower of model confidence and parse rate; level G capped at 0.8),
+- Code computes `field_confidence` (lower of model confidence, parse rate and an EVIDENCE cap; level G capped at 0.8),
   `derivation_level`, and abstention.
+- **Evidence states (step 3b, item C).** Each mapped field, and each per-row `observed_at` / `valid_from` / `valid_to`,
+  gets one of three states, set by code, never by the model's own statement (the same principle as `could_not_read`):
+  `held_out` (5 or more judged values on held-out rows: no cap beyond the usual parse-rate floor); `training` (fewer
+  on held-out, but 5 or more over held-out plus training rows combined: same 90% floor on the combined rate, hard
+  failure below it, `field_confidence` capped at 0.8); `unverified` (fewer than 5 judged values anywhere in the file:
+  capped at 0.5, already below Part 4's 0.6 low-trust line, hard failure only if no value ever parses). Training
+  evidence is scanned only for fields the held-out rows cannot judge alone, through the same `apply_transforms` +
+  ontology-guard path the engine uses. The config, the packet ("Fields without enough held-out evidence", with
+  whole-file counts and training examples), the review sheet and the benchmark (`fields_training_evidence`,
+  `fields_unverified`, `identifier_evidence`) all carry the state. An unverified field may stay in a
+  `validated_config`. DEFERRED to step 7 (not built): an ABN whose evidence is `unverified` may not support a Part-3
+  link above the loose tier.
+- **Raw rows and the layout sentence in the packet (step 3b, item E).** The review packet's new "Reader and record
+  settings" section (see D1 below) shows the reader options, the applied layout in words written by code (which raw
+  row gave the names, which were dropped, where data starts), and the first 12 raw rows of the file (reusing
+  `raw_top`/`raw_head`: never held out, so always safe to print). Column labels written by the model were considered
+  and rejected: untrusted label text would be promoted into config metadata with no code check that it is right, and
+  items A and B already remove the two causes seen in the dev draw (a merged or off-by-one layout, a hidden header).
+- **`valid_from` / `valid_to` visibility and strictness (step 3b, item D).** A per-row `observed_at` / `valid_from` /
+  `valid_to` (one with its own `source`, not `from_metadata`) now gets the same `FieldStats` tracking as a mapped
+  field in `run_rows`: rows, blank, ok, reject, reject reasons and reject records (previously a failed `valid_from` /
+  `valid_to` parse was silently dropped, the stamped value staying `None`; the value stamped on an observation is
+  unchanged by this, only its visibility is). The 90% floor and the evidence states (item C) apply to them too. The
+  packet's "Reader and record settings" table and the review sheet show `record_id`, `observed_at`, `valid_from`,
+  `valid_to` with source, transforms, parse rate, evidence and examples (the round-1 packet showed this; the round-2
+  packet had dropped it). `valid_from` / `valid_to` are abstained by code DELETING the config key (there is nothing
+  to move to `unmapped`); `observed_at` is never abstained this way, since every record needs one, so a failing
+  `observed_at` stays a hard failure that must be fixed. Rule text (both prompts, `agent_prompt.MAPPING_RULES` rule
+  10): `valid_from` / `valid_to` may be mapped only from a column that says when the entity's OWN registration,
+  licence, accreditation or status started or ended; a date of an event or transaction the row records (a contract,
+  an order, an invoice, a payment, an application) is not when a name, identifier or address became true and is left
+  unmapped. This reverses the round-1 practice in one approved config (a contract's commencement/expiry dates stamped
+  on supplier-identity claims); it takes effect only when the six sources are RE-ONBOARDED in step 5 — no round-1
+  config, output or reject file was touched to make this change, and a read-only measurement on the two round-1
+  sources that set these fields (`asic_credit_licensee`, `wa_tenders_awards_2023_24`) found the stats-and-rejects
+  tracking itself adds zero new reject entries on their existing data (both already parse cleanly).
 
 **Chosen by the model:** tool order, reader options, what to inspect, which transforms to use, when to abstain,
 when to ask.
@@ -158,11 +212,14 @@ needed. Recurring G transforms are listed by a `promote` report for the human to
 
 | Reader | Options |
 |---|---|
-| delimited | encoding, delimiter, quote, `skip_rows`, `header_rows` (0, 1 or n merged; upper rows filled rightwards over merged cells), `skip_footer_rows` (last n non-blank rows), `drop_empty_columns` (blank-header columns that are empty in the first 1,000 rows) |
-| xlsx | sheet, `skip_rows`, `header_rows`, `skip_footer_rows`, `drop_empty_columns` |
+| delimited | encoding, delimiter, quote, `skip_rows`, `header_rows` (0, 1 or n merged; upper rows filled rightwards over merged cells), `skip_rows_after_header` (step 3b item A: raw rows dropped AFTER the header and before the data — label or note rows under a real header; a count like `skip_rows`; needs `header_rows` >= 1; default 0, so every existing config reads identically), `skip_footer_rows` (last n non-blank rows), `drop_empty_columns` (blank-header columns that are empty in the first 1,000 rows) |
+| xlsx | sheet, `skip_rows`, `header_rows`, `skip_rows_after_header`, `skip_footer_rows`, `drop_empty_columns` |
 | xls | same options as xlsx (legacy format; adds the `xlrd` dependency) |
 | json | `records_path`, `flatten_depth` (default 1), `ndjson` (GeoJSON via `records_path: features`) |
 | archive | `archive: zip\|gz`, `member`; read as a stream, never extracted; dispatched to the readers above |
+
+`skip_rows_after_header` is refused for json (there is no header row to drop rows after) and with `header_rows: 0`
+(there is no header at all; use `skip_rows`).
 
 **Step 2 requirements carried from the step 1 review (built in step 2):** a per-call timeout for every tool except a
 download and a human wait (section b); the `fetch` tool enforces the 200 MB cap while streaming and reports
@@ -353,9 +410,13 @@ measurements; "to measure" is filled in during the build.
    labels as ABN, look-alike internal ids of the same length for the rest. Without a condition the look-alikes that fail the
    checksum are rejects and about 1 in 89 of them passes by chance as a false ABN (about 0.05% of that file's ABN observations);
    today validate only warns (round-3 identifier-checksum warning).
-5. Re-onboard the six, your approvals, extract.
+5. Re-onboard the six, your approvals, extract. The step 3b `valid_from` / `valid_to` strict rule (section b) changes
+   what two round-1 configs produce (a contract-dates config loses that mapping); the reject-file difference it makes
+   is measured here, not before.
 6. Registers (streaming, row filter, two approvals), bridging; time the 401 MB filter pass.
-7. IDF, m2.0, graph, rescore gate, profiles (both types).
+7. IDF, m2.0, graph, rescore gate, profiles (both types). DEFERRED from step 3b: an ABN whose evidence is
+   `unverified` (section b) may not support a link above the loose tier; a code cap on `legal_name` / `trading_name`
+   confidence by header word (section b, rule 5's register exception) is prompt-only until this step.
 8. Round-2 hand check (new strata); tier promotions recorded in DECISIONS.md.
 9. Final draw on both models; your review sheet.
 10. Write-up, README, runbook, rehearsal.
@@ -412,3 +473,4 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.9 | Review decisions: outcomes are defined by who ended the run (`validated_config` = the agent's own finish accepted; `partial_config` = harness-ended with a passing field; the model cannot declare `partial_config`), coverage columns added (`mapped_count`, `abstained_count`, `unresolved_blocking`, `resource_switches`); `could_not_read` needs evidence code has (two failed reads, a failed download, or a fixed reason code from `sniff` / `list_members`); the resource listing shows description and last-modified (untrusted data), one switch of resource per run (reason traced, at most two downloads, final hash pinned), `onboard --resource-index` pins a resource; the dev draw may run on Haiku or Sonnet; `compare` across passes | Owner review of the dev draw: partial vs validated was ambiguous, a run made two reads fail on purpose, a run picked the wrong resource |
 | 2026-11-12 | 2.10 | Round-3 review changes: after the last critique `mapping_confidence` may go down but not up (a raise needs a critique); the critic reviews against the same mapping rules text as the agent (`MAPPING_RULES`) and is told a mapping that follows a written rule is not blocking for a caveat; business-entity rule 18 (organisations of any entity_type, including schools, charities and government bodies; `no_business_entities` is for people, places, assets, events, measurements); benchmark `has_name` / `has_identifier`, coverage counts and self-agreement; injection verdict by canary checks only (comparison is information); validate warns when an ABN / ACN field fails its checksum on more than 2% of judged values | Review of dev draw c and s: a name column kept as legal_name, a mixed-identifier column read as ABN, two clean runs of one file differing |
 | 2026-11-12 | 2.11 | Rule 18 amended to section d (a person-like name WITH ITS OWN valid ABN may be an entity; `no_business_entities` is for rows that are neither organisations nor such individuals), wording shared with this document and guarded by a test; name rule next to rule 5 (an unlabelled name column maps to `trading_name` at 0.6 or lower, never left unmapped for that); validate warns on a mapped placeholder header (`_blank_N`, `Unnamed`); step 4a open item recorded (conditional mapping for a mixed identifier column) | Dev draw d: the first wording of rule 18 sent a file of individual sole traders to `no_business_entities` |
+| 2026-11-13 | 2.12 | Step 3b (reviews/step3b_plan.md) built: (C) three evidence states per mapped field / envelope setting (`held_out`/`training`/`unverified`), capped at 0.8/0.5, computed by code, not a model statement; (B) the first 12 raw rows of a file are never held out, `read_table` returns them as `raw_top`, a too-small file gets no held-out split; (A) `skip_rows_after_header` reader option; (E) the packet shows the raw top rows and the layout in code's words, plus a `header_like_first_row` warning; no model-written column labels; (D) `valid_from`/`valid_to` get the same stats/reject tracking as a field, shown in the packet and the critic's config summary, abstained by deleting the key, and mapped only from the entity's own registration/licence/status date (reverses one round-1 config's practice, effective only on re-onboarding at step 5); (F) a register exception added to rule 5 (prompt wording only; a code cap on the confidence and header word lists are deferred); (G) `llm.chat` requests `display: "summarized"` thinking (confirmed live on both models, no extra token cost), shown in the replay line. DEFERRED, not built: the F code cap, an ABN-evidence rule for Part-3 linking (item C) | Planning session (reviews/step3b_plan.md) found: a run's held-out split hid the real header from the agent; a sparse ABN column passed validation with no evidence; `valid_from`/`valid_to` were invisible to the critic and the packet; an individual-register name rule conflicted with rule 5; the trace's thinking text was empty because display was never requested |
