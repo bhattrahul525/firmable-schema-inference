@@ -406,7 +406,7 @@ def _packet_markdown(result, cfg: dict | None, report: dict | None, metadata: di
 
 
 def write_agent_outputs(result, *, source_id: str, work_dir: Path, model: str | None, code_version: str, questions: list,
-                        critiques: list, allow_overwrite: bool) -> str:
+                        critiques: list, allow_overwrite: bool, config_dir: Path | None = None) -> str:
     """The `packet` hook. For a config outcome: finalise the config in code, write configs/<source_id>.yaml and its review
     packet, and set approval to pending_review (never approved: only `approve` does that). Other outcomes write an outcome
     note in the run folder. Returns the path of the packet."""
@@ -417,15 +417,15 @@ def write_agent_outputs(result, *, source_id: str, work_dir: Path, model: str | 
         metadata = None
     trace_path = str(work_dir / "trace.jsonl")
     cfg = report = None
-    target_dir = Path(CONFIG_DIR)
+    target_dir = Path(config_dir) if config_dir else Path(CONFIG_DIR)   # benchmark runs keep their configs out of configs/
     if result.config is not None:
         issues = [i for c in critiques for i in c.get("issues", [])]
         cfg, report = finalise_config(result.config, source_id, work_dir, model, code_version, result.abstentions, issues)
         result.config = cfg
-        ap = approval_path(source_id)
+        ap = target_dir / f"{source_id}.approval.json"
         if ap.exists() and json.loads(ap.read_text()).get("status") == "approved" and not allow_overwrite:
             target_dir = work_dir / "proposed"   # never overwrite an approved config silently
-            target_dir.mkdir(parents=True, exist_ok=True)
+        target_dir.mkdir(parents=True, exist_ok=True)
         cpath = target_dir / f"{source_id}.yaml"
         write_config(cfg, cpath)
         apath = target_dir / f"{source_id}.approval.json"

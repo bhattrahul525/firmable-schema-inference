@@ -341,19 +341,20 @@ def default_source_id(reference: str) -> str:
 
 
 def onboard_agent(reference: str, *, source_id: str | None = None, model: str | None = None, limits=None,
-                  overwrite: bool = False, say=print) -> dict:
+                  overwrite: bool = False, say=print, config_dir: str | None = None) -> dict:
     """ARCHITECTURE.md round 2: the tool-using agent. Returns {"result": RunResult, "tools": [...]}."""
     from src.engine import extract as _extract, readers as _readers, config as _config, transforms as _transforms
     from src.part2_agent import agent_hooks, agent_prompt, agent_table, agent_tools, guard, loop, tools as _tools
     sid = source_id or default_source_id(reference)
-    ap = _config.approval_path(sid)
+    ap = (Path(config_dir) / f"{sid}.approval.json") if config_dir else _config.approval_path(sid)
     if ap.exists() and json.loads(ap.read_text()).get("status") == "approved" and not overwrite:
         sys.exit(f"{sid} already has an APPROVED config. Pick another --source-id, or pass --overwrite to replace it "
                  f"(its approval is reset).")
     files = [m.__file__ for m in (agent_hooks, agent_prompt, agent_table, agent_tools, _extract, _readers, _config, _transforms)]
     version = loop.code_version(files)
     work_dir = loop.RUNS_DIR / sid
-    kit = agent_tools.AgentKit(sid, work_dir, model=model, code_version=version, allow_overwrite=overwrite)
+    kit = agent_tools.AgentKit(sid, work_dir, model=model, code_version=version, allow_overwrite=overwrite,
+                              config_dir=Path(config_dir) if config_dir else None)
     run = loop.AgentRun(source_id=sid, reference=reference, task=agent_prompt.make_task(reference, sid), tools=kit.tools,
                         hooks=kit.hooks, system=agent_prompt.SYSTEM_TASK, model=model, limits=limits or guard.Limits(),
                         code_version=version, say=say)
@@ -384,6 +385,7 @@ def main() -> None:
     ap.add_argument("--max-dollars", type=float, help="agent: dollar budget for the run (default 1.00)")
     ap.add_argument("--max-turns", type=int, help="agent: model-turn budget (default 40)")
     ap.add_argument("--overwrite", action="store_true", help="agent: replace an approved config of the same source id")
+    ap.add_argument("--config-dir", help="agent: write the config and review packet here instead of configs/ (benchmark runs)")
     a = ap.parse_args()
     if a.mode == "agent":
         from src.part2_agent.guard import Limits
@@ -391,7 +393,8 @@ def main() -> None:
         if not ref:
             sys.exit("agent mode needs a reference: <portal>:<dataset>, a URL, or a file path")
         kw = {k: v for k, v in (("max_dollars", a.max_dollars), ("max_calls", a.max_turns)) if v is not None}
-        onboard_agent(ref, source_id=a.source_id, model=a.model, limits=Limits(**kw), overwrite=a.overwrite)
+        onboard_agent(ref, source_id=a.source_id, model=a.model, limits=Limits(**kw), overwrite=a.overwrite,
+                      config_dir=a.config_dir)
         return
     if a.file:
         from src.part2_agent.fetch import fetch_file

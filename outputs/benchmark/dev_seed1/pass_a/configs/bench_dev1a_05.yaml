@@ -1,0 +1,175 @@
+what_it_is: Construction occupations licensing register extract listing licensee disciplinary and automatic-suspension
+  actions against builders and electricians.
+one_row_is: one licensing action (suspension, condition, reprimand or rectification order) recorded against a licensee
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Action Date
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+valid_to:
+  source: Action End Date
+  transforms:
+  - name: regex_extract
+    arg: ^(\d{2}/\d{2}/\d{4})$
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: Licensee Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Licensee Name is the licensee's name on the register
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 0
+    ok: 197
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: A.C.N
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: A.C.N column, checksummed; N/A values are skipped
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 2
+    ok: 140
+    skipped_not_applicable: 54
+    rejected: 1
+    parse_rate: 0.9929
+- source: Licensee Name
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: No explicit entity-type column; suffix rule on name
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 0
+    ok: 197
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence Number
+  reason: Licence number of the individual licence; no ontology field
+- source: Occupation
+  reason: Trade licence category, not an ANZSIC industry code
+- source: Occupation Class
+  reason: Licence class, no ontology field
+- source: Licence Conditions/Endorsement
+  reason: Licence condition detail, no ontology field
+- source: Action Type
+  reason: Regulatory action type; licence suspensions kept as regulatory actions, not entity.status
+- source: Action Date
+  reason: Used as valid_from (date the regulatory action took effect)
+- source: Action End Date
+  reason: Used as valid_to
+- source: Circumstances/Reasons
+  reason: Free-text reasons; no ontology field
+- source: Action under review by the ACAT
+  reason: Review status, no ontology field
+- source: Period licensee can apply to ACAT for review expired
+  reason: Review status, no ontology field
+- source: Applicant has applied to ACAT for review and the review is incomplete
+  reason: Review status, no ontology field
+- source: Partnership details (Partnerships only)
+  reason: Mostly N/A; no ontology field
+- source: Compliance with Rectification Order
+  reason: Compliance detail, no ontology field
+- source: Related licensees
+  reason: Related persons/directors text, no ontology field
+- source: Licence Expiry Date
+  reason: Licence expiry, not the action validity; no ontology field
+- source: Date stop work notice lifted
+  reason: Not in ontology
+- source: Reason stop work notice lifted
+  reason: Not in ontology
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: Official state regulator register of licensing actions; authoritative for licensee names
+  and actions, but a single-snapshot export with some name formatting variation.
+meaning_check_responses: []
+source_id: bench_dev1a_05
+config_version: 1
+validation_summary:
+  held_out_rows: 197
+  observations_in_held_out: 534
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-6042af6a
+    field: observation envelope
+    problem: The example envelopes show only observed_at, valid_from and valid_to. The ontology marks source_id,
+      source_record_id, ingested_at, licence and extractor_version as required on every record, and none appear
+      in the examples.
+    severity: advisory
+    suggested_fix: 'Confirm the emitted records carry all required envelope fields, and show them in the examples:
+      source_id, source_record_id (from the hash_row key), ingested_at, licence (from CKAN metadata, or ''unknown''
+      with a flag) and extractor_version.'
+  - id: c-e53fcaef
+    field: observed_at
+    problem: The config takes observed_at from resource_last_modified, but every example shows the same timestamp,
+      2026-09-30T16:25:43.332780, which looks like the run time rather than the metadata date.
+    severity: advisory
+    suggested_fix: Check that observed_at is populated from resource_last_modified and that ingested_at is recorded
+      separately as the read time.
+  - id: c-e07bc709
+    field: entity.entity_type<-Licensee Name
+    problem: Company types are inferred from the 'Pty Ltd' suffix, which is a deterministic L1 derivation, but the
+      examples do not record a derivation_level. 'Jason Harwood' and 'Morris Construction Corporation' correctly
+      come out as unknown.
+    severity: advisory
+    suggested_fix: Record derivation_level L1 for suffix-derived entity_type values and keep unknown as the default
+      for names without a recognised suffix.
+  - id: c-bd6fdeb1
+    field: valid_from<-Action Date
+    problem: Action Date is the date a regulatory action was taken, not the date a status became true in the world.
+      It is used as valid_from for the suspension and rectification observations, so these observations are timed
+      by the regulator's action rather than by any stated status change.
+    severity: advisory
+    suggested_fix: Keep Action Date as valid_from only if you treat it as the date the regulatory claim took effect,
+      and say so in the mapping notes. Otherwise leave valid_from empty for these records.
+  - id: c-aa389ebf
+    field: entity.status
+    problem: Action Type 'Automatic Suspension' is not mapped to entity.status, so these suspension records give
+      no status observation even though the source states a suspension. The licence suspension is a licence action,
+      not necessarily an entity status, so leaving status unmapped is defensible.
+    severity: advisory
+    suggested_fix: Keep status unmapped unless the source defines a link to the entity status, and note in the mapping
+      that licence suspensions are kept as an unmapped regulatory action rather than entity status.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:02:31+00:00'

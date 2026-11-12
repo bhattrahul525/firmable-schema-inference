@@ -1,0 +1,153 @@
+what_it_is: Victorian Department of Education government school names with the ABN recorded against each school,
+  financial period 201506.
+one_row_is: one Victorian government school row for financial period 201506
+reader:
+  format: xlsx
+  sheet: Sheet1
+  header_rows: 1
+  skip_rows: 0
+  encoding: utf-8-sig
+record_id:
+  from:
+  - SchoolNumber
+observed_at:
+  source: LoadDate
+  transforms:
+  - name: parse_date
+    arg:
+    - '%Y-%m-%d %H:%M:%S.%f'
+    - '%Y-%m-%dT%H:%M:%S.%f'
+    - '%Y-%m-%d %H:%M:%S'
+    - '%Y-%m-%d'
+fields:
+- source: SchoolName
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: School name is the name the school operates under; not confirmed as registered name
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: SchoolNumber
+  reason: used as record_id; internal school number, no ontology field
+- source: Fin_Period
+  reason: financial period code, constant 201506; no ontology field
+- source: LoadDate
+  reason: used as observed_at (load timestamp, proxy for statement time)
+- source: ABN
+  reason: ABN recorded against the school row; the registrant is not stated (likely the managing department), so
+    it is not emitted as the school entity's abn
+needs_transform:
+- source: ABN
+  why: about 7 short 8/9-digit ABNs (likely dropped leading zeros) cannot be safely padded; 11-digit values pass
+    the abn checksum
+source_reliability:
+  identity: 0.6
+  address: 0.5
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Official Victorian Government list of school ABNs; reliable for the school-to-ABN row,
+  but the registrant of each ABN is not stated and names are school names, not registered names.
+meaning_check_responses:
+- check_id: legal_name
+  action: changed
+  reason: SchoolName moved to trading_name; no registry evidence for legal name
+source_id: bench_dev1a_03
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 600
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.abn<-ABN
+    reason: The ABN is recorded against the school row, but the source does not establish that the school entity
+      is the ABN registrant (likely the managing government department). Emitting it as the school's abn would be
+      an unsupported claim. Left out pending an ABN Lookup check of the registrant.
+  - field: entity.legal_name<-SchoolName
+    reason: School name is not evidence of the registered legal name; mapped to trading_name instead.
+  critique_issues:
+  - id: c-0fb903dc
+    field: entity.legal_name<-SchoolName
+    problem: The config states that the school name is the registered legal name of the entity the ABN is issued
+      to. The source does not say that. A school name is a site or service name, and the dataset gives no registration
+      information. Its legal name would be that of the government body that runs the school, which this source does
+      not state. The mapping therefore asserts a registered name the source does not support.
+    severity: blocking
+    suggested_fix: Remove the entity.legal_name observation, or map SchoolName to trading_name (an L0 claim that
+      the school operates under this name). Do not emit legal_name unless a registry source confirms it.
+  - id: c-aa127e99
+    field: entity.abn<-ABN
+    problem: The config reason says the ABN is issued to the school. Nothing in the raw rows supports that. Victorian
+      government schools are typically not separate ABN holders; their ABN usually belongs to the managing government
+      department. Emitting this ABN as the school's entity.abn therefore attaches an identifier to the wrong entity.
+      The checksum only shows the number is well-formed, not who it was issued to.
+    severity: blocking
+    suggested_fix: Keep the ABN as a raw observation, but change the reason to state that the column is the ABN
+      recorded against the school row, with no claim about the registrant. Add a caveat or hold it until the registrant
+      is confirmed against the ABN Lookup, and do not treat it as the school's own ABN.
+  - id: c-225f3926
+    field: entity.entity_type
+    problem: entity_type is emitted as 'unknown' with from null. This follows the default rule, but the rows show
+      a government school, which the dataset context points to as a government entity. The observation is safe but
+      leaves useful information unused.
+    severity: advisory
+    suggested_fix: Keep 'unknown' as the default, or consider a derivation_level L1 observation of 'government'
+      only if the source or a documented rule supports it. Record the reasoning in the config.
+  - id: c-c9341456
+    field: observed_at
+    problem: LoadDate is the time the source file was loaded, not necessarily the time the source made the claim.
+      The envelope maps it straight to observed_at, which the ontology defines as when the source stated it.
+    severity: advisory
+    suggested_fix: Document that LoadDate is used as a proxy for observed_at, or add a note explaining the limitation.
+      Consider putting Fin_Period (201506, the financial year ending June 2015) into valid_from or a documented
+      note.
+  - id: c-93db22e3
+    field: observation envelope
+    problem: The examples show no source_id, source_record_id, ingested_at, licence, or extractor_version. These
+      are required fields on every observation. The shown envelope is incomplete, so the examples cannot confirm
+      the required envelope.
+    severity: advisory
+    suggested_fix: Confirm that every emitted observation carries all required envelope fields. The licence should
+      come from the CKAN metadata, or be recorded as 'unknown' and flagged.
+  - id: c-4fb066ff
+    field: entity.abn<-ABN
+    problem: The ABN column is recorded against the school row, and the config's own reason says it makes no claim
+      that the school is the ABN registrant (the registrant may be the managing department). The mapping still emits
+      it as entity.abn, which asserts the school entity holds this ABN. The source does not support that claim.
+    severity: blocking
+    suggested_fix: Do not map to entity.abn for the school entity. Either drop it, or emit it under a relationship
+      or source-context field (e.g. ABN recorded against school row, registrant unknown) with a low field_confidence
+      or a note that the registrant is not established.
+  - id: c-9f05481b
+    field: observed_at<-LoadDate
+    problem: observed_at is defined as when the source stated the claim, but LoadDate is the load timestamp, which
+      the config itself calls a proxy for statement time. Fin_Period 201506 may indicate the statement period, which
+      is not used.
+    severity: advisory
+    suggested_fix: Keep LoadDate as an ingestion-side proxy, document the caveat in the config, and consider recording
+      the Fin_Period (201506) as the statement period or valid_from/valid_to context if the source supports it.
+  - id: c-82584983
+    field: observation envelope
+    problem: The example envelopes show only observed_at, valid_from and valid_to. Required envelope fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not shown in the examples or the config,
+      so the envelope may be incomplete.
+    severity: advisory
+    suggested_fix: Confirm that every emitted observation carries source_id, source_record_id (SchoolNumber), ingested_at,
+      licence (from the CKAN metadata, or 'unknown' with a flag) and extractor_version.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:01:43+00:00'

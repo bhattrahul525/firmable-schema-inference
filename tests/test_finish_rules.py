@@ -377,6 +377,41 @@ class TestScriptedReproductionOfTheRerun(Wiring):
         self.assertFalse(list(Path("configs").glob("*.approval.json")))
 
 
+class TestNoConfigWithoutFields(Base):
+    """Dev-draw finding (a harness defect): a config outcome that maps no field is not a config."""
+
+    def test_the_gate_refuses_a_config_with_no_mapped_field_and_names_the_next_call(self):
+        for c in (cfg(), {"reader": {}, "unmapped": []}, {"fields": "x"}):
+            d = FinishGate().check({"outcome": "partial_config", "config": c, "abstentions": [{"field": "a", "reason": "r"}]}, OK, 2)
+            self.assertFalse(d.ok)
+            self.assertIn("maps none", d.reason)
+            self.assertIn("outcome no_business_entities", d.reason)
+            self.assertIn("call `validate` with a config that maps at least one field", d.reason)
+
+    def test_no_business_entities_is_still_available_with_no_fields(self):
+        g = FinishGate()
+        g.ok_tools.update({"read_table", "profile"})
+        self.assertTrue(g.check({"outcome": "no_business_entities", "evidence": "e"}, OK).ok)
+
+    def test_a_finish_whose_unanswered_blocking_issues_would_remove_every_field_is_refused_not_accepted(self):
+        c = {"fields": ["a", "b"], "bad": [], "issues": [issue("a", "blocking", "1"), issue("b", "blocking", "2")]}
+        res = self.run_loop([tool_turn("validate", {"config": c}, id="v"), tool_turn("critique", {"config": c}, id="k"),
+                             tool_turn("finish", {"outcome": "validated_config", "config": c}, id="f1"),
+                             tool_turn("finish", {"outcome": "validated_config", "config": c, "answers": [
+                                 {"issue_id": "1", "action": "answered", "note": "n"}, {"issue_id": "i1", "action": "answered", "note": "n"},
+                                 {"issue_id": "i2", "action": "answered", "note": "n"}]}, id="f2")])
+        refusal = self.tool_results(3)[0]["content"]
+        self.assertIn("would leave no mapped field", refusal)
+        self.assertIn("Call finish again with `answers`", refusal)
+        self.assertEqual(res.outcome, "validated_config")                           # once answered, the fields stay
+
+    def test_a_forced_end_still_uses_incomplete_for_no_fields(self):
+        c = {"fields": ["a"], "bad": [], "issues": [issue("a", "blocking", "1")]}
+        res = self.run_loop([tool_turn("validate", {"config": c}, id="v"), tool_turn("critique", {"config": c}, id="k"),
+                             text_turn(), text_turn()])
+        self.assertEqual(res.outcome, "incomplete")
+
+
 class TestOutcomeDefinitions(unittest.TestCase):
     """Generic wording only: nothing here may name a dataset, a column or a value."""
 

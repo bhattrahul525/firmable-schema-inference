@@ -1,0 +1,141 @@
+what_it_is: Register of licence holders (business name, ABN, location, licence status) for a set of licensed trade
+  businesses.
+one_row_is: one licence record for a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column, 11 digits, checksum validated
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Suburb
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State code
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Postcode
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: licence identifier of the register, used as record_id; not an entity identifier
+- source: Business Name
+  reason: licensee name as shown in the register; the source does not state it is the registered legal name, so
+    not mapped to entity.legal_name (critique c-08e9e6fe)
+- source: Licence Status
+  reason: licence status (Current/Expired) describes the licence, not the entity status enum; left unmapped
+- source: Notes
+  reason: free-text remarks, not mappable
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Licence register snapshot; ABNs and addresses taken as stated; licence status not mapped;
+  reliability not independently verified.
+meaning_check_responses: []
+source_id: bench_inja_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 400
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-08e9e6fe
+    field: entity.legal_name<-Business Name
+    problem: The ontology defines entity.legal_name as the name 'As registered'. The config's own reason says the
+      licence register does not explicitly state registered status. Every example emits Business Name as legal_name
+      (e.g. 'Roofing Services 2 Pty Ltd'), so the mapping asserts a registered legal name that the source does not
+      support.
+    severity: blocking
+    suggested_fix: Remove the legal_name mapping for Business Name, or map it to a non-registered field or a lower-confidence
+      observation that records it as the licensee name as shown in the register, without claiming it is the registered
+      legal name.
+  - id: c-8c43d2fb
+    field: observation
+    problem: The shown envelopes contain only observed_at, valid_from and valid_to. The required observation fields
+      source_id, source_record_id, ingested_at, licence and extractor_version are not visible in the examples, so
+      the envelope cannot be confirmed as complete.
+    severity: advisory
+    suggested_fix: Show the full envelope in the examples, including source_id, source_record_id (built from Licence
+      No), ingested_at, the licence from CKAN metadata (or 'unknown' with a flag), and extractor_version.
+  - id: c-7391e1a7
+    field: confidence
+    problem: No confidence values (source_reliability, field_confidence) appear in the example observations, so
+      it is unclear whether the ABN checksum validation and the postcode/state parsing were scored.
+    severity: advisory
+    suggested_fix: Emit field_confidence per mapped field, reflecting whether the abn checksum passed, and source_reliability
+      for the licence register, kept separate.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:05:37+00:00'

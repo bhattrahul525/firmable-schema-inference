@@ -592,6 +592,13 @@ class FinishGate:
         if not isinstance(config, dict):
             return Decision(False, f"finish refused: {outcome} needs the `config` object. Call finish again with `config` = "
                                    f"the full config you validated.")
+        fields = config.get("fields")
+        if not isinstance(fields, list) or not fields:
+            return Decision(False, f"finish refused: {outcome} needs at least one mapped field in `fields`, and this config maps "
+                                   f"none, so there is nothing to extract. If the data holds no businesses or organisations, call "
+                                   f"finish again with outcome no_business_entities and `evidence` (it needs a successful "
+                                   f"`read_table` and `profile` first); otherwise call `validate` with a config that maps at "
+                                   f"least one field.")
         if validate_fn is not None:   # finish validates the submitted config itself
             try:
                 status = validate_fn(copy.deepcopy(config))

@@ -194,9 +194,10 @@ class AgentKit:
     context none (tests inject one; a terminal gets a prompt)."""
 
     def __init__(self, source_id: str, work_dir: Path, *, model: str | None = None, code_version: str = "",
-                 allow_overwrite: bool = False):
+                 allow_overwrite: bool = False, config_dir: Path | None = None):
         self.sid, self.wd, self.model, self.code_version = source_id, Path(work_dir), model, code_version
         self.allow_overwrite = allow_overwrite
+        self.config_dir = config_dir
         self.questions: list[dict] = []
         self.critiques: list[dict] = []
         cfg_schema = {"type": "object", "additionalProperties": False, "required": ["config"],
@@ -288,7 +289,8 @@ class AgentKit:
             abstain=hooks_mod.abstain_config,
             packet=lambda result: hooks_mod.write_agent_outputs(
                 result, source_id=self.sid, work_dir=self.wd, model=self.model, code_version=self.code_version,
-                questions=self.questions, critiques=self.critiques, allow_overwrite=self.allow_overwrite))
+                questions=self.questions, critiques=self.critiques, allow_overwrite=self.allow_overwrite,
+                config_dir=self.config_dir))
 
     # ---- fetch --------------------------------------------------------------------------------------------------------
 

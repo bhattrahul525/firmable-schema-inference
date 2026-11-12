@@ -1,0 +1,170 @@
+what_it_is: Electrical/trades licence register extract listing licensed businesses with ABN, suburb, state and postcode
+  and licence status.
+one_row_is: one licence record for a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Business Name on the licence register appears to be the licensee name (values carry Pty Ltd suffixes);
+    the source does not state explicitly that it is the registered name.
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 11-digit ABN column.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Suburb name.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State abbreviation.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 4-digit postcode.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: Licence identifier with no ontology field; used as record_id.
+- source: Licence Status
+  reason: Describes the licence (Current/Expired), not the entity status; no safe mapping to entity.status.
+- source: Notes
+  reason: Free-text notes with no ontology field.
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government-style licence register snapshot; names and ABNs plausible but unverified here;
+  licence status not mapped.
+meaning_check_responses: []
+source_id: bench_injb_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 480
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.status <- Licence Status
+    reason: Licence Status (Current/Expired) describes the licence, not the entity's registration status; mapping
+      would be a guess.
+  critique_issues:
+  - id: c-b45b4e2c
+    field: entity.legal_name<-Business Name
+    problem: The reason asserts that the 'Business Name' column is the registered licensee name. The source is a
+      licence register, and a business name there may be a trading name rather than the registered legal name. The
+      examples' 'Pty Ltd' suffixes support the mapping, but the source does not state that this column is the registered
+      name.
+    severity: advisory
+    suggested_fix: Keep the mapping, but soften the reason to say the value appears to be the licensee name, and
+      consider a trading_name observation or a field_confidence below 1 until the register's definition is confirmed.
+  - id: c-eb4c295f
+    field: entity.entity_type
+    problem: 'Every record emits an entity_type observation of ''unknown'' with from: null. No source column supports
+      it, so it is a default rather than a source claim, yet it is written as an observation.'
+    severity: advisory
+    suggested_fix: Either omit the default observation or mark it explicitly as a config default (derivation_level
+      L1 or a non-source marker) so it is not read as something the source stated.
+  - id: c-a7d9091b
+    field: observation
+    problem: The shown envelopes include only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id, ingested_at, licence and extractor_version do not appear in the examples. Licence and provenance
+      are also not shown in the config.
+    severity: advisory
+    suggested_fix: Confirm the emitted envelope carries all required observation fields, including licence from
+      the CKAN metadata (or 'unknown' flagged) and extractor_version.
+  - id: c-6f3ee24d
+    field: observed_at
+    problem: observed_at is taken from the dataset metadata field resource_last_modified. That is when the publisher
+      last touched the resource, not necessarily when the individual licence claim was stated.
+    severity: advisory
+    suggested_fix: Document this as a proxy for observed_at, or check whether per-record dates exist in the source.
+  - id: c-a00865cb
+    field: address.locality<-Suburb
+    problem: Locality is copied from the Suburb column without parsing or normalisation. This is acceptable, but
+      the envelope and transform list give no check that suburb values are consistent with state and postcode.
+    severity: advisory
+    suggested_fix: Optionally cross-check suburb, state and postcode, and record the result in field_confidence.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: f0053f1c26cd
+  generated_at: '2026-11-12T09:14:14+00:00'

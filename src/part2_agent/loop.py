@@ -577,6 +577,11 @@ class AgentRun:
             # re-critique: removing fields cannot add an error, only take one away. Hooks get copies.
             config = self.hooks.abstain(copy.deepcopy(config), [a["field"] for a in decision["abstentions"]])
             status = self.hooks.validate(copy.deepcopy(config))
+            if not config.get("fields"):
+                return self._refused_finish(
+                    f"finish refused: removing the fields with unanswered blocking critique issues would leave no mapped field. "
+                    f"Call finish again with `answers` for the blocking issue ids (answer = why the mapping is right, or fix the "
+                    f"config and call `critique`), or with outcome no_business_entities if the data holds no businesses.")
             if not _passes(status):
                 return self._refused_finish(
                     f"finish refused: removing the fields with unanswered critique issues left validation failing "

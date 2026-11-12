@@ -1,0 +1,301 @@
+what_it_is: Per-financial-year IP filing activity counts (designs, plant breeder's rights, trade marks) for applicant
+  parties in Australian IP registers, 1991-2000 extract of the IPLORD longitudinal research data.
+one_row_is: one applicant party's IP activity in one financial year
+reader:
+  format: csv
+  encoding: utf-8
+  header_rows: 1
+  skip_rows: 0
+record_id:
+  from:
+  - lord_party_id
+  - financial_year
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: lord_party_id
+  canonical: entity.abn
+  transforms:
+  - name: regex_extract
+    arg: ^(\d{11})\.0$
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: where lord_party_id_type is abn the id is an 11-digit ABN stored as a float string; checksum validated;
+    party_id rows do not match the regex
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 73
+    skipped_not_applicable: 223
+    rejected: 4
+    parse_rate: 0.9481
+- source: state_code
+  canonical: address.state
+  transforms:
+  - name: upper
+    arg: null
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Australian state code of the applicant; foreign regions are rejected
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 133
+    ok: 156
+    skipped_not_applicable: 0
+    rejected: 11
+    parse_rate: 0.9341
+- source: post_code
+  canonical: address.postcode
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: applicant postcode
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 134
+    ok: 166
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: country_code
+  canonical: address.country
+  transforms:
+  - name: upper
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ISO country code of applicant
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 15
+    ok: 285
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: party_name
+  reason: applicant name as filed with IP office; not stated to be the registered name, so not mapped to legal_name;
+    contains placeholder hashes and descriptors
+- source: lord_party_id_type
+  reason: 'internal flag: party_id vs abn'
+- source: lord_party_id
+  reason: used only for record_id and abn
+- source: financial_year
+  reason: activity period, not a claim start/end date; used only for record_id
+- source: d_first_earliest_filed_financial_year
+  reason: first-activity year statistic
+- source: pbr_first_earliest_filed_financial_year
+  reason: first-activity year statistic
+- source: tm_first_earliest_filed_financial_year
+  reason: first-activity year statistic
+- source: d_first_gained_enforceable_status_financial_year
+  reason: IP status statistic
+- source: pbr_first_gained_enforceable_status_financial_year
+  reason: IP status statistic
+- source: tm_first_gained_enforceable_status_financial_year
+  reason: IP status statistic
+- source: d_filed_count
+  reason: IP activity count
+- source: pbr_filed_count
+  reason: IP activity count
+- source: tm_filed_count
+  reason: IP activity count
+- source: d_granted_count
+  reason: IP activity count
+- source: pbr_granted_count
+  reason: IP activity count
+- source: tm_granted_count
+  reason: IP activity count
+- source: d_retired_count
+  reason: IP activity count
+- source: pbr_retired_count
+  reason: IP activity count
+- source: tm_retired_count
+  reason: IP activity count
+- source: d_enforceable_count
+  reason: IP activity count
+- source: pbr_enforceable_count
+  reason: IP activity count
+- source: tm_enforceable_count
+  reason: IP activity count
+- source: tm_services_filed_count
+  reason: IP activity count
+- source: tm_services_granted_count
+  reason: IP activity count
+- source: tm_services_retired_count
+  reason: IP activity count
+- source: tm_services_enforceable_count
+  reason: IP activity count
+- source: d_filed_weighted_count
+  reason: weighted IP activity measure
+- source: pbr_filed_weighted_count
+  reason: weighted IP activity measure
+- source: tm_filed_weighted_count
+  reason: weighted IP activity measure
+- source: d_granted_weighted_count
+  reason: weighted IP activity measure
+- source: pbr_granted_weighted_count
+  reason: weighted IP activity measure
+- source: tm_granted_weighted_count
+  reason: weighted IP activity measure
+- source: d_retired_weighted_count
+  reason: weighted IP activity measure
+- source: pbr_retired_weighted_count
+  reason: weighted IP activity measure
+- source: tm_retired_weighted_count
+  reason: weighted IP activity measure
+- source: d_enforceable_weighted_count
+  reason: weighted IP activity measure
+- source: pbr_enforceable_weighted_count
+  reason: weighted IP activity measure
+- source: tm_enforceable_weighted_count
+  reason: weighted IP activity measure
+- source: tm_services_filed_weighted_count
+  reason: weighted IP activity measure
+- source: tm_services_granted_weighted_count
+  reason: weighted IP activity measure
+- source: tm_services_enforceable_weighted_count
+  reason: weighted IP activity measure
+- source: tm_services_retired_weighted_count
+  reason: weighted IP activity measure
+- source: d_enforceable_class_scope
+  reason: IP classification scope code
+- source: d_filed_class_scope
+  reason: IP classification scope code
+- source: d_filed_modal_class
+  reason: IP classification code
+- source: d_granted_class_scope
+  reason: IP classification scope code
+- source: d_retired_class_scope
+  reason: IP classification scope code
+- source: pbr_enforceable_class_scope
+  reason: IP classification scope code
+- source: pbr_enforceable_modal_class
+  reason: IP classification code
+- source: pbr_filed_class_scope
+  reason: IP classification scope code
+- source: pbr_filed_modal_class
+  reason: IP classification code
+- source: pbr_granted_class_scope
+  reason: IP classification scope code
+- source: pbr_granted_modal_class
+  reason: IP classification code
+- source: pbr_retired_class_scope
+  reason: IP classification scope code
+- source: pbr_retired_modal_class
+  reason: IP classification code
+- source: tm_enforceable_class_scope
+  reason: IP classification scope code
+- source: tm_filed_class_scope
+  reason: IP classification scope code
+- source: tm_granted_class_scope
+  reason: IP classification scope code
+- source: tm_retired_class_scope
+  reason: IP classification scope code
+- source: tm_services_enforceable_class_scope
+  reason: IP classification scope code
+- source: tm_services_filed_class_scope
+  reason: IP classification scope code
+- source: tm_services_granted_class_scope
+  reason: IP classification scope code
+- source: tm_services_retired_class_scope
+  reason: IP classification scope code
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.6
+  classification: 0.4
+  contact: 0.5
+source_reliability_basis: Research extract of IP office filings with party names as filed; names are not verified
+  registrations and foreign applicants are included. Names not used as registered names.
+meaning_check_responses: []
+source_id: bench_dev1a_06
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 965
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name<-party_name
+    reason: IP applicant name is not stated to be the registered name; critique flagged placeholder hashes and descriptors
+  - field: entity.entity_type<-party_name
+    reason: no explicit entity-type column; suffix inference would be a guess, so the engine records unknown
+  critique_issues:
+  - id: c-ac86cdec
+    field: entity.legal_name<-party_name
+    problem: party_name is the applicant name as filed with the IP office, which the config's own reason says is
+      not necessarily the registered name. The ontology defines legal_name as 'as registered', so the mapping asserts
+      a claim the source does not support. Several examples also carry hashed placeholder strings (e.g. 't0ed1ab56...',
+      't48e937c...', 'tad4384f...') that are not names at all, yet they are emitted as legal_name.
+    severity: blocking
+    suggested_fix: Do not map party_name to entity.legal_name. Emit it as a non-registered applicant-name observation
+      (or a trading-name-style claim with a distinct source field), and drop or quarantine placeholder hash values
+      such as 32-character hex strings instead of emitting them as names.
+  - id: c-0fed402f
+    field: entity.entity_type<-party_name
+    problem: The suffix rule infers entity_type from the name, but the source does not state an entity type. The
+      ontology says to default to unknown because guessing causes downstream harm. The example 'evergreen holdings
+      ltd' (country GB) and 'associated newspapers limited' are emitted as 'company' purely from the suffix, and
+      'bio oils australia pty ltd' likewise. This is a value mapped to a meaning the source does not state, and
+      no derivation level is recorded.
+    severity: blocking
+    suggested_fix: Emit entity_type as 'unknown' from the IP source, or, if the suffix rule is kept, record it as
+      an L3-style name-inference with low field_confidence and a derivation_level set accordingly, rather than as
+      a sourced company claim.
+  - id: c-15989628
+    field: entity.abn<-lord_party_id
+    problem: The config's reason says the transform applies only where lord_party_id_type is 'abn', but the field
+      mapping has no condition on lord_party_id_type. Rows with lord_party_id_type 'party_id' rely only on the 11-digit
+      regex to avoid emitting an ABN, so a party_id that happens to be 11 digits with a valid checksum would be
+      wrongly emitted as an ABN. The example 'evergreen holdings ltd' (ABN 53006970421, country GB) also shows an
+      Australian identifier attached to a non-Australian applicant, which is worth a note.
+    severity: advisory
+    suggested_fix: Gate the abn transform on lord_party_id_type == 'abn' explicitly. Add a note or a flag for ABN
+      observations whose country_code is not AU.
+  - id: c-1dc934c1
+    field: observation.envelope
+    problem: The envelope in the examples shows only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id (the record_id construction is in config but not shown on the observation), ingested_at,
+      licence and extractor_version are not visible. The config also has no licence or source_id entry, and the
+      licence should be recorded as 'unknown' and flagged if the CKAN metadata lacks one.
+    severity: advisory
+    suggested_fix: Confirm the emitted envelope includes all required observation fields, including licence (or
+      'unknown' with a finding) and extractor_version, and that source_record_id is documented as the lord_party_id
+      plus financial_year construction.
+  - id: c-1c22e5e0
+    field: observation.observed_at
+    problem: observed_at is set from resource_last_modified (2023-08-29 for every row). That is when the dataset
+      file was last changed, not when the source stated each claim, and it is the same for all rows regardless of
+      financial_year.
+    severity: advisory
+    suggested_fix: Keep resource_last_modified only as a documented proxy, or derive observed_at from the financial_year,
+      and record which basis was used.
+  - id: c-353ce467
+    field: entity.legal_name<-party_name (descriptor suffix)
+    problem: The example 'western brands llc a california corporation' keeps the jurisdiction descriptor 'a california
+      corporation' inside the name. clean_whitespace does not separate this from the name, so even after the legal_name
+      issue is fixed the value would not be a clean registered name.
+    severity: advisory
+    suggested_fix: Strip or split trailing jurisdiction descriptors into a separate note or field, and do not treat
+      the remainder as a registered name.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:05:05+00:00'

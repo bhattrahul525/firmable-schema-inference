@@ -1,0 +1,230 @@
+{
+ "frame": {
+  "class_counts_measured_vs_architecture": {
+   "core(csv|xlsx|json)": {
+    "architecture": 1140,
+    "measured": 1140
+   },
+   "no-resources": {
+    "architecture": 268,
+    "measured": 249
+   },
+   "no-tabular": {
+    "architecture": 856,
+    "measured": 875
+   },
+   "xls": {
+    "architecture": 52,
+    "measured": 52
+   },
+   "xml": {
+    "architecture": 37,
+    "measured": 37
+   },
+   "zip": {
+    "architecture": 87,
+    "measured": 87
+   }
+  },
+  "class_counts_pool": {
+   "csv": 788,
+   "json": 67,
+   "no-resources": 249,
+   "no-tabular": 875,
+   "xls": 52,
+   "xlsx": 285,
+   "xml": 37,
+   "zip": 87
+  },
+  "eligible": 2431,
+  "excluded": [
+   "datagovau:asic-credit-licensee",
+   "qld:qbcc-licensed-contractors-register",
+   "qld:system_procurement_contract-disclosure-report",
+   "datagovau:tenders-wa-contract-award-details-2023-24-financial-year",
+   "vic:victorian-liquor-licences-by-location",
+   "datagovau:kzmf-7uhp",
+   "nsw:find-by-lia-band"
+  ],
+  "excluded_missing_from_pool": [],
+  "pool_size": 2440,
+  "siblings_flagged_and_excluded": [
+   "datagovau:tenders-wa-awarded-contract-details-2022-23-financial-year",
+   "datagovau:tenders-wa-contract-award-details-2021-22-financial-year"
+  ]
+ },
+ "injection": {
+  "clean": "tests/fixtures/injection/clean.csv",
+  "injected": "tests/fixtures/injection/injected.csv",
+  "slot": "injection"
+ },
+ "items": [
+  {
+   "dataset_id": "datagovau:asic-smsf",
+   "family": "australian securities and investments commission (asic)|asic self managed super fund auditor dataset",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "PDF",
+    "XLSX"
+   ],
+   "organisation": "Australian Securities and Investments Commission (ASIC)",
+   "rank": 12,
+   "reference": "datagovau:asic-smsf",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "ASIC \u2013 Self-Managed Super Fund Auditor Dataset"
+  },
+  {
+   "dataset_id": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+   "family": "australian taxation office|junior minerals exploration incentive credit allocations",
+   "format_class": "xlsx",
+   "formats": [
+    "XLSX"
+   ],
+   "organisation": "Australian Taxation Office",
+   "rank": 13,
+   "reference": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Junior Minerals Exploration Incentive credit allocations"
+  },
+  {
+   "dataset_id": "vic:victorian-government-schools-abns",
+   "family": "department of education|victorian government schools abns",
+   "format_class": "xlsx",
+   "formats": [
+    "XLSX"
+   ],
+   "organisation": "Department of Education",
+   "rank": 18,
+   "reference": "vic:victorian-government-schools-abns",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Victorian Government Schools ABNs"
+  },
+  {
+   "dataset_id": "qld:chhhs-contracts-disclosure-register-2020-21",
+   "family": "queensland health|chhhs contracts disclosure",
+   "format_class": "csv",
+   "formats": [
+    "CSV"
+   ],
+   "organisation": "Queensland Health",
+   "rank": 31,
+   "reference": "qld:chhhs-contracts-disclosure-register-2020-21",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "CHHHS Contracts Disclosure 2020-21"
+  },
+  {
+   "dataset_id": "datagovau:avib-prrz",
+   "family": "act government open data|register of disciplinary actions",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "JSON",
+    "XML"
+   ],
+   "organisation": "ACT Government Open Data",
+   "rank": 32,
+   "reference": "datagovau:avib-prrz",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Register Of Disciplinary Actions"
+  },
+  {
+   "dataset_id": "datagovau:intellectual-property-longitudinal-research-data-2020",
+   "family": "ip australia|intellectual property longitudinal research data iplord",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "PDF",
+    "ZIP"
+   ],
+   "organisation": "IP Australia",
+   "rank": 41,
+   "reference": "datagovau:intellectual-property-longitudinal-research-data-2020",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Intellectual Property Longitudinal Research Data (IPLORD)"
+  },
+  {
+   "dataset_id": "sa:south-australian-signalised-intersections-and-crossings",
+   "family": "department for infrastructure and transport|south australian signalised intersections and crossings",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "PDF"
+   ],
+   "organisation": "Department for Infrastructure and Transport",
+   "rank": null,
+   "reference": "sa:south-australian-signalised-intersections-and-crossings",
+   "slot": "pool",
+   "stratum": "format: csv",
+   "title": "South Australian Signalised Intersections and Crossings"
+  },
+  {
+   "dataset_id": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+   "family": "dtf - corporate and government services|contract expenditure under strategic sourcing management intra government mail",
+   "format_class": "xlsx",
+   "formats": [
+    "XLSX"
+   ],
+   "organisation": "DTF - Corporate and Government Services",
+   "rank": null,
+   "reference": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+   "slot": "pool",
+   "stratum": "format: xlsx",
+   "title": "Contract expenditure under Strategic Sourcing management - 2010-11 - Intra Government Mail"
+  },
+  {
+   "dataset_id": "vic:victorian-state-schools-voluntary-parent-payments",
+   "family": "department of education|victorian state schools voluntary parent payments",
+   "format_class": "xls",
+   "formats": [
+    "XLS"
+   ],
+   "organisation": "Department of Education",
+   "rank": null,
+   "reference": "vic:victorian-state-schools-voluntary-parent-payments",
+   "slot": "pool",
+   "stratum": "format: xls",
+   "title": "Victorian State Schools-Voluntary Parent Payments"
+  },
+  {
+   "dataset_id": "sa:river-murray-protection-area",
+   "family": "department for environment and water|river murray protection area",
+   "format_class": "json",
+   "formats": [
+    "GEOJSON",
+    "HTML",
+    "KMZ",
+    "MAP VIEWER",
+    "SHP"
+   ],
+   "organisation": "Department for Environment and Water",
+   "rank": null,
+   "reference": "sa:river-murray-protection-area",
+   "slot": "pool",
+   "stratum": "format: json",
+   "title": "River Murray Protection Area"
+  },
+  {
+   "dataset_id": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+   "family": "sip register - vostronet (australia) pty ltd|vostronet australia pty ltd anticipatory notice augustine heights",
+   "format_class": "zip",
+   "formats": [
+    "PDF",
+    "ZIP"
+   ],
+   "organisation": " SIP Register - VostroNet (Australia) Pty Ltd",
+   "rank": null,
+   "reference": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+   "slot": "pool",
+   "stratum": "format: zip",
+   "title": "VostroNet Australia Pty Ltd - Anticipatory Notice - Augustine Heights - January 2025"
+  }
+ ],
+ "seed": 1
+}

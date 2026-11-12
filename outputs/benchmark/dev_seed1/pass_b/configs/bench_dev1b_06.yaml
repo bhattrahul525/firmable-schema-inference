@@ -1,0 +1,308 @@
+what_it_is: 'IP Australia longitudinal research extract (2001-2005 slice): per-party annual counts of designs, plant
+  breeder rights and trade mark filings, grants and enforceability.'
+one_row_is: one IP party (applicant/owner) in one financial year, with its annual IP activity counts
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - lord_party_id
+  - financial_year
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: lord_party_id
+  canonical: entity.abn
+  transforms:
+  - name: regex_extract
+    arg: ^(\d{11})\.0$
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Rows with lord_party_id_type=abn hold an 11-digit ABN stored as a float; the abn checksum filters bad
+    values.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 90
+    skipped_not_applicable: 207
+    rejected: 3
+    parse_rate: 0.9677
+- source: state_code
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Australian state codes; foreign region names are rejected by the enum.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 103
+    ok: 185
+    skipped_not_applicable: 0
+    rejected: 12
+    parse_rate: 0.9391
+- source: post_code
+  canonical: address.postcode
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Postcode of the party address.
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 98
+    ok: 202
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: country_code
+  canonical: address.country
+  transforms:
+  - name: upper
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ISO country code of party address.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 11
+    ok: 289
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: party_name
+  reason: IP applicant/owner name; source does not state it is the registered legal name, and values include hash-like
+    strings. Not mapped to legal_name or trading_name.
+- source: lord_party_id
+  reason: Internal party id when type is party_id; used only as record key.
+- source: lord_party_id_type
+  reason: Flag saying whether lord_party_id is an ABN or internal id.
+- source: financial_year
+  reason: Reporting year of the counts; not a statement date for the entity.
+- source: d_enforceable_class_scope
+  reason: IP activity metadata.
+- source: d_enforceable_count
+  reason: IP activity count.
+- source: d_enforceable_modal_class
+  reason: IP activity metadata.
+- source: d_enforceable_weighted_count
+  reason: IP activity count.
+- source: d_filed_class_scope
+  reason: IP activity metadata.
+- source: d_filed_count
+  reason: IP activity count.
+- source: d_filed_modal_class
+  reason: IP activity metadata.
+- source: d_filed_weighted_count
+  reason: IP activity count.
+- source: d_first_earliest_filed_financial_year
+  reason: Longitudinal statistic.
+- source: d_first_gained_enforceable_status_financial_year
+  reason: Longitudinal statistic.
+- source: d_granted_class_scope
+  reason: IP activity metadata.
+- source: d_granted_count
+  reason: IP activity count.
+- source: d_granted_modal_class
+  reason: IP activity metadata.
+- source: d_granted_weighted_count
+  reason: IP activity count.
+- source: d_retired_class_scope
+  reason: IP activity metadata.
+- source: d_retired_count
+  reason: IP activity count.
+- source: d_retired_weighted_count
+  reason: IP activity count.
+- source: pbr_enforceable_class_scope
+  reason: IP activity metadata.
+- source: pbr_enforceable_count
+  reason: IP activity count.
+- source: pbr_enforceable_modal_class
+  reason: IP activity metadata.
+- source: pbr_enforceable_weighted_count
+  reason: IP activity count.
+- source: pbr_filed_class_scope
+  reason: IP activity metadata.
+- source: pbr_filed_count
+  reason: IP activity count.
+- source: pbr_filed_modal_class
+  reason: IP activity metadata.
+- source: pbr_filed_weighted_count
+  reason: IP activity count.
+- source: pbr_first_earliest_filed_financial_year
+  reason: Longitudinal statistic.
+- source: pbr_first_gained_enforceable_status_financial_year
+  reason: Longitudinal statistic.
+- source: pbr_granted_class_scope
+  reason: IP activity metadata.
+- source: pbr_granted_count
+  reason: IP activity count.
+- source: pbr_granted_modal_class
+  reason: IP activity metadata.
+- source: pbr_granted_weighted_count
+  reason: IP activity count.
+- source: pbr_retired_class_scope
+  reason: IP activity metadata.
+- source: pbr_retired_count
+  reason: IP activity count.
+- source: pbr_retired_modal_class
+  reason: IP activity metadata.
+- source: pbr_retired_weighted_count
+  reason: IP activity count.
+- source: tm_enforceable_class_scope
+  reason: IP activity metadata.
+- source: tm_enforceable_count
+  reason: IP activity count.
+- source: tm_enforceable_weighted_count
+  reason: IP activity count.
+- source: tm_filed_class_scope
+  reason: IP activity metadata.
+- source: tm_filed_count
+  reason: IP activity count.
+- source: tm_filed_weighted_count
+  reason: IP activity count.
+- source: tm_first_earliest_filed_financial_year
+  reason: Longitudinal statistic.
+- source: tm_first_gained_enforceable_status_financial_year
+  reason: Longitudinal statistic.
+- source: tm_granted_class_scope
+  reason: IP activity metadata.
+- source: tm_granted_count
+  reason: IP activity count.
+- source: tm_granted_weighted_count
+  reason: IP activity count.
+- source: tm_retired_class_scope
+  reason: IP activity metadata.
+- source: tm_retired_count
+  reason: IP activity count.
+- source: tm_retired_weighted_count
+  reason: IP activity count.
+- source: tm_services_enforceable_class_scope
+  reason: IP activity metadata.
+- source: tm_services_enforceable_count
+  reason: IP activity count.
+- source: tm_services_enforceable_weighted_count
+  reason: IP activity count.
+- source: tm_services_filed_class_scope
+  reason: IP activity metadata.
+- source: tm_services_filed_count
+  reason: IP activity count.
+- source: tm_services_filed_weighted_count
+  reason: IP activity count.
+- source: tm_services_granted_class_scope
+  reason: IP activity metadata.
+- source: tm_services_granted_count
+  reason: IP activity count.
+- source: tm_services_granted_weighted_count
+  reason: IP activity count.
+- source: tm_services_retired_class_scope
+  reason: IP activity metadata.
+- source: tm_services_retired_count
+  reason: IP activity count.
+- source: tm_services_retired_weighted_count
+  reason: IP activity count.
+source_reliability:
+  identity: 0.6
+  address: 0.6
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Government IP register extract aggregated by party; names are as filed, not verified;
+  address is as filed.
+meaning_check_responses: []
+source_id: bench_dev1b_06
+config_version: 1
+needs_transform: []
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1055
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name<-party_name
+    reason: Source names are IP filing applicant/owner names, not stated as registered names; some are hash-like
+      strings.
+  - field: entity.trading_name<-party_name
+    reason: Source does not say the name is a trading name.
+  critique_issues:
+  - id: c-7fd798c0
+    field: entity.legal_name<-party_name
+    problem: party_name is an IP filing applicant/owner name, and the config itself says it is not labelled as registered.
+      The ontology defines legal_name as the registered name, so this maps a claim the source does not make. The
+      example 'tb12f486a1f25d910ea322ef708a01486' is a hash-like string, not a name at all, and is emitted as legal_name.
+    severity: blocking
+    suggested_fix: Do not emit entity.legal_name from party_name. Emit it as an applicant/owner name observation
+      under a non-legal field, or map to trading_name with a low field_confidence, and drop or quarantine hash-like
+      values.
+  - id: c-acb2483d
+    field: observation envelope
+    problem: The envelope shown for each observation carries only observed_at, valid_from and valid_to. The ontology
+      requires source_id, source_record_id, observed_at, ingested_at, licence and extractor_version on every record,
+      with no exceptions. source_id, source_record_id, ingested_at, licence and extractor_version are missing from
+      the examples and the config does not define them.
+    severity: blocking
+    suggested_fix: Add source_id, a deterministic source_record_id built from lord_party_id, financial_year and
+      the row position, ingested_at, licence (from CKAN metadata, or 'unknown' and flagged) and extractor_version
+      to every emitted observation.
+  - id: c-cc9103a8
+    field: entity.abn<-lord_party_id
+    problem: The ABN transform does not check lord_party_id_type=abn, even though the config says the flag is what
+      distinguishes ABNs from internal ids. The regex only restricts the value to 11 digits before the '.0', so
+      an internal id that happens to be 11 digits would pass to the checksum and rely on the checksum alone to reject
+      it. The type flag is listed as unmapped, so it is never used.
+    severity: advisory
+    suggested_fix: Gate the entity.abn transform on lord_party_id_type == 'abn' before applying the regex and checksum,
+      and use the type flag explicitly rather than unmapping it.
+  - id: c-58976f7a
+    field: entity.entity_type
+    problem: 'entity_type ''unknown'' is emitted with from: null on every row. That is a default, not a source claim,
+      yet it is written as an observation with a null source column, which could be mistaken for a sourced value.'
+    severity: advisory
+    suggested_fix: Either omit the observation when there is no source value, or mark it explicitly as a defaulted
+      value (for example derivation_level L1 with a note that it is a default), so it is not read as a statement
+      from the source.
+  - id: c-40b8eeda
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified (2023-08-29) while the counts describe financial years
+      2003 to 2005. The ontology says observed_at is when the source stated the claim, and the metadata date is
+      when the file was last changed, which is a different thing.
+    severity: advisory
+    suggested_fix: Keep the metadata timestamp, but document in the config that it is the publication date, and
+      consider recording financial_year as a separate reporting-period field so the observation time is not read
+      as the time the party was observed.
+  - id: c-3392c920
+    field: confidence
+    problem: No confidence fields (source_reliability, field_confidence, link_confidence) are set on the examples.
+      The ABN-to-entity claim and the free-text name claim carry very different reliability, and the name claim
+      is not checked at all.
+    severity: advisory
+    suggested_fix: Set source_reliability per publisher, field_confidence per field (lower for party_name, higher
+      for checksum-validated ABNs), and leave link_confidence unset unless the record is linked to an entity.
+  - id: c-3776d75b
+    field: entity.legal_name<-party_name
+    problem: Some values are abbreviated or informal, such as 'quality innovations p/l' and 'five hats wine co'.
+      Even where the name is a real business name, it is not the registered form (for example 'Pty Ltd' in place
+      of 'p/l').
+    severity: advisory
+    suggested_fix: If any legal-name-like field is kept, normalise known suffixes (p/l to Pty Ltd, pty. limited
+      to Pty Ltd) and record the raw value, with the normalisation at derivation_level L1.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: f0053f1c26cd
+  generated_at: '2026-11-12T09:13:36+00:00'

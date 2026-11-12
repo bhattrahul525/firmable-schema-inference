@@ -1,0 +1,218 @@
+what_it_is: 'Queensland CHHHS contract disclosure register for FY2020/21: contracts awarded by the Cairns and Hinterland
+  Hospital and Health Service, with supplier names and addresses.'
+one_row_is: one contract awarded by CHHHS, with its supplier
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 2
+  header_rows: 3
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier name Parties additionalidentifiers/id not assessed
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: No explicit entity type column; suffix rule on supplier name.
+  field_confidence: 0.6
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 0
+    ok: 24
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Supplier ABN Parties/identifier/uri not assessed
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Supplier ABN column; checksum validated. Very sparsely filled.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 23
+    ok: 1
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Supplier address Parties/address not assessed
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Supplier address as given.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 1
+    ok: 23
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Supplier name Parties additionalidentifiers/id not assessed
+  reason: Supplier name is not stated as the registered name (procurement disclosure; examples are trading-style
+    names); not mapped to legal_name pending ABN/register match. Used only for entity_type suffix rule.
+- source: Description OCDS name KDS
+  reason: Blank in data rows; label text only
+- source: Agency (Dept or Stat Body) OCDS name
+  reason: government buyer, not the supplier
+- source: Agency address OCDS name
+  reason: government buyer address, not the supplier
+- source: Contract description/name Contracts/Title Contract Name
+  reason: contract description; no ontology field
+- source: Award contract date Contracts/dateSigned Contract Awarded Date
+  reason: contract award date; no ontology field; not date_registered
+- source: Contract value Contracts/value/amount Executed Contract Value
+  reason: contract value; no ontology field
+- source: Variation to contract (Yes/No) Not listed Not listed
+  reason: contract attribute
+- source: Specific confidentiality provision used Not listed
+  reason: contract attribute
+- source: Procurement method Tender procurementMethod Contract Type
+  reason: contract attribute
+- source: Form of contract Tender procurementMethod
+  reason: contract attribute
+- source: Number of offers sought Tender procurementMethod
+  reason: contract attribute
+- source: Evaluation criteria and weightings Tender procurementMethod
+  reason: contract attribute
+- source: Deliverables Tender procurementMethod
+  reason: contract attribute
+- source: Contract milestones Tender procurementMethod
+  reason: contract attribute
+- source: Contract performance management Tender procurementMethod
+  reason: contract attribute
+- source: Contract reference number Contracts/AwardID Tender Number
+  reason: contract identifier, not entity; not unique
+- source: Contract category group Contracts/items/classification/description Category Group
+  reason: contract attribute, not ANZSIC
+- source: Parent contract number/SOA Contracts Contracts
+  reason: contract attribute
+- source: Commence date Contracts/period/Start Date Planned Commencement Date
+  reason: contract period; not licence validity
+- source: Finish date Contracts/period/endDate Planned Finish Date
+  reason: contract period
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Official Queensland government contract disclosure; supplier names self-reported; ABN
+  coverage very sparse; header rows merged to remove label rows.
+meaning_check_responses: []
+source_id: bench_dev1a_04
+config_version: 1
+validation_summary:
+  held_out_rows: 24
+  observations_in_held_out: 48
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-7974edd3
+    field: entity.legal_name<-Supplier name
+    problem: The first example row is a column-label row, not a supplier record. Its Supplier name is the placeholder
+      'not assessed', and the mapping still emits it as entity.legal_name. The value is a placeholder, not a company
+      name the source states.
+    severity: blocking
+    suggested_fix: Detect and drop label/placeholder rows before mapping (e.g. Supplier name equal to 'not assessed'
+      or a header-style row). Emit no legal_name observation for them.
+  - id: c-3d409b62
+    field: address.full<-Supplier address
+    problem: The same label row emits address.full = 'not assessed'. This is a placeholder meaning 'not assessed',
+      not a supplier address.
+    severity: blocking
+    suggested_fix: Treat 'not assessed' and similar sentinel strings as missing values and emit no address observation.
+  - id: c-f2b17464
+    field: entity.entity_type<-Supplier name
+    problem: The label row also yields entity_type 'unknown' from a placeholder name. This is harmless only because
+      the default is unknown, but it is still an observation produced from no real claim.
+    severity: advisory
+    suggested_fix: Suppress the entity_type observation whenever the supplier name is a placeholder, so no observation
+      is produced from a non-claim.
+  - id: c-c6c3634f
+    field: entity.legal_name<-Supplier name
+    problem: The ontology defines legal_name as 'as registered, not the trading name'. The source column is a procurement
+      'Supplier name' with no registration basis. Names such as 'Blue Care', 'QRMC', 'Benstar', '1300 Smiles' and
+      'Bidfood Cairns' may be trading names, so the claim that they are registered legal names is not supported
+      by the source.
+    severity: advisory
+    suggested_fix: Record the value under a source-labelled name or lower the confidence/caveat it, and note that
+      it is the name as typed in the procurement disclosure, not the registered legal name, until matched to a register.
+  - id: c-7a3bc7a1
+    field: entity.abn<-Supplier ABN
+    problem: The ABN mapping is configured, but no abn observation appears in any example, including rows where
+      the column is blank or 'not assessed'. The config says the field is very sparse, so the absence is expected,
+      but it is not shown as an explicit missing-value outcome.
+    severity: advisory
+    suggested_fix: Confirm that blank and 'not assessed' ABNs produce no observation and are logged as missing,
+      and that checksum failures are logged separately.
+  - id: c-badc3c07
+    field: address.state
+    problem: Supplier addresses such as '105 Denham Street, Townsville QLD' and 'Brisbane City QLD' contain a state,
+      and '347 Spence Street, Bungalow' contains none. The mapping only fills address.full, so the state and postcode
+      that the source does state are not parsed out.
+    severity: advisory
+    suggested_fix: Add a parse of the state abbreviation into address.state (L1, with field_confidence reflecting
+      parse certainty) and leave it null when absent.
+  - id: c-d4e0d114
+    field: observation.licence
+    problem: The example envelopes show observed_at, valid_from and valid_to, but no source_id, source_record_id,
+      ingested_at, licence or extractor_version, which are all required by the ontology.
+    severity: advisory
+    suggested_fix: Show the complete envelope in the examples. Licence should be read from the CKAN metadata or
+      recorded as 'unknown' and flagged.
+  - id: c-9f409066
+    field: entity.legal_name<-Supplier name Parties additionalidentifiers/id not assessed
+    problem: The ontology defines legal_name as the registered name, not the trading name. The config's own reason
+      says the supplier name is 'not stated as registered name', yet it is mapped to legal_name. The examples show
+      trading-style names such as 'Bidfood Cairns', 'Blue Care', '1300 Smiles' and 'Benstar' being emitted as legal
+      names, which the source does not support.
+    severity: blocking
+    suggested_fix: Do not emit legal_name from this column. Emit the supplier name as a low-confidence observation
+      under a non-legal field, or hold it until an ABN/ACN lookup confirms the registered name.
+  - id: c-0804117b
+    field: address.full<-Supplier address Parties/address not assessed
+    problem: Several values are not full addresses. 'Brisbane' (Blue Care) and 'Unit 21, 170-182 Mayers Street'
+      (Activtec, no suburb or state) are mapped as address.full. Others, such as '5 Commercial Place, Cairns QLD',
+      contain a state and locality that are not parsed into address.state, address.locality or address.postcode.
+    severity: advisory
+    suggested_fix: Keep address.full as the raw string, parse locality and state where present, and lower field_confidence
+      or note incompleteness for partial addresses such as 'Brisbane'.
+  - id: c-57b6efe2
+    field: observation envelope
+    problem: The shown envelopes contain only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are absent from the examples, although the ontology
+      says every emitted record carries them.
+    severity: advisory
+    suggested_fix: Confirm the full envelope is emitted, including licence from the CKAN metadata (or 'unknown'
+      with a flag) and a deterministic source_record_id from the hashed row.
+  - id: c-e87ebcb2
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified, but the ontology says observed_at is 'when the source
+      stated it'. The Activtec row has a contract award date of 1/09/2021, which is after the observed_at of 2021-08-02,
+      so the timestamp may not reflect when the claim was made.
+    severity: advisory
+    suggested_fix: Document that observed_at is a proxy from dataset metadata, and consider keeping the contract
+      award date as a separate provenance note rather than relying on it for observed_at.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:02:42+00:00'

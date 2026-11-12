@@ -1,0 +1,153 @@
+what_it_is: Junior Minerals Exploration Incentive (JMEI) Commissioner's allocation credits to exploration companies,
+  sheet 2021-22 of the workbook
+one_row_is: one company allocated JMEI credits in the 2021-22 financial year
+reader:
+  format: xlsx
+  sheet: 2021-22
+  header_rows: 1
+  skip_rows: 0
+record_id:
+  from:
+  - ABN
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Company name in a government allocation list; names carry Pty Ltd/Limited/NL suffixes, treated as registered
+    name
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 1
+    blank: 0
+    ok: 1
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column, 11 digits, checksum validated
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 1
+    blank: 0
+    ok: 1
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Commissioners allocation $
+  reason: Dollar credit allocation; no ontology field for grant amounts
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government program register of allocations; names and ABNs as published, not independently
+  verified
+meaning_check_responses: []
+source_id: bench_dev1b_02
+config_version: 1
+validation_summary:
+  held_out_rows: 1
+  observations_in_held_out: 3
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: all sheets except 2021-22
+    reason: Workbook has nine year sheets (2017-18 to 2024-25); this config reads only 2021-22. Other years are
+      not mapped, and 2022-23 has a different layout with blank columns.
+  - field: entity.legal_name<-Name
+    reason: Source does not state the names are registered names; mapped at 0.8 confidence with caveat.
+  critique_issues:
+  - id: c-6ceb4438
+    field: entity.legal_name<-Name
+    problem: The reason asserts the Name column is the registered name, but the source is a government allocation
+      list, which doesn't say whether its names are registered or trading names. The Pty Ltd/Limited suffixes suggest
+      registered names but don't prove it.
+    severity: advisory
+    suggested_fix: Keep the mapping but record the caveat in the reason, or set field_confidence below 1 for legal_name,
+      and confirm against the ABN register if this matters downstream.
+  - id: c-99911e2f
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified, which is when the file was last changed, not necessarily
+      when the allocation was stated. The ontology asks for when the source stated it.
+    severity: advisory
+    suggested_fix: Document that observed_at is the dataset modification date used as a proxy, and consider whether
+      the allocation year (2021-22) should inform valid_from or valid_to.
+  - id: c-2c3b72e4
+    field: observation envelope
+    problem: The example envelope shows only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not shown in the config or the example, and
+      licence is not stated for this dataset.
+    severity: advisory
+    suggested_fix: Show the full envelope in the example, state the licence from the CKAN metadata (or record 'unknown'
+      and flag it), and document how source_record_id is built from the ABN.
+  - id: c-df784f0b
+    field: entity.entity_type
+    problem: The example emits entity.entity_type = unknown, but no config entry produces it. The default is correct
+      per the ontology, but the config does not declare it.
+    severity: advisory
+    suggested_fix: Add an explicit default entity_type of unknown to the config so the emitted observations match
+      the declared mapping.
+  - id: c-a61589d6
+    field: reader
+    problem: The reader sets encoding utf-8-sig, which does not apply to an xlsx file.
+    severity: advisory
+    suggested_fix: Remove the encoding setting or make it apply only to CSV input.
+  - id: c-75ded2d2
+    field: observation.licence
+    problem: The config and the example envelope do not show a licence for the observations. The ontology requires
+      licence on every observation, and the spec says to record 'unknown' and flag it if none is clear.
+    severity: advisory
+    suggested_fix: Read the licence from the dataset metadata (CKAN) and attach it to every observation, or record
+      'unknown' and flag the source. Also confirm source_id and source_record_id appear in the emitted envelope.
+  - id: c-67bd72c3
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified, which is when the publisher last touched the file.
+      The ontology defines observed_at as when the source stated the claim. For a 2021-22 allocation sheet these
+      may differ a lot.
+    severity: advisory
+    suggested_fix: Keep resource_last_modified as the observed_at proxy only if documented. Consider recording the
+      allocation period separately and noting the proxy in the extractor notes.
+  - id: c-875bddd2
+    field: valid_from
+    problem: The sheet is named '2021-22', which suggests the allocations describe a financial-year period. valid_from
+      and valid_to are null in the example, so that period is not captured even though the source appears to state
+      it.
+    severity: advisory
+    suggested_fix: If the sheet period is confirmed as the claim period, set valid_from and valid_to from it. Otherwise
+      leave them null and state that the period is unverified.
+  - id: c-a3199ecc
+    field: entity.legal_name<-Name
+    problem: Names in a government allocation list may carry trading or business names, not always the registered
+      name. The reason asserts they are registered names based only on suffixes like Pty Ltd or Limited.
+    severity: advisory
+    suggested_fix: Lower the claimed confidence for legal_name in this source, or check a sample of names against
+      ABN registry records before treating them as legal names.
+  - id: c-6d73600f
+    field: entity.acn
+    problem: ACN is not mapped. The ontology says it is often the last nine digits of the ABN, which would give
+      a checksummed, derivable value for these rows.
+    severity: advisory
+    suggested_fix: Consider deriving ACN from the ABN as an L1 value, validated with the ACN checksum, and noting
+      that it is derived and not stated by the source.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: f0053f1c26cd
+  generated_at: '2026-11-12T09:10:18+00:00'

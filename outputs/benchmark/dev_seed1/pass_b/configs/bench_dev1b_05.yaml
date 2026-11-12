@@ -1,0 +1,142 @@
+what_it_is: Register of construction occupation licence actions (suspensions, reprimands, conditions, rectification
+  orders) issued to licensees in a state construction licensing scheme.
+one_row_is: one licence action taken against one licensee
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Licensee Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Licensee Name is the licensee on the construction licence; registered-style names for companies and individuals.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 0
+    ok: 197
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: A.C.N
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Column is labelled A.C.N and holds 9-digit values; N/A values are skipped by the checksum transform.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 2
+    ok: 138
+    skipped_not_applicable: 56
+    rejected: 1
+    parse_rate: 0.9928
+unmapped:
+- source: Licence Number
+  reason: Licence number of the occupation licence; no canonical field for it.
+- source: Occupation
+  reason: Licence occupation type; no canonical classification field.
+- source: Occupation Class
+  reason: Licence class; no canonical field.
+- source: Licence Conditions/Endorsement
+  reason: Licence conditions; no canonical field.
+- source: Action Type
+  reason: Type of regulatory action; not an entity status, so not mapped to entity.status.
+- source: Action Date
+  reason: Date of the regulatory action; not a registration or licence-validity date, so not mapped to valid_from.
+- source: Action End Date
+  reason: End date of the action; not mapped.
+- source: Circumstances/Reasons
+  reason: Free-text reasons for the action; no canonical field.
+- source: Action under review by the ACAT
+  reason: Review status; no canonical field.
+- source: Period licensee can apply to ACAT for review expired
+  reason: Review status; no canonical field.
+- source: Applicant has applied to ACAT for review and the review is incomplete
+  reason: Review status; no canonical field.
+- source: Partnership details (Partnerships only)
+  reason: Partnership detail; no canonical field.
+- source: Compliance with Rectification Order
+  reason: Compliance detail; no canonical field.
+- source: Related licensees
+  reason: Related persons; no canonical field.
+- source: Licence Expiry Date
+  reason: Licence expiry; not mapped.
+- source: Date stop work notice lifted
+  reason: Stop work notice detail; not mapped.
+- source: Reason stop work notice lifted
+  reason: Stop work notice detail; not mapped.
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.8
+  contact: 0.5
+source_reliability_basis: Official state regulator register of licence actions; names and ACNs are as recorded by
+  the regulator, but the file is a licensing extract, not a verified corporate registry.
+meaning_check_responses: []
+source_id: bench_dev1b_05
+config_version: 1
+validation_summary:
+  held_out_rows: 197
+  observations_in_held_out: 532
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-00030084
+    field: entity.legal_name<-Licensee Name
+    problem: Licensee Name is used as legal_name for rows that are individuals, not companies (e.g. 'ASSI, Mohamad
+      Baker' and 'Jason Harwood'). The ontology says legal_name is the registered name, and a person's licence name
+      is not a registered entity name. The 'ASSI, Mohamad Baker' row also keeps the surname-first order from the
+      source.
+    severity: advisory
+    suggested_fix: Keep the mapping, since the name is what the licensee is called, but document that the column
+      mixes companies and individuals. Consider a note or a separate observation flag for individual licensees,
+      and do not let the name imply an entity type.
+  - id: c-8e234c5d
+    field: entity.entity_type
+    problem: 'Every example is emitted as ''unknown'', which is the conservative default. Some rows do support a
+      more specific value at L1 from the source text: ''PTY LTD'' or ''PTY LIMITED'' in the name, and ''The company
+      was automatically suspended'' in Circumstances/Reasons (e.g. DETLEV''S ELECTRICAL, Fortun8, Five Rivers).
+      Individual names are consistent with sole_trader but do not establish it.'
+    severity: advisory
+    suggested_fix: Optionally derive entity_type=company at derivation_level L1 from the Pty Ltd/Limited suffix
+      and the 'company was suspended' wording. Leave individuals as unknown. Being richer here is optional; the
+      current output is not wrong.
+  - id: c-45e45277
+    field: observed_at
+    problem: The config sets observed_at from resource_last_modified, but the envelope shows the same ingest-like
+      timestamp (2026-09-30T16:25:43.332780) on every record. That looks like the time of reading, not the time
+      the source stated it.
+    severity: advisory
+    suggested_fix: Confirm that resource_last_modified is actually being read, and check that the envelope value
+      is not the ingested_at value copied into observed_at.
+  - id: c-cc225bbc
+    field: observation envelope
+    problem: The examples show only observed_at, valid_from and valid_to. The required envelope fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not visible. record_id uses hash_row, which
+      is deterministic but depends on row position and is not documented.
+    severity: advisory
+    suggested_fix: Show the full envelope in the examples. Document how source_record_id is built from the row hash,
+      and confirm that the licence comes from the CKAN metadata or is recorded as 'unknown' and flagged.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: f0053f1c26cd
+  generated_at: '2026-11-12T09:11:10+00:00'

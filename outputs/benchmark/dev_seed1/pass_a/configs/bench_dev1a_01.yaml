@@ -1,0 +1,244 @@
+what_it_is: ASIC register of approved SMSF auditors, one row per auditor condition or capacity.
+one_row_is: one condition or capacity attribute of a registered SMSF auditor
+reader:
+  format: tsv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: SMSF_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Name of the registered SMSF auditor (person or individual auditor).
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_PERSON_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Column named person ABN, 11-digit values.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 247
+    ok: 53
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_STATUS
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Registered: active
+      Suspended: suspended
+  group: main
+  mapping_confidence: 0.85
+  reason: Register status of the auditor; 'Registered' read as active.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_REG_DT
+  canonical: entity.date_registered
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+  group: main
+  mapping_confidence: 0.9
+  reason: Registration date of the auditor on the register.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Locality.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 2
+    ok: 298
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_POST_CODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Postcode.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 2
+    ok: 298
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 2
+    ok: 298
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: REGISTER_NAME
+  reason: constant value
+- source: SMSF_NUM
+  reason: ASIC auditor number; no ontology field for it
+- source: SMSF_SUSP_START_DT
+  reason: suspension dates, sparse; not mapped to valid_from/valid_to to stay conservative
+- source: SMSF_SUSP_END_DT
+  reason: suspension dates, sparse
+- source: SMSF_ATTRIBUTE_TYPE
+  reason: row type indicator (Condition or Capacity)
+- source: SMSF_CAPACITY
+  reason: role of auditor within audit firm; no ontology field
+- source: SMSF_CAPACITY_FIRM_NAME
+  reason: audit firm the auditor belongs to; a related entity, not the row's entity
+- source: SMSF_CAPACITY_START_DT
+  reason: capacity start date; no ontology field
+- source: SMSF_CONDITION_NUMBER
+  reason: condition identifier
+- source: SMSF_CONDITION
+  reason: condition text; not an ontology field
+- source: SMSF_CONDITION_DTL
+  reason: condition detail text
+- source: SMSF_CONDITION_START_DT
+  reason: condition start date; no ontology field
+needs_transform: []
+source_reliability:
+  identity: 0.9
+  address: 0.85
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: Official ASIC register of approved SMSF auditors; authoritative for registration and status,
+  though rows are denormalised per condition. Individual auditor names and ABNs are person-level identifiers.
+meaning_check_responses: []
+source_id: bench_dev1a_01
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 2147
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-a1d082aa
+    field: observation envelope
+    problem: The envelope shows only observed_at, valid_from and valid_to. The ontology requires source_id, source_record_id,
+      ingested_at, licence and extractor_version on every record, and none of them appear. The observed_at value
+      is identical across all ten rows and looks like the ingest time, not the resource_last_modified value the
+      config specifies.
+    severity: blocking
+    suggested_fix: 'Emit the full required envelope on every record: source_id, a deterministic source_record_id
+      (the row hash, or SMSF_NUM plus attribute type plus condition or capacity number), observed_at from resource_last_modified,
+      ingested_at as the read time, the dataset licence (or ''unknown'' with a flag), and extractor_version.'
+  - id: c-1455f19b
+    field: entity.status<-SMSF_STATUS
+    problem: The source value 'Registered' is an auditor-register status meaning approved to audit. Mapping it to
+      'active' is a reasonable reading but is an interpretation the source does not state literally.
+    severity: advisory
+    suggested_fix: Keep the mapping but record in the config reason that 'Registered' on the ASIC auditor register
+      is read as active, and consider deriving it at derivation_level L1 rather than L0.
+  - id: c-6ee09d42
+    field: entity.legal_name<-SMSF_NAME
+    problem: The source names a natural person (individual auditor), not a registered legal entity. Mapping the
+      person's name to legal_name is defensible but may mislead downstream entity matching.
+    severity: advisory
+    suggested_fix: Note in the config that SMSF_NAME is a person's name, and check that downstream logic treats
+      it as an individual rather than a company legal name.
+  - id: c-6a5fba65
+    field: entity.entity_type
+    problem: Every row defaults to 'unknown' even though the source clearly describes individual auditors. The default
+      is conservative, but the config does not record that the source does state individual status.
+    severity: advisory
+    suggested_fix: Keep 'unknown' as the default, but record in the observation or config reason that the source
+      describes individual auditors, so a later step can justify a sole_trader or other value.
+  - id: c-aad4777d
+    field: entity.abn<-SMSF_PERSON_ABN
+    problem: The config maps an ABN column that does not appear in any of the example raw rows, so the transform
+      is not exercised here and no abn observation is shown. The ABN also belongs to the person, which may not match
+      the entity the other fields describe.
+    severity: advisory
+    suggested_fix: Show an example row that contains SMSF_PERSON_ABN, confirm the checksum validation runs, and
+      document that the ABN is the individual's ABN.
+  - id: c-d54f55f6
+    field: entity.date_registered<-SMSF_REG_DT
+    problem: The registration date is the date of registration on the auditor register. The ontology has a valid_from
+      field for when a claim became true, and this date could populate it, but valid_from is null in every envelope.
+    severity: advisory
+    suggested_fix: Consider setting observation valid_from to the registration date, or state explicitly in the
+      config why it is kept only as date_registered.
+  - id: c-c5c222ab
+    field: entity.legal_name<-SMSF_NAME (Capacity rows)
+    problem: For Capacity-type rows (e.g. Mark Carusi, Daniel Tai), the status and registration fields describe
+      the auditor's register entry, but the row is about a capacity within a firm. The firm named in SMSF_CAPACITY_FIRM_NAME
+      is correctly left unmapped, but the observations do not show that the row type was considered.
+    severity: advisory
+    suggested_fix: Confirm that status and date claims on Capacity rows refer to the individual's registration,
+      and record the SMSF_ATTRIBUTE_TYPE value in the observation context.
+  - id: c-0ca784db
+    field: observation source_record_id
+    problem: SMSF_NUM is the ASIC auditor number, a stable identifier for the person, but it is listed as unmapped
+      and is not used for source_record_id. The config uses a row hash, which changes whenever any text in the row
+      changes.
+    severity: advisory
+    suggested_fix: Use SMSF_NUM (with attribute type and condition or capacity number) to build a deterministic
+      source_record_id, and keep the row hash as a fallback.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cbc43b37bb8e
+  generated_at: '2026-11-12T09:01:40+00:00'
