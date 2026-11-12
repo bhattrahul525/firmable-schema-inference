@@ -193,3 +193,15 @@ def collect_held(table: Table, reader: dict, check: Callable | None = None) -> t
             if fp in table.held_fp and len(held) < MAX_HELD_ROWS:
                 held.append(row)
     return headers, held
+
+
+def training_rows(table: Table, reader: dict, check: Callable | None = None) -> Iterator[dict]:
+    """Training rows (not held out) as `reader` (a config's reader) parses them. Same fingerprints as
+    collect_held, so the split still lines up when `reader` differs from the table's own."""
+    if reader == table.reader:
+        yield from table.training(check)
+        return
+    with iter_table(reader, table.path, check) as (_, rows):
+        for fp, row in rows:
+            if fp not in table.held_fp:
+                yield row

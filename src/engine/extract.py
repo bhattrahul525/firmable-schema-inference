@@ -156,11 +156,13 @@ def run_rows(cfg: dict, rows: list[dict], metadata: dict, *, ingested_at: str | 
                 st.blank += 1
                 return None, None
             vals, ev = apply_transforms(raw, spec.get("transforms") or [])
+            had_reject = False
             for kind, reason, item in ev:
                 if kind == "skip":
                     st.skip += 1
                     st.skip_reasons[reason] += 1
                 else:
+                    had_reject = True
                     st.reject += 1
                     st.reject_reasons[reason] += 1
                     ex = {"raw": str(item)[:80], "reason": reason, "source_record_id": rid}
@@ -171,7 +173,9 @@ def run_rows(cfg: dict, rows: list[dict], metadata: dict, *, ingested_at: str | 
             if vals:
                 st.ok += 1
                 return vals[0], None
-            return None, (ev[-1][1] if ev else None)
+            # skip-only outcome: nothing was appended to rejects above, so the caller must still treat
+            # this like blank and record observed_at_blank (step 3b item D regression)
+            return None, (ev[-1][1] if had_reject else None)
 
         observed_at, err = per_record("observed_at")
         if observed_at is None:

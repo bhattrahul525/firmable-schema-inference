@@ -131,8 +131,8 @@ class TestCriticRulesAndBusinessEntityRule(unittest.TestCase):
         self.assertIn("individuals with no business identifier", agent_prompt.MAPPING_RULES)
 
     def test_the_name_rule_sits_in_rule_5_in_both_prompts(self):
-        sentence = ("A name column that the data does not label as a registered, licensee or supplier name maps to "
-                    "entity.trading_name at 0.6 or lower; it is not left unmapped for that reason.")
+        # step 3b review fix: "Any other" (not a blanket "A name column..."), so it does not contradict 5b
+        sentence = "Any other name column maps to entity.trading_name at 0.6 or lower; it is not left unmapped for that reason."
         rule5 = next(l for l in agent_prompt.MAPPING_RULES.splitlines() if l.startswith("5. "))
         self.assertIn(sentence, rule5)                                   # next to the legal-name rule, in the same rule
         self.assertTrue(rule5.index("Map a name to legal_name only if the data says") < rule5.index(sentence))

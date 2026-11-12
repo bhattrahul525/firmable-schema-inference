@@ -59,6 +59,8 @@ DISTINCT_CAP = 200_000
 TRY_ROWS = 1000
 MAX_PATTERN_CHARS = 200
 MEMBER_LIST_CAP = 50
+RAW_TOP_MAX_CHARS = 2000          # raw_top's own budget inside read_table's 6,000-char ceiling (step 3b review fix)
+
 
 
 def fail(text: str, detail=None, **status) -> ToolResult:
@@ -570,7 +572,8 @@ class AgentKit:
     def _raw_top(self, path: Path, reader: dict) -> list[dict] | None:
         """The first PROTECTED_ROWS raw rows, numbered as `skip_rows` counts them (blank rows included), cells cut short.
         These rows are never held out, so showing them reveals nothing about the held-out set. Best effort: None when even
-        a layout-free read fails."""
+        a layout-free read fails. Kept under RAW_TOP_MAX_CHARS (its own budget inside the tool's overall char ceiling), by
+        dropping trailing rows, so a wide file never starves first_rows of its share (step 3b review fix)."""
         try:
             rows = raw_head(reader, path, PROTECTED_ROWS)
         except (ReaderError, Exception):
@@ -581,6 +584,8 @@ class AgentKit:
                 out.append({"row": i, "record": json.dumps(cells[0], default=str)[:300]})
             else:
                 out.append({"row": i, "cells": [("" if c in (None, "") else str(c)[:30]) for c in cells[:25]]})
+        while out and len(json.dumps(out, default=str)) > RAW_TOP_MAX_CHARS:
+            out.pop()
         return out
 
     @staticmethod

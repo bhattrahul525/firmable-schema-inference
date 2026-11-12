@@ -126,6 +126,31 @@ class TestEvidenceStates(unittest.TestCase):
         self.assertEqual(s["whole_file"]["judged"], 5)
 
 
+class TestTrainingStatsUsesConfigReader(unittest.TestCase):
+    """Step 3b review fix: training_stats (and the critic's extra rows) must read training rows via cfg["reader"],
+    not whatever reader the table object happens to carry from an earlier read_table call."""
+
+    def setUp(self):
+        self._t = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._t.name)
+        self.addCleanup(self._t.cleanup)
+        agent_hooks._TRAINING_STATS.clear()
+
+    def test_reparses_with_the_passed_reader_not_tables_own(self):
+        path = self.tmp / "f.csv"
+        path.write_text("X\nA\n51824753556\n33051775556\n")
+        stale_reader = {"format": "csv", "header_rows": 1, "skip_rows": 0}    # header "X"; no column "A" at all
+        cfg_reader = {"format": "csv", "header_rows": 1, "skip_rows": 1}     # header "A"; two valid ABNs
+        t = Table(path=path, reader=stale_reader, headers=["X"], n_rows=3, visible_n=3,
+                  held_fp=frozenset(), held_rows=[], cache=None)
+        specs = [("entity.abn<-A", "A", [{"name": "abn", "arg": ""}], "entity.abn")]
+        stale = agent_hooks.training_stats(t, stale_reader, specs)["entity.abn<-A"]["stats"]
+        self.assertEqual(stale["ok"], 0)   # table.reader's own header has no column "A": correct old behaviour
+        agent_hooks._TRAINING_STATS.clear()
+        correct = agent_hooks.training_stats(t, cfg_reader, specs)["entity.abn<-A"]["stats"]
+        self.assertEqual(correct["ok"], 2)   # cfg's reader finds the column and both ABNs parse
+
+
 class TestEvidenceCaps(unittest.TestCase):
     """Item C: field_confidence is the lowest of the model's confidence, the measured rate and the evidence cap."""
 
@@ -505,9 +530,9 @@ class TestRuleWordingFandD4(unittest.TestCase):
                         "accreditation or approval", "not a premises, venue or product", "mapping_confidence is 0.7 "
                         "or lower under 5b"):
             self.assertIn(fragment, rule5)
-        # the pre-existing sentence (step 3) is kept verbatim, still after the legal_name sentence
-        kept = ("A name column that the data does not label as a registered, licensee or supplier name maps to "
-               "entity.trading_name at 0.6 or lower; it is not left unmapped for that reason.")
+        # the trading_name fallback (step 3) still follows the legal_name sentence, scoped to exclude 5b's case
+        # (step 3b review fix: "Any other" rather than a blanket "A name column...", which contradicted 5b)
+        kept = "Any other name column maps to entity.trading_name at 0.6 or lower; it is not left unmapped for that reason."
         self.assertIn(kept, rule5)
         self.assertTrue(rule5.index("Map a name to legal_name only if the data says") < rule5.index(kept))
 
@@ -557,7 +582,8 @@ class TestReasoningSummary(unittest.TestCase):
         fake_client = _mock.Mock()
         fake_client.with_options.return_value = fake_client
         fake_client.messages.create = fake_create
-        with _mock.patch.object(llm, "_get_client", return_value=fake_client):
+        with tempfile.TemporaryDirectory() as d, _mock.patch.object(llm, "_get_client", return_value=fake_client), \
+                _mock.patch.object(llm, "LOG_PATH", Path(d) / "calls.jsonl"):
             llm.chat([{"role": "user", "content": "hi"}], step="t", model="claude-haiku-5-5")
         self.assertEqual(captured.get("thinking"), {"type": "adaptive", "display": "summarized"})
 

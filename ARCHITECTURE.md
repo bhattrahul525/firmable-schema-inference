@@ -43,8 +43,8 @@ version. Every string written to the trace or to `llm_calls.jsonl` is redacted B
 bearer and basic credentials, whole header values), so a line is always valid JSON. A split key (one secret spread over
 two fields) is not caught.
 
-**Reasoning summary (step 3b, item G).** Every call requests `thinking: {"type": "adaptive", "display": "summarized"}`
-(the one place provider code lives, `llm.chat`). Confirmed live on both Haiku 5.5 and Sonnet 5.5 before building on it:
+**Reasoning summary (step 3b, item G).** Every `llm.chat` call requests `thinking: {"type": "adaptive", "display": "summarized"}`;
+`llm.call` (the critique) does not. Confirmed live on both Haiku 5.5 and Sonnet 5.5 before building on it:
 accepted with no error, readable text on a turn where the model actually thinks, no extra token cost over the default
 `display: "omitted"` (thinking is billed the same regardless of display). The block is stored in the trace like any
 other content block (no structural change: the trace already records every block) and passed back unmodified on the

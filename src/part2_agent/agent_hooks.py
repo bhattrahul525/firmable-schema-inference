@@ -38,7 +38,7 @@ from src.engine.extract import (FieldStats, _is_blank, _ontology_ok, _value_of, 
                                 run_rows)
 from src.engine.readers import ReaderError, iter_table
 from src.part2_agent.agent_prompt import MAPPING_RULES
-from src.part2_agent.agent_table import NoTable, collect_held, get_table, load_metadata
+from src.part2_agent.agent_table import NoTable, collect_held, get_table, load_metadata, training_rows
 from src.part2_agent.guard import wrap_untrusted
 from src.part2_agent.llm_steps import ONTOLOGY_PATH
 from src.part2_agent.profile import trim_row
@@ -204,18 +204,19 @@ def _evidence_specs(cfg: dict) -> list[tuple[str, object, list, str | None]]:
     return specs
 
 
-def training_stats(table, specs: list, check=None) -> dict:
+def training_stats(table, reader: dict, specs: list, check=None) -> dict:
     """Stats over the TRAINING rows for the given specs, through the same engine primitives the extractor uses
-    (apply_transforms + the ontology guard), plus up to EXAMPLES_PER_FIELD raw-to-value examples per key.
+    (apply_transforms + the ontology guard), plus up to EXAMPLES_PER_FIELD raw-to-value examples per key. Rows are
+    read via `reader` (the config's own reader), not the table's cached one -- they can differ (step 3b review fix).
     Cached per (file, reader, specs), so repeated validate calls on one config scan once."""
     st = table.path.stat()
-    cache_key = (str(table.path), st.st_size, st.st_mtime_ns, json.dumps(table.reader, sort_keys=True),
+    cache_key = (str(table.path), st.st_size, st.st_mtime_ns, json.dumps(reader, sort_keys=True),
                  json.dumps([(k, s, t) for k, s, t, _ in specs], sort_keys=True, default=str))
     if cache_key in _TRAINING_STATS:
         return _TRAINING_STATS[cache_key]
     ontology = load_ontology()
     accs = {key: (FieldStats(), []) for key, _, _, _ in specs}
-    for row in table.training(check):
+    for row in training_rows(table, reader, check):
         for key, source, transforms, canonical in specs:
             stats, examples = accs[key]
             stats.rows += 1
@@ -252,7 +253,7 @@ def evidence_states(cfg: dict, table, report: dict, check=None) -> tuple[dict, l
     held = {key: report["stats"].get(key) or {} for key, _, _, _ in specs}
     judged = lambda s: (s.get("ok") or 0) + (s.get("reject") or 0)
     sparse = [sp for sp in specs if judged(held[sp[0]]) < MIN_JUDGED]
-    trained = training_stats(table, sparse, check) if sparse else {}
+    trained = training_stats(table, cfg["reader"], sparse, check) if sparse else {}
     states, failures = {}, []
     for key, _, _, _ in specs:
         s = held[key]
@@ -539,7 +540,7 @@ def critique_config(cfg_in, source_id: str, work_dir: Path, model: str | None, c
     if not held and not small_file:
         raise ValueError("no held-out rows to critique")
     if small_file:   # the file was too small for a held-out split: the critic reviews training rows and is told so
-        held = list(table.training(check))
+        held = list(training_rows(table, cfg["reader"], check))
         if not held:
             raise ValueError("no rows to critique")
     step_rows = [held[i * len(held) // CRITIQUE_ROWS] for i in range(min(CRITIQUE_ROWS, len(held)))]
@@ -562,7 +563,7 @@ def critique_config(cfg_in, source_id: str, work_dir: Path, model: str | None, c
     if blank_fields:
         needed = {field_key(f): CRITIC_TRAINING_EXAMPLES for f in blank_fields}
         extra_rows: list[dict] = []
-        for row in table.training(check):
+        for row in training_rows(table, cfg["reader"], check):
             hit = [f for f in blank_fields if needed[field_key(f)] > 0 and not _is_blank(_value_of(f["source"], row))]
             if hit:
                 extra_rows.append(row)
