@@ -104,10 +104,13 @@ class TraceMismatch(ValueError):
 FINISH_SPEC = ToolSpec(
     name="finish",
     description=("Declare the outcome and end the run. Outcomes: validated_config, partial_config, no_business_entities, "
-                 "could_not_read. For a config outcome pass the exact `config` you validated and critiqued, and in "
-                 "`answers` answer every critique issue still open on it. Shapes: answers = [{\"issue_id\": \"c-1a2b3c4d\", "
-                 "\"action\": \"answered\", \"note\": \"why this is intended\"}]; abstentions = [{\"field\": "
-                 "\"entity.abn<-SomeColumn\", \"reason\": \"why it is left out\"}]."),
+                 "could_not_read. For a config outcome pass the exact `config` you stand behind (finish validates it itself) "
+                 "and in `answers` answer every BLOCKING critique issue still open on it (advisory issues may be left; they stay in "
+                 "the review packet and the field stays). Use validated_config when the config is "
+                 "complete for what the source supports (dropping or re-mapping a field the critique showed was wrong is a "
+                 "fix); partial_config only for a field the source seems to support but you could not get right. Shapes: "
+                 "answers = [{\"issue_id\": \"c-1a2b3c4d\", \"action\": \"answered\", \"note\": \"why this is intended\"}]; "
+                 "abstentions = [{\"field\": \"entity.abn<-SomeColumn\", \"reason\": \"why it is left out\"}]."),
     input_schema={
         "type": "object", "additionalProperties": False, "required": ["outcome"],
         "properties": {
@@ -462,7 +465,9 @@ class AgentRun:
             return self._refuse(f"{name} needs a `config` object")
         if name == "finish":
             try:
-                decision = self.gate.check(args)
+                left = max(0, min(n for n in (HARNESS_MAX_USES["critique"], self.tools["critique"].max_uses)
+                                  if n is not None) - self.uses["critique"]) if "critique" in self.tools else 0
+                decision = self.gate.check(args, lambda cfg: self.hooks.validate(copy.deepcopy(cfg)), critiques_left=left)
             except Exception as e:   # the gate is our code, but its input is the model's: refuse, never crash
                 return self._refuse(f"finish refused: could not read the arguments ({type(e).__name__})")
             if not decision.ok:
@@ -470,8 +475,8 @@ class AgentRun:
                 if decision.format:
                     result.status = {"format_refusal": True}
                 return result, text, why
-            return ToolResult(status={"accepted": True, "outcome": decision.outcome,
-                                      "abstentions": decision.abstentions}), "accepted", None
+            return ToolResult(status={"accepted": True, "outcome": decision.outcome, "abstentions": decision.abstentions,
+                                      "open_advisory": [i.get("id") for i in decision.open_advisory]}), "accepted", None
         logged_before = llm.logged_cost_total()
         try:
             # the tool gets a COPY: the model's original input stays exactly as it was for the gate's hash, the trace
@@ -573,8 +578,10 @@ class AgentRun:
             config = self.hooks.abstain(copy.deepcopy(config), [a["field"] for a in decision["abstentions"]])
             status = self.hooks.validate(copy.deepcopy(config))
             if not _passes(status):
-                return self._refused_finish("finish refused: removing unanswered fields left validation failing; "
-                                            "fix and re-run both.")
+                return self._refused_finish(
+                    f"finish refused: removing the fields with unanswered critique issues left validation failing "
+                    f"({status.get('failing_fields', [])}). Call `validate` with the config you intend to finish with, fix "
+                    f"what it reports, then call finish again.")
         final = RunResult(outcome=outcome, config=config, abstentions=abstentions,
                           evidence=str(args.get("evidence", "")), reason=str(args.get("reason", "")))
         return "accepted", False, self._end(final)
@@ -588,8 +595,8 @@ class AgentRun:
         return float(reported) if ok and reported >= 0 else 0.0
 
     def _force(self, why: str) -> RunResult:
-        """The harness ends the run: validate, abstain on failing fields, one critique, write the packet; outcome
-        partial_config. If no config was ever proposed there is nothing to make partial: the outcome is `incomplete`
+        """The harness ends the run: validate, abstain on failing fields, one critique (only BLOCKING issues abstain a
+        field), write the packet; outcome partial_config. With no mapped field left the outcome is `incomplete`. If no config was ever proposed there is nothing to make partial: the outcome is `incomplete`
         with the reason; so it is when the config still fails validation after abstaining. (could_not_read stays
         reserved for reader or fetch failures.) The critique here is the HARNESS's own call, not one of the model's
         two critique rounds. Hooks always get copies of the config."""
@@ -604,14 +611,23 @@ class AgentRun:
                 break
             abstentions += [{"field": f, "reason": "failed validation when the harness ended the run"} for f in fields]
             config = self.hooks.abstain(copy.deepcopy(config), fields)
+        if not config.get("fields"):   # nothing left to critique
+            return self._end(RunResult(outcome=INCOMPLETE, forced_by=why, abstentions=abstentions,
+                                       reason=f"{why}; no mapped field is left (every field failed validation)"))
         logged_before = llm.logged_cost_total()
         crit = self.hooks.critique(copy.deepcopy(config))
         self.budget.dollars += self._hook_cost(crit.get("cost_usd", 0.0), llm.logged_cost_total() - logged_before)
-        fields = [i["field"] for i in crit.get("issues", [])]
-        if fields:   # nobody is left to answer the critic: its fields are abstained
-            abstentions += [{"field": i["field"], "reason": f"critique issue unanswered: {i.get('problem', '')}"}
-                            for i in crit["issues"]]
-            config = self.hooks.abstain(copy.deepcopy(config), fields)
+        # Only a BLOCKING issue (the mapping states something the source does not support) abstains a field. An advisory
+        # issue (anything else) leaves the field in place; the packet shows it. An issue with no severity counts as blocking.
+        blocking = [i for i in crit.get("issues", []) if i.get("severity", "blocking") == "blocking"]
+        if blocking:   # nobody is left to answer the critic: its blocking fields are abstained
+            abstentions += [{"field": i["field"], "reason": f"blocking critique issue unanswered: {i.get('problem', '')}"}
+                            for i in blocking]
+            config = self.hooks.abstain(copy.deepcopy(config), [i["field"] for i in blocking])
+        if not config.get("fields"):
+            return self._end(RunResult(outcome=INCOMPLETE, forced_by=why, abstentions=abstentions,
+                                       reason=f"{why}; no mapped field is left (every field failed validation or had a "
+                                              f"blocking critique issue)"))
         if not _passes(self.hooks.validate(copy.deepcopy(config))):
             return self._end(RunResult(outcome=INCOMPLETE, forced_by=why,
                                        reason=f"{why}; the config still failed validation after abstaining"))

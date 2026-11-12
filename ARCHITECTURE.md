@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.5
+Version: 2.7
 Last updated: 2026-11-12
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -73,9 +73,27 @@ spend never changes the round-1 figures quoted in the first submission.
 - `fetch` accepts no argument except `resource_index`; a URL or path found inside a cell is never fetched.
 - The held-out split is made when a table is first read (a seeded reservoir of up to 300 rows, or half the rows if fewer than 600) and is stored as row FINGERPRINTS (a hash of the raw cells), so a later read with other options still excludes them. `read_table` (first rows), `sample`, `search`, `profile`, `check_unique` and `try_transform` see training rows only; only `validate`, `critique` and the harness's own hooks read held-out rows. If the first read was a wrong parse and fewer than half the fingerprints match a later parse, the split is re-made and the tool says so. Identical rows share a fingerprint, so copies of a held-out row are all held out. `validate` shows example values on its first call only (later calls: counts, with raw values scrubbed from reject reasons), which limits what repeated calls can reveal (counts still carry some information; the cap bounds it).
 - Every tool has a per-call time limit (`ToolSpec.timeout_seconds`, default 60 s; sniff and list tools 20-30 s, `critique` 150 s). `fetch` (a download) and `ask_human` (a human) have none. On POSIX in the main thread a SIGALRM timer interrupts the tool, including a runaway regex (measured: `(a+)+$` was stopped at the limit); everywhere the row loops also check a cooperative deadline. A timeout is an error result. On Windows only the cooperative check exists, so a catastrophic regex is not interrupted there.
-- `finish` is refused unless both `validate` AND `critique` ran on the exact config being finished (matched by hash).
-  The gate is "ran, and each issue fixed or answered", not "critic satisfied". Issues from every critique of the same
-  config accumulate. Malformed `answers` or `abstentions` are refused with a sentence, never an exception.
+- `finish` runs `validate` ITSELF (code) on the submitted config, so "validate has not run" is never a refusal reason; it
+  refuses only if validation fails. It also needs a `critique`, with one exception, the NARROWING rule: a config that only
+  removes fields, abstains fields or moves columns to `unmapped` compared with a critiqued config needs no new critique (it
+  cannot add an error). Adding a field, or changing any field's source, canonical field, transforms or group, or the reader,
+  `record_id`, `observed_at`, or adding / altering `valid_from` / `valid_to`, needs a critique on that config. Dropping
+  `valid_from` / `valid_to` is a narrowing. Confidence and reason text, and `source_reliability` (a judgement the critic is
+  never shown), may change freely. With no critique calls left, the refusal states the two options: revert that change,
+  or abstain the field. Issues from every critique the finished config narrows accumulate; an issue about a field that is no
+  longer in the config drops. The gate is "ran, and each issue fixed or answered", not "critic satisfied". Every refusal names
+  the exact next call. Malformed `answers` or `abstentions` are refused with a sentence (and the shape), never an exception.
+- The `critique` result tells the agent how many critique calls remain; after the last one it says that from here the agent
+  can only remove or abstain fields or answer the remaining issues in `finish` (text written by code).
+- Each critique issue carries a SEVERITY from the critic: `blocking` (the mapping states something the source does not
+  support) or `advisory` (everything else; the critic is told to choose advisory when unsure). At a forced end only fields
+  with a blocking issue are abstained; fields that pass validate with only advisory issues stay and the issues go in the
+  packet. An issue with no severity counts as blocking. The same rule holds at an ordinary `finish`: every BLOCKING issue must
+  be fixed or answered in `answers` or its field is abstained by code (outcome `partial_config`); unanswered ADVISORY issues
+  leave the field in place and are listed in the packet and in the finish event's `open_advisory`.
+- Outcome wording given to the agent (generic): `validated_config` is complete for what the source supports (columns in
+  `unmapped` are normal; dropping or re-mapping a field the critique showed was wrong is a fix, not an abstention);
+  `partial_config` is for a field the source seems to support but the agent could not get right.
 - Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code, after
   which the harness re-validates (code) but does not re-critique: removing fields cannot add an error.
 - Harness constants, not tool settings: `critique` at most 2 per run, `ask_human` at most 1, `validate` at most 6 (a tool
@@ -101,15 +119,16 @@ when to ask.
 `no_business_entities` (evidence cited), `could_not_read` (reader or fetch failure, with the reason), and
 `incomplete`, which only the harness can declare, with the reason: the run ended (budget exhausted, repeated refusals,
 replies without a tool call, model refusal) before any config was proposed, OR a config was proposed but still fails
-validation after the harness abstained its failing fields.
+validation after the harness abstained its failing fields, OR a forced end left no mapped field.
 
 **Budget.** 40 model turns (every model reply counts, text-only ones and the max_tokens retry included, and the retry
 is itself checked against the budget, so there is no turn 41; a turn makes at most one tool call; a `finish` on the last
 budgeted turn still goes through the gate), $1.00, and 4 minutes of wall-clock excluding download (the trace shows download progress).
 At 80% of any limit the harness tells the model to wrap up, inside the next tool result (a text block after tool
 results can produce an empty reply). At 100%, or when `finish` is refused twice in a row, the harness finalises
-itself: validate, abstain on failing fields, one critique, write the packet, outcome `partial_config` (or
-`incomplete` if no config was ever proposed). No budget burn.
+itself: validate, abstain on failing fields, one critique (only BLOCKING issues abstain a field), write the packet, outcome
+`partial_config` (or `incomplete` if no config was ever proposed or no mapped field is left). No budget burn. The packet hook
+never creates an `approval.json` (it only resets an existing one); only `approve` creates one.
 
 ## c. Transforms and readers
 
@@ -265,8 +284,8 @@ the agent used the per-row `Data as of` date. The prompt was deliberately not ch
 compared with the round-1 config" column measures it on the six round-1 sources. Two further observations: run-to-run
 variance is real (the same code gave `validated_config` in one run and a harness-forced `partial_config` in the next, after
 the model spent both critiques and then tried a third and a finish on an unvalidated config); and when the harness ends a run
-its own critique can abstain every field (the second run ended with zero mapped fields). Whether a forced end that abstains
-every field should be `incomplete` instead is an open design question for step 3.
+its own critique can abstain every field (the second run ended with zero mapped fields). Resolved in 2.6: only blocking
+issues abstain at a forced end, and a forced end with no mapped field is `incomplete`.
 
 ## f. Demo runbook
 
@@ -363,3 +382,5 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.3 | Independent review of step 1 applied. `incomplete` also covers a config that still fails after abstention; critique (2) and ask_human (1) limits are harness constants; trace header carries the limits and a hash of the system prompt, task and tool schemas, code version includes tool and hook modules, and resume is refused on any header difference or if a live event would be written while recorded events remain (the "replayed event no longer matches" wording is replaced by what the code actually checks, with its limits stated); fetch safety rule (http/https only, no loopback/private/link-local on CKAN targets and every redirect hop, final URL traced, local path only as the human-supplied reference); exact retried status codes, and round-1 `llm.call` keeps its own SDK retries; `could_not_read` counts failed reads and download failures only; tool isolation (copies, malformed results, costs from the call log, download time capped); per-tool timeout and fetch size cap recorded as step 2 requirements | Review findings: wrong results that blocked the demo (crash on malformed `answers`, redaction corrupting trace lines, tools editing their config in place) and rules the documents claimed but the code did not enforce |
 | 2026-11-12 | 2.4 | Build step 2 (tools, readers, hooks, `onboard --mode`) and owner changes: `try_transform` runs on TRAINING rows only (was the held-out rows); only `validate` and `critique` read held-out rows; `validate` capped at 6 calls per run and shows examples on its first call only; held-out split stored as row fingerprints (survives re-reads, re-made if the first parse was wrong); 1 GB decompression cap counted while streaming for zip and gz; every redirect hop re-checked (test added); per-tool timeout (SIGALRM on POSIX plus a cooperative deadline; `fetch` and `ask_human` exempt); `ask_human` wait labelled `human_wait_seconds` in the trace, and its answer is data, never approval; one resource per run; `fetch` writes `metadata.json`; `progress` trace events; `--mode` default stays `pipeline`; level P stays in step 4 | Owner approval of the step 2 plan with changes; reader and tool limits needed concrete values |
 | 2026-11-12 | 2.5 | Step 2 review fixes: `validate` checks unaccounted columns and `record_id` uniqueness over the WHOLE file (was the 300 held-out rows), so a repeated key is a validate failure whatever the model checked; malformed `answers` / `abstentions` are format refusals, counted separately (3 per run) from the "refused twice" rule, and the `finish` description shows the list shapes; known benchmark results recorded (missed `address.locality`, run-to-run variance, forced end abstaining every field) | Review of step 2: the live run's `Licence No` has a duplicate the held-out-only check could not see; a column empty in the held-out rows could hide an unmapped column; a formatting slip cost a finish refusal |
+| 2026-11-12 | 2.6 | Finish-rule fixes (unattended session, phase A): `finish` validates by itself; the narrowing rule (removing, abstaining or unmapping fields needs no new critique); the last critique says no calls remain; every finish refusal names the next call; critique issues carry a severity (blocking / advisory) and a forced end abstains only blocking fields; a forced end with no mapped field is `incomplete`; the packet hook never creates `approval.json` | Live re-run of find-by-lia-band: the agent used both critiques, then was refused for a finish it could not fix and the harness abstained both fields on advisory issues |
+| 2026-11-12 | 2.7 | Finish-rule fixes after three live rounds on find-by-lia-band: removing `valid_from` / `valid_to` is a narrowing and `source_reliability` is not a mapping (the refusal text now says how to undo a key change, not to remove it from `fields`); unanswered ADVISORY issues no longer abstain a field at an ordinary finish (only blocking ones do), matching the forced end; generic outcome wording in the prompt and the `finish` description | Round 0: 1 of 3 runs validated (a narrowing-rule defect and an ambiguous partial/validated definition). Retry 1: 0 of 3 (agents answered no advisory issues and lost fields). Retry 2: 2 of 3 validated with both target fields mapped, no refusals |

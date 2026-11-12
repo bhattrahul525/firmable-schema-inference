@@ -1,0 +1,218 @@
+what_it_is: NSW liquor-licence register extract (Find my LIA Band) listing registered clubs and hotels with gaming
+  machine entitlements as at 1 Dec 2020.
+one_row_is: one liquor licence (LIQC) for a club or hotel venue with gaming machines
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Start Date
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: Licence Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Licence name is the name of the licensed club or hotel premises; it is a name the venue trades under rather
+    than a verified registered name
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Venue Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Licensed venue street address with suburb
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Data as of
+  reason: snapshot date; observed_at from metadata
+- source: Start Date
+  reason: used as valid_from (licence start date)
+- source: Licence No
+  reason: liquor licence number, not ABN/ACN; not unique across file so not used as record_id
+- source: Trading Status
+  reason: describes the licensed premises' trading state, not the legal entity's status; no venue-level status field
+    in ontology, so not mapped
+- source: Type
+  reason: club/hotel venue type, not an entity_type enum value
+- source: Filter Category
+  reason: venue category, no canonical field
+- source: SA2 Name
+  reason: statistical area, no canonical field
+- source: SA2 Band
+  reason: licensing band, no canonical field
+- source: Subject to Cap
+  reason: gaming cap flag, no canonical field
+- source: LGA
+  reason: local government area, no canonical field
+- source: Region
+  reason: region classification, no canonical field
+- source: Latitude
+  reason: geo coordinate, no canonical field
+- source: Longitude
+  reason: geo coordinate, no canonical field
+- source: GME
+  reason: gaming machine entitlement count
+- source: PMP
+  reason: gaming machine entitlement count
+- source: Auth Total
+  reason: entitlement count
+- source: Unfulfilled Quota
+  reason: entitlement count
+- source: GMT
+  reason: entitlement count
+- source: EGMs
+  reason: gaming machine count
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: NSW government liquor/gaming regulator register; authoritative for licensed venue name
+  and address at snapshot. Licence name is the premises name and may carry corporate suffixes, so not a verified
+  registered name. Licence reliability unknown/unclear (flagged).
+meaning_check_responses: []
+source_id: find_by_lia_band_agent_r2_3
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 900
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name<-Licence Name
+    reason: Licence Name is a premises/licence name (e.g. 'Hunters Hill Hotel'), not verified as the registered
+      entity name; mapped to trading_name instead.
+  - field: entity.status<-Trading Status
+    reason: Describes the licensed venue's trading state, not the registered entity's status.
+  critique_issues:
+  - id: c-70bece2b
+    field: entity.legal_name<-Licence Name
+    problem: The source column is a liquor licence name, and the config's own reason concedes hotels may use a venue
+      name. Rows such as 'Hunters Hill Hotel', 'Wolumla Hotel', 'Locomotive Hotel' and 'The Grafton Village Green'
+      are venue or premises names, not registered legal names. Mapping them to entity.legal_name asserts a registered
+      name the source does not support.
+    severity: blocking
+    suggested_fix: Do not emit entity.legal_name from Licence Name. Emit it as a trading-name-style or licence-name
+      observation (for example entity.trading_name, with a note that it is the licence/venue name), or restrict
+      legal_name to rows where the holder is verifiably a registered company, and set field_confidence accordingly.
+  - id: c-24a8bc6b
+    field: envelope.valid_from
+    problem: valid_from is taken from Start Date, which is the liquor licence start date. It is applied to every
+      observation in the row, including the legal name and status claims, so it is not clearly when those claims
+      became true of the entity.
+    severity: advisory
+    suggested_fix: Attach valid_from only to the licence-related observation, or document that it means licence
+      start and not entity registration.
+  - id: c-61becf86
+    field: entity.status<-Trading Status
+    problem: Trading Status 'Trading' is mapped to active. A liquor licence status describes the premises licence,
+      not the legal entity's status. The map_values has no fallback for other values, so unseen statuses would be
+      dropped or mis-mapped.
+    severity: advisory
+    suggested_fix: Keep the mapping but note it describes the licensed venue. Add an explicit fallback to unknown
+      for any value other than 'Trading'.
+  - id: c-a503c323
+    field: address.full<-Venue Address
+    problem: This is the premises address of the licensed venue, not necessarily the registered or head-office address
+      of the entity. The address is also not parsed into locality, state or postcode, although the file is NSW-only
+      and the suburb is present in the string.
+    severity: advisory
+    suggested_fix: Label the observation as a venue address. Consider parsing locality and postcode, and deriving
+      state NSW from the source context at L1 with a documented method.
+  - id: c-0576eb0b
+    field: entity.entity_type
+    problem: 'An entity_type observation of ''unknown'' is emitted with from: null on every row. It carries no source
+      claim, so it adds envelope noise without information. The source Type column (club/hotel) is unmapped, which
+      is acceptable since it is not an entity_type value.'
+    severity: advisory
+    suggested_fix: Omit the placeholder observation, or keep it with a note that it is a default and not a source
+      claim.
+  - id: c-e7972bc5
+    field: unmapped.Licence No
+    problem: The liquor licence number is a stable source identifier for the licence record, but it is dropped.
+      The reason given (not unique across the file) does not rule it out as a source identifier for the observation.
+    severity: advisory
+    suggested_fix: Keep Licence No in the envelope as a licence reference, or in source_record_id combined with
+      the row hash, so the observation can be traced back to the licence.
+  - id: c-4f55fcc0
+    field: observation envelope
+    problem: The examples show only observed_at, valid_from and valid_to. The required envelope fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not shown on the emitted observations.
+    severity: advisory
+    suggested_fix: Confirm each emitted observation carries all required envelope fields, with licence set to the
+      CKAN licence value or 'unknown' with a flag if absent.
+  - id: c-d900b86a
+    field: entity.status<-Trading Status
+    problem: The source column describes the licensed venue's trading state (the premises), not the registered entity's
+      status. Mapping 'Trading' to entity.status 'active' states the company is active, which the source does not
+      support. Several rows, such as Hunters Hill Hotel and Riverview Hotel, are venues whose operator's corporate
+      status is not in the file.
+    severity: blocking
+    suggested_fix: Drop the entity.status mapping, or map it to a venue-level observation with the source's own
+      wording preserved, and record that it refers to the premises licence rather than the entity.
+  - id: c-3408e0ba
+    field: observation.valid_from
+    problem: Start Date is the liquor licence start date, which is a different claim from when the entity or venue
+      became true in the world. The examples set valid_from from it without caveat.
+    severity: advisory
+    suggested_fix: Keep valid_from from Start Date only with a note that it is the licence start date, or record
+      it as a licence-level claim.
+  - id: c-42603b49
+    field: address.full<-Venue Address
+    problem: Venue Address is passed through as a single string with no state, postcode, or locality parsing. Examples
+      such as 'Princes Hwy WOLUMLA' and 'Pound & Turf Sts GRAFTON' lack a street number and state, so the address
+      is incomplete.
+    severity: advisory
+    suggested_fix: Parse locality and postcode where present, set address.state from the NSW licence context with
+      a field_confidence reflecting that inference, and set country to AU.
+  - id: c-6f9e9083
+    field: entity.trading_name<-Licence Name
+    problem: Some names carry corporate suffixes such as 'Ltd' or 'Limited', so the name may be closer to a registered
+      legal name than a trading name. The config reason describes it as a trading name, so the label is uncertain.
+    severity: advisory
+    suggested_fix: Keep the mapping but record a lower field_confidence or note the ambiguity, and check against
+      ABN/ACN data later before treating it as a trading name.
+  - id: c-e011ae17
+    field: observation envelope
+    problem: The examples show observed_at, valid_from, and valid_to only. The required envelope fields source_id,
+      source_record_id, ingested_at, licence, and extractor_version are not visible, and the licence should be checked
+      against the CKAN metadata.
+    severity: advisory
+    suggested_fix: Confirm each emitted record carries source_id, a documented source_record_id derived from the
+      row hash, ingested_at, the CKAN licence (or 'unknown' with a flag), and extractor_version.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 38d64fe3d596
+  generated_at: '2026-11-12T08:55:53+00:00'

@@ -1,0 +1,168 @@
+what_it_is: 'NSW Liquor & Gaming find-my-LIA-band register: gaming-entitled club and hotel venues with licence details
+  as at 1 Dec 2020.'
+one_row_is: one gaming-entitled licensed venue (club or hotel) licence snapshot
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Start Date
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields: []
+unmapped:
+- source: Licence Name
+  reason: Licensee/venue name; not stated as registered legal name; not mapped to legal_name
+- source: Data as of
+  reason: Snapshot date
+- source: Licence No
+  reason: LIQC licence number, not ABN/ACN
+- source: Start Date
+  reason: Used as valid_from
+- source: Type
+  reason: Venue type
+- source: Filter Category
+  reason: Internal category
+- source: Latitude
+  reason: geo
+- source: Longitude
+  reason: geo
+- source: SA2 Name
+  reason: statistical area
+- source: SA2 Band
+  reason: gaming band
+- source: Subject to Cap
+  reason: gaming cap flag
+- source: LGA
+  reason: no canonical locality field
+- source: Region
+  reason: metro/country flag
+- source: GME
+  reason: gaming count
+- source: PMP
+  reason: gaming count
+- source: Auth Total
+  reason: gaming count
+- source: Unfulfilled Quota
+  reason: gaming count
+- source: GMT
+  reason: gaming count
+- source: EGMs
+  reason: gaming count
+- source: Trading Status
+  reason: abstained by the harness (failed validation or an unanswered critique issue) (entity.status)
+- source: Venue Address
+  reason: abstained by the harness (failed validation or an unanswered critique issue) (address.full)
+needs_transform: []
+source_reliability:
+  identity: 0.5
+  address: 0.8
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Official NSW regulator snapshot of venue licences; no ABN, so identity claims are weak.
+meaning_check_responses: []
+source_id: find_by_lia_band_agent_r1_3
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 0
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name<-Licence Name
+    reason: Licence holder/venue names (e.g. 'Imperial Hotel') are not stated as registered names; mapping them
+      to legal_name would be a wrong claim. No ABN/ACN in the file to confirm.
+  - field: observation.observed_at
+    reason: 'critique issue unanswered: observed_at is taken from resource_last_modified (2020-12-10T00:53:09),
+      but the source states ''Data as of 01-Dec-20'' in every row. The envelope should reflect what the source stated,
+      and the snapshot date is currently discarded.'
+  - field: observation
+    reason: 'critique issue unanswered: The envelope shown in the examples omits required fields: source_id, ingested_at,
+      licence, and extractor_version. The source_record_id is hash_row, which is deterministic but not tied to the
+      stable Licence No column that is available.'
+  - field: entity.entity_type
+    reason: 'critique issue unanswered: Every row emits an entity.entity_type observation of ''unknown'' with from:
+      null. This is a default filler, not a claim the source made, yet it is emitted as an observation.'
+  - field: address.full<-Venue Address
+    reason: 'critique issue unanswered: Venue Address is mapped whole, but several values are incomplete or include
+      venue names, e.g. ''Wodonga Pl ALBURY'' and ''The Portico TOONGABBIE''. Postcode and state are not extracted,
+      even though the register is NSW-only and the source contains enough to parse part of the address.'
+  - field: valid_from<-Start Date
+    reason: 'critique issue unanswered: Start Date is the date the venue licence started, not the date the licensee
+      entity or company was registered. It is applied to every observation as valid_from, including the status observation,
+      which broadens its meaning.'
+  - field: entity.status<-Trading Status
+    reason: 'critique issue unanswered: Mapping ''Trading'' to active is reasonable, but the config says ''Temporarily
+      ceased trading'' is not interpreted. The examples only show ''Trading'', so the mapping is not tested on the
+      other values. The source status also describes the venue''s trading, not the legal entity''s status.'
+  critique_issues:
+  - id: c-0879ddc7
+    field: entity.legal_name<-Licence Name
+    problem: 'The source column is a licence holder name, and several examples are venue names rather than registered
+      names: ''Imperial Hotel'', ''Toongabbie Hotel'', ''Tydvil Hotel'', ''Astor Hotel'', ''The Crescent Hotel''.
+      The ontology says legal_name is as registered and not the trading name, and the source does not state a registered
+      name, so these values should not be emitted as legal_name.'
+    severity: blocking
+    suggested_fix: Stop mapping Licence Name to entity.legal_name. Emit it as a trading_name observation (venue
+      name) instead, or keep it as an unmapped licensee-name claim. Only map to legal_name where the source states
+      a registered company name, such as the 'Ltd' or 'Limited' clubs, and even then record it as licensee name
+      with a lower field_confidence.
+  - id: c-ec3082f8
+    field: observation.observed_at
+    problem: observed_at is taken from resource_last_modified (2020-12-10T00:53:09), but the source states 'Data
+      as of 01-Dec-20' in every row. The envelope should reflect what the source stated, and the snapshot date is
+      currently discarded.
+    severity: advisory
+    suggested_fix: Set observed_at to 2020-12-01 from the 'Data as of' column, or keep the metadata timestamp as
+      a separate field and document the difference.
+  - id: c-de9422de
+    field: observation
+    problem: 'The envelope shown in the examples omits required fields: source_id, ingested_at, licence, and extractor_version.
+      The source_record_id is hash_row, which is deterministic but not tied to the stable Licence No column that
+      is available.'
+    severity: advisory
+    suggested_fix: Populate all required envelope fields in every observation. Consider source_record_id from 'Licence
+      No' (plus a hash fallback) so records stay traceable to the exact raw row, and document how the key is built.
+  - id: c-4d298b91
+    field: entity.entity_type
+    problem: 'Every row emits an entity.entity_type observation of ''unknown'' with from: null. This is a default
+      filler, not a claim the source made, yet it is emitted as an observation.'
+    severity: advisory
+    suggested_fix: Do not emit default-value observations with no source column. Leave entity_type absent, or flag
+      it clearly as a default rather than a source observation.
+  - id: c-d2e65b4c
+    field: address.full<-Venue Address
+    problem: Venue Address is mapped whole, but several values are incomplete or include venue names, e.g. 'Wodonga
+      Pl ALBURY' and 'The Portico TOONGABBIE'. Postcode and state are not extracted, even though the register is
+      NSW-only and the source contains enough to parse part of the address.
+    severity: advisory
+    suggested_fix: Keep address.full as is, but parse locality where it is cleanly present (e.g. the trailing uppercase
+      suburb), and consider address.state = NSW as a documented L1 derivation from the dataset scope. Flag addresses
+      that lack a street number or road type.
+  - id: c-16613c1e
+    field: valid_from<-Start Date
+    problem: Start Date is the date the venue licence started, not the date the licensee entity or company was registered.
+      It is applied to every observation as valid_from, including the status observation, which broadens its meaning.
+    severity: advisory
+    suggested_fix: Document that valid_from here means licence start. Consider limiting it to the licence-related
+      observations or to a licence-specific field rather than the entity-level claims.
+  - id: c-31a50fa4
+    field: entity.status<-Trading Status
+    problem: Mapping 'Trading' to active is reasonable, but the config says 'Temporarily ceased trading' is not
+      interpreted. The examples only show 'Trading', so the mapping is not tested on the other values. The source
+      status also describes the venue's trading, not the legal entity's status.
+    severity: advisory
+    suggested_fix: Keep the map, but state in the reason that this describes venue trading status, not entity registration
+      status. Add a test for the ceased-trading value and confirm unmapped values are dropped rather than defaulted.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2ffacc2f0ff3
+  generated_at: '2026-11-12T08:51:31+00:00'

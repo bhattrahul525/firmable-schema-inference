@@ -772,7 +772,7 @@ class TestCritique(Env):
             b, _ = self.call("critique", {"config": good_config()})
         self.assertEqual(a.status["issues"], b.status["issues"])                    # same problem -> same id
         i = a.status["issues"][0]
-        self.assertEqual(set(i), {"id", "field", "problem"})
+        self.assertEqual(set(i), {"id", "field", "problem", "severity"})
         self.assertEqual(i["field"], "entity.legal_name<-Business Name")            # normalised to the config's field key
         self.assertTrue(i["id"].startswith("c-"))
         self.assertEqual(a.payload["issues"][0]["suggested_fix"], "map Licence No instead")

@@ -126,13 +126,15 @@ class TestFinishGate(Base):
         self.assertEqual((res.outcome, res.forced_by, res.replayed), ("validated_config", None, False))
         self.assertEqual(self.counter.runs["validate"], 1)
 
-    def test_refused_without_validate(self):
+    def test_finish_validates_by_itself_so_a_missing_validate_call_is_not_a_refusal_reason(self):
         res = self.run_loop([tool_turn("finish", {"outcome": "validated_config", "config": CFG}, id="f1"),
-                             tool_turn("validate", {"config": CFG}, id="v"), tool_turn("critique", {"config": CFG}, id="c"),
+                             tool_turn("critique", {"config": CFG}, id="c"),
                              tool_turn("finish", {"outcome": "validated_config", "config": CFG}, id="f2")])
-        self.assertIn("validate", self.tool_results(1)[0]["content"])
+        first = self.tool_results(1)[0]["content"]
         self.assertTrue(self.tool_results(1)[0]["is_error"])
-        self.assertEqual(res.outcome, "validated_config")
+        self.assertIn("`critique` has not run", first)                      # the ONLY reason: critique, never validate
+        self.assertNotIn("validate has not run", first)
+        self.assertEqual(res.outcome, "validated_config")                  # and no validate call was needed at all
 
     def test_refused_without_critique(self):
         res = self.run_loop([tool_turn("validate", {"config": CFG}, id="v"),

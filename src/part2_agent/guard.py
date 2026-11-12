@@ -16,6 +16,7 @@ model. Each rule is a small class or function so it can be unit-tested on its ow
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import ipaddress
 import json
@@ -52,9 +53,12 @@ Harness rules (enforced in code, not by trust):
 - You never supply a URL or path. `fetch` works on the reference named in the task: call it without arguments to
   list that reference's resources, then call it with `resource_index` to choose one.
 - `validate` may be called at most 6 times per run; after the first call it reports counts only, not example values.
-- `finish` is refused unless `validate` and `critique` have both run on the exact config you finish with. Every
-  critique issue must be fixed (change the config and re-run both) or answered in `finish`; an issue that is neither
-  gets its field removed by code.
+- `finish` validates the config you give it, by itself, and is refused if validation fails. It is also refused unless
+  `critique` ran on that config, or on a config it only narrows: a config that merely REMOVES fields, abstains fields or moves
+  columns to `unmapped` needs no new critique; one that adds or alters a mapping does. `critique` may be called at most 2
+  times. Every BLOCKING critique issue must be fixed or answered in `finish` (answer by its id); a blocking issue that is
+  neither gets its field removed by code. ADVISORY issues may be left unanswered: they stay in the review packet and the
+  field stays. Every refusal tells you the exact next call.
 - Budget: 40 model turns (every reply counts, even one without a tool call), $1.00, 4 minutes (download time
   excluded). You will be told when 80% is used; wrap up then. If the budget ends first, the harness ends the run
   itself: partial_config if you had proposed a config, otherwise incomplete.
@@ -428,14 +432,87 @@ class Decision:
     outcome: str | None = None
     abstentions: list[dict] = field(default_factory=list)   # added by code when critique issues were left unanswered
     format: bool = False   # a refusal only because `answers` / `abstentions` were malformed (counted separately by the loop)
+    open_advisory: list[dict] = field(default_factory=list)   # advisory issues left unanswered: kept in the packet, no field lost
+
+
+# Config keys that may change without needing a new critique (free text, or lists the narrowing rule handles itself).
+_FREE_KEYS = {"fields", "unmapped", "needs_transform", "meaning_check_responses", "source_reliability",
+              "source_reliability_basis", "what_it_is", "one_row_is"}   # source_reliability: a judgement the critic is never shown
+_OPTIONAL_KEYS = ("valid_from", "valid_to")   # optional mappings: REMOVING one is a narrowing, adding or altering is a change
+SHAPES = ('answers = [{"issue_id": "c-1a2b3c4d", "action": "answered", "note": "why this is intended"}]; '
+          'abstentions = [{"field": "entity.abn<-SomeColumn", "reason": "why it is left out"}]')
+
+
+def _norm_transforms(ts) -> list:
+    out = []
+    for t in ts or []:
+        if isinstance(t, str):
+            t = {"name": t}
+        arg = t.get("arg") if isinstance(t, dict) else None
+        out.append((t.get("name") if isinstance(t, dict) else str(t), json.dumps(None if arg in ("", None) else arg, sort_keys=True, default=str)))
+    return out
+
+
+def field_def(f) -> str:
+    """What DEFINES a mapped field: source, canonical field, transforms, group. Confidence and reason may change freely."""
+    if not isinstance(f, dict):
+        return repr(f)
+    return json.dumps([f.get("source"), f.get("canonical"), _norm_transforms(f.get("transforms")), f.get("group") or "main"],
+                      sort_keys=True, default=str)
+
+
+def field_key(f) -> str:
+    if not isinstance(f, dict):
+        return str(f)
+    src = f.get("source")
+    return f"{f.get('canonical')}<-{src if isinstance(src, str) else '+'.join(map(str, src or []))}"
+
+
+def field_matches(config: dict, name: str) -> list[str]:
+    """Keys of the config's fields that an issue's `field` name points at (by key, canonical name or source column)."""
+    out = []
+    for f in (config.get("fields") or []) if isinstance(config.get("fields"), list) else []:
+        if not isinstance(f, dict):
+            if f == name:
+                out.append(str(f))
+            continue
+        src = f.get("source")
+        cols = src if isinstance(src, list) else [src]
+        if name == field_key(f) or name == f.get("canonical") or name in cols:
+            out.append(field_key(f))
+    return out
+
+
+def narrowing_changes(new: dict, old: dict) -> list[str]:
+    """What `new` adds or alters compared with a critiqued config `old`. An EMPTY list means `new` only removes fields,
+    abstains fields, drops valid_from / valid_to, or moves columns to unmapped, and so needs no new critique. Anything
+    that adds a field, changes a field's source / canonical / transforms / group, or adds or changes the reader, record_id,
+    observed_at, valid_from or valid_to is a change."""
+    changes = []
+    old_defs = {field_def(f) for f in (old.get("fields") or [])} if isinstance(old.get("fields"), list) else set()
+    for f in (new.get("fields") or []) if isinstance(new.get("fields"), list) else []:
+        if field_def(f) not in old_defs:
+            changes.append(field_key(f))
+    for k in sorted((set(new) | set(old)) - _FREE_KEYS):
+        if k in _OPTIONAL_KEYS and not new.get(k):
+            continue          # removed (or still absent): needs no critique
+        if new.get(k) != old.get(k):
+            changes.append(k)
+    return changes
 
 
 class FinishGate:
-    """Tracks what has actually happened (from tool STATUS, never from the model's claims) and decides on `finish`."""
+    """Tracks what has actually happened (from tool STATUS, never from the model's claims) and decides on `finish`.
+
+    `finish` runs validate ITSELF on the submitted config (code), so "validate has not run" is not a refusal reason: it
+    refuses only if validate fails. Critique is still required, with one exception: a config that only REMOVES fields,
+    abstains fields or moves columns to `unmapped` compared with a critiqued config needs no new critique (it cannot add an
+    error). Every refusal names the exact next call that would fix it."""
 
     def __init__(self):
-        self.validated: dict[str, dict] = {}     # config hash -> validate status
-        self.critiqued: dict[str, list[dict]] = {}  # config hash -> critique issues
+        self.validated: dict[str, dict] = {}     # config hash -> validate status (from the validate TOOL; informational)
+        self.critiqued: dict[str, list[dict]] = {}  # config hash -> critique issues (a re-roll on the same config adds, never wipes)
+        self.critiqued_configs: dict[str, dict] = {}  # config hash -> the config that was critiqued (oldest first)
         self.ok_tools: set[str] = set()          # tools that have succeeded at least once
         self.failed_reads = 0                    # read_table calls that returned an error (successful reads don't count)
         self.fetch_failed = False                # a DOWNLOAD or NETWORK failure (a refused index or URL does not count)
@@ -453,8 +530,9 @@ class FinishGate:
             self.last_config = args["config"]
             if name == "validate":
                 self.validated[h] = result.status
-            else:   # a re-roll of the critique on the same config ADDS issues; it never wipes the earlier ones
+            else:
                 known = self.critiqued.setdefault(h, [])
+                self.critiqued_configs.setdefault(h, copy.deepcopy(args["config"]))
                 for issue in result.status.get("issues", []):
                     if issue not in known:
                         known.append(issue)
@@ -467,62 +545,122 @@ class FinishGate:
             if not isinstance(answers, list) or not all(isinstance(a, dict) and isinstance(a.get("issue_id"), str)
                                                         for a in answers):
                 return ("finish refused: `answers` must be a list of objects, each with a string `issue_id`, "
-                        "`action` \"answered\" and a `note`")
+                        "`action` \"answered\" and a `note`. Call finish again with the same arguments and `answers` in "
+                        f"this shape: {SHAPES.split('; ')[0]}")
         abstentions = args.get("abstentions")
         if abstentions is not None:
             if not isinstance(abstentions, list) or not all(
                     isinstance(a, dict) and isinstance(a.get("field"), str) and a["field"].strip()
                     and isinstance(a.get("reason"), str) and a["reason"].strip() for a in abstentions):
-                return "finish refused: `abstentions` must be a list of objects, each with a non-empty `field` and `reason`"
+                return ("finish refused: `abstentions` must be a list of objects, each with a non-empty `field` and `reason`. "
+                        f"Call finish again with `abstentions` in this shape: {SHAPES.split('; ')[1]}")
         return None
 
-    def check(self, args: dict) -> Decision:
+    def check(self, args: dict, validate_fn=None, critiques_left: int = 0) -> Decision:
+        """`validate_fn(config) -> {"hard_failures", "failing_fields"}` is how finish validates by itself. `critiques_left`
+        is how many critique calls the harness still allows."""
         outcome = args.get("outcome")
         if outcome not in OUTCOMES:
-            return Decision(False, f"outcome must be one of {OUTCOMES}")
+            return Decision(False, f"finish refused: outcome must be one of {OUTCOMES}. Call finish again with one of them.")
 
         bad = self._bad_lists(args)
         if bad:
             return Decision(False, bad, format=True)
 
         if outcome == "no_business_entities":
-            if not {"read_table", "profile"} <= self.ok_tools:
-                return Decision(False, "no_business_entities needs a successful read_table and profile first")
+            missing = [t for t in ("read_table", "profile") if t not in self.ok_tools]
+            if missing:
+                return Decision(False, f"finish refused: no_business_entities needs a successful read_table and profile "
+                                       f"first. Call `{missing[0]}` now (it has not succeeded yet), then call finish again.")
             if not str(args.get("evidence", "")).strip():
-                return Decision(False, "no_business_entities must cite evidence (what the columns and values show)")
+                return Decision(False, "finish refused: no_business_entities must cite evidence. Call finish again with "
+                                       "`evidence` = what the columns and values show.")
             return Decision(True, outcome=outcome)
 
         if outcome == "could_not_read":
             if self.failed_reads < 2 and not self.fetch_failed:
-                return Decision(False, "could_not_read needs two reader attempts that FAILED (read_table errors) or a "
-                                       "failed download first")
+                return Decision(False, f"finish refused: could_not_read needs two reader attempts that FAILED (so far "
+                                       f"{self.failed_reads}) or a failed download. Call `read_table` again with different "
+                                       f"reader options (or call `sniff` first to see the file); if it fails again, call finish "
+                                       f"again.")
             if not str(args.get("reason", "")).strip():
-                return Decision(False, "could_not_read must give the reason")
+                return Decision(False, "finish refused: could_not_read must give the reason. Call finish again with `reason`.")
             return Decision(True, outcome=outcome)
 
-        # validated_config / partial_config: the config itself must have been validated AND critiqued
+        # validated_config / partial_config
         config = args.get("config")
         if not isinstance(config, dict):
-            return Decision(False, f"{outcome} needs the `config` object")
+            return Decision(False, f"finish refused: {outcome} needs the `config` object. Call finish again with `config` = "
+                                   f"the full config you validated.")
+        if validate_fn is not None:   # finish validates the submitted config itself
+            try:
+                status = validate_fn(copy.deepcopy(config))
+            except Exception as e:
+                return Decision(False, f"finish refused: validate could not run on this config ({type(e).__name__}). Call "
+                                       f"`read_table` if you have not read the table yet, then call `validate` with this "
+                                       f"config to see why.")
+            if status.get("hard_failures", 1) != 0:
+                fields = status.get("failing_fields", [])
+                return Decision(False, f"finish refused: validate fails on this config (hard failures: "
+                                       f"{status.get('hard_failures')}; failing: {fields}). Call `validate` with this config to "
+                                       f"see the details, fix it, and call finish again. To abstain a failing field instead, "
+                                       f"call finish again with that field removed from `fields` and listed in `unmapped` "
+                                       f"(removing fields needs no new critique).")
         h = config_hash(config)
-        if h not in self.validated:
-            return Decision(False, "finish refused: `validate` has not run on this exact config. Run validate with the "
-                                   "same config you pass to finish.")
-        if self.validated[h].get("hard_failures", 1) != 0:
-            return Decision(False, "finish refused: validate found hard failures "
-                                   f"{self.validated[h].get('failing_fields', [])}. Fix them, or remove those fields "
-                                   "and validate the smaller config.")
-        if h not in self.critiqued:
-            return Decision(False, "finish refused: `critique` has not run on this exact config.")
+        sources = [ch for ch, c in self.critiqued_configs.items()
+                   if ch == h or not narrowing_changes(config, c)]
+        if not sources:
+            if not self.critiqued_configs:
+                if critiques_left > 0:
+                    return Decision(False, f"finish refused: `critique` has not run. Call `critique` with this exact config "
+                                           f"({critiques_left} critique call(s) left), then call finish again.")
+                return Decision(False, "finish refused: `critique` has not run and no critique calls remain, so no config can "
+                                       "be finished.")
+            last = list(self.critiqued_configs.values())[-1]
+            changed = narrowing_changes(config, last)
+            names = ", ".join(map(str, changed[:6]))
+            fields_changed = [c for c in changed if "<-" in str(c)]
+            keys_changed = [c for c in changed if "<-" not in str(c)]
+            if critiques_left > 0:
+                return Decision(False, f"finish refused: this config adds or changes [{names}] since the last critique. Call "
+                                       f"`critique` with this exact config ({critiques_left} critique call(s) left), then "
+                                       f"call finish again. A config that only removes or abstains fields needs no new "
+                                       f"critique.")
+            how = []
+            if fields_changed:
+                how.append(f"for the field(s) {fields_changed}: remove them from `fields` and list them in `unmapped`")
+            if keys_changed:
+                how.append(f"for the key(s) {keys_changed}: put the value back exactly as it was when last critiqued"
+                           + (" (or, for valid_from / valid_to, delete the key)" if any(k in _OPTIONAL_KEYS for k in keys_changed) else ""))
+            return Decision(False, f"finish refused: this config adds or changes [{names}] since the last critique, and no "
+                                   f"critique calls remain. Two options: (1) revert that change: call finish again with the "
+                                   f"config as it was when last critiqued; or (2) abstain it: call finish again with the change "
+                                   f"removed ({'; '.join(how)}). Removing needs no new critique.")
         if outcome == "partial_config" and not args.get("abstentions"):
-            return Decision(False, "partial_config must list its abstentions (field and reason)")
+            return Decision(False, "finish refused: partial_config must list its abstentions. Call finish again with "
+                                   f"`abstentions`, e.g. {SHAPES.split('; ')[1]}")
 
-        # every critique issue on THIS config must be answered; otherwise code abstains the field
+        # every critique issue that still applies must be answered; otherwise code abstains the field
         answered = {a["issue_id"] for a in args.get("answers") or []
                     if a.get("action") == "answered" and str(a.get("note", "")).strip()}
-        unanswered = [i for i in self.critiqued[h] if i.get("id") not in answered]
-        if unanswered:
-            abst = [{"field": i.get("field"), "reason": f"critique issue unanswered: {i.get('problem', '')}"}
-                    for i in unanswered]
-            return Decision(True, outcome="partial_config", abstentions=abst)
-        return Decision(True, outcome=outcome)
+        issues: list[dict] = []
+        for ch in sources:
+            for i in self.critiqued[ch]:
+                if i not in issues:
+                    issues.append(i)
+        live = []
+        for i in issues:
+            in_new = field_matches(config, str(i.get("field")))
+            in_old = any(field_matches(self.critiqued_configs[ch], str(i.get("field"))) for ch in sources)
+            if in_new or not in_old:      # about a field still present, or about no field at all: it still applies
+                live.append(i)
+        unanswered = [i for i in live if i.get("id") not in answered]
+        # Only an unanswered BLOCKING issue (the mapping states something the source does not support) removes its field.
+        # An unanswered ADVISORY issue leaves the field in place and is listed in the packet. No severity = blocking.
+        blocking = [i for i in unanswered if i.get("severity", "blocking") == "blocking"]
+        advisory = [i for i in unanswered if i.get("severity", "blocking") != "blocking"]
+        if blocking:
+            abst = [{"field": i.get("field"), "reason": f"blocking critique issue unanswered: {i.get('problem', '')}"}
+                    for i in blocking]
+            return Decision(True, outcome="partial_config", abstentions=abst, open_advisory=advisory)
+        return Decision(True, outcome=outcome, open_advisory=advisory)

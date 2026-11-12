@@ -84,9 +84,7 @@ class TestEndToEnd(Wiring):
         self.assertTrue(all(f["transform_level"] == "W" for f in cfg["fields"]))
         self.assertEqual(cfg["source_id"], "t_source")
         self.assertEqual(cfg["generated_by"]["code_version"], "v1")
-        approval = json.loads(Path("configs/t_source.approval.json").read_text())
-        self.assertEqual(approval["status"], "pending_review")
-        self.assertIsNone(approval["config_sha256"])
+        self.assertFalse(Path("configs/t_source.approval.json").exists())            # the agent never creates an approval file
         with self.assertRaises(PermissionError):
             load_approved_config("t_source")                                           # nothing the agent did approves it
         packet = Path(res.packet_path).read_text()
@@ -183,10 +181,9 @@ class TestAskHumanIsNeverApproval(Wiring):
                             t("finish", {"outcome": "validated_config", "config": CFG}), text_turn(), text_turn()]
         res = self.agent(script, ask=lambda q: self.ANSWER).run()
         fin = next(c for c in self.calls() if c["name"] == "finish")
-        self.assertIn("validate", fin["refused"])
+        self.assertIn("`critique`", fin["refused"])                                  # critique has not run; no answer changes that
         self.assertNotEqual(res.outcome, "validated_config")
-        self.assertFalse(Path("configs/t_source.yaml").exists() and
-                         json.loads(Path("configs/t_source.approval.json").read_text())["status"] == "approved")
+        self.assertFalse(Path("configs/t_source.approval.json").exists())
 
     def test_even_after_a_full_run_the_config_stays_pending_review(self):
         with mock.patch("src.part2_agent.agent_hooks.llm.call", FakeCritic()):
@@ -195,7 +192,7 @@ class TestAskHumanIsNeverApproval(Wiring):
                                         t("finish", {"outcome": "validated_config", "config": CFG})],
                              ask=lambda q: self.ANSWER).run()
         self.assertEqual(res.outcome, "validated_config")
-        self.assertEqual(json.loads(Path("configs/t_source.approval.json").read_text())["status"], "pending_review")
+        self.assertFalse(Path("configs/t_source.approval.json").exists())
         with self.assertRaises(PermissionError):
             load_approved_config("t_source")
         self.assertIn("approve?", Path(res.packet_path).read_text())            # the question is in the packet
@@ -297,7 +294,7 @@ class TestOutcomesAndHooks(Wiring):
                                         t("finish", {"outcome": "validated_config", "config": cfg})]).run()
         out = yaml.safe_load(Path("configs/t_source.yaml").read_text())
         self.assertEqual(out["source_id"], "t_source")
-        self.assertEqual(json.loads(Path("configs/t_source.approval.json").read_text())["status"], "pending_review")
+        self.assertFalse(Path("configs/t_source.approval.json").exists())
 
 
 class TestFinishFormatRefusals(Wiring):

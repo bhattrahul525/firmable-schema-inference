@@ -1,0 +1,189 @@
+what_it_is: NSW Liquor & Gaming list of hotels and clubs holding gaming machine entitlements (Find my LIA Band),
+  snapshot at 1 Dec 2020.
+one_row_is: one gaming-machine venue (hotel or club) licence record
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  source: Data as of
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d-%b-%y'
+valid_from:
+  source: Start Date
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields: []
+unmapped:
+- source: Licence Name
+  reason: Venue/club name on a gaming licence; the source does not say it is a registered name, so it is not mapped
+    to legal_name or trading_name
+- source: Data as of
+  reason: used as observed_at
+- source: Start Date
+  reason: used as valid_from (licence start, not a name or address start)
+- source: Trading Status
+  reason: venue trading activity, not registered entity status; no mapping
+- source: Licence No
+  reason: licence number, not an ABN/ACN
+- source: Type
+  reason: hotel/club venue type; no ontology field
+- source: Latitude
+  reason: no ontology field
+- source: Longitude
+  reason: no ontology field
+- source: Filter Category
+  reason: licence category; no ontology field
+- source: SA2 Name
+  reason: statistical area; no ontology field
+- source: SA2 Band
+  reason: gaming band; no ontology field
+- source: Subject to Cap
+  reason: regulatory flag; no ontology field
+- source: LGA
+  reason: no ontology field
+- source: Region
+  reason: no ontology field
+- source: GME
+  reason: gaming machine entitlement count
+- source: PMP
+  reason: gaming machine count
+- source: Auth Total
+  reason: entitlement count
+- source: Unfulfilled Quota
+  reason: entitlement count
+- source: GMT
+  reason: entitlement count
+- source: EGMs
+  reason: machine count
+- source: Venue Address
+  reason: abstained by the harness (failed validation or an unanswered critique issue) (address.full)
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.8
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: Official NSW regulator list, snapshot 1 Dec 2020; licence names are venue names, not verified
+  registered names. Licence is unknown (flagged).
+meaning_check_responses: []
+source_id: find_by_lia_band_agent_r1_1
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 0
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name / entity.trading_name <- Licence Name
+    reason: Licence Name is a venue or club name on a gaming licence (e.g. 'Royal Hotel', 'Sporties Tuncurry', some
+      with 'Ltd'/'Limited' suffixes). The source does not state it is registered or trading under a name, and critique
+      blocked both mappings. Left out pending a source that states the entity name.
+  - field: entity.status <- Trading Status
+    reason: Describes venue trading activity, not registered entity status; not mapped.
+  - field: address.locality / address.postcode
+    reason: Locality is embedded in the all-caps venue address; not parsed in this config.
+  - field: observation.valid_from
+    reason: 'critique issue unanswered: Start Date is the licence start date, which is used as valid_from for all
+      observations. It does not necessarily say when the entity or name became true, since a licence can be transferred
+      or re-issued to a different operator.'
+  - field: address.full<-Venue Address
+    reason: 'critique issue unanswered: The venue address is kept as one string with locality in capitals (e.g.
+      ''The Fairway TURA BEACH'', ''99 Mortimer St MUDGEE''). Locality and postcode are not parsed out, and state
+      is not set even though the licence prefix and LGA point to NSW.'
+  - field: address.locality
+    reason: 'critique issue unanswered: The locality appears in the Venue Address in capitals (e.g. ''WEST RYDE'',
+      ''MUDGEE'', ''BONDI JUNCTION''). The config maps the whole string to address.full and does not parse out the
+      locality or postcode, so the richer address fields are left empty.'
+  - field: observation.valid_from
+    reason: 'critique issue unanswered: Start Date is the licence start, not the date the trading-name or address
+      claim became true. Using it as valid_from on every observation ties the licence date to the name and address
+      claims, which the source does not say.'
+  - field: observation envelope
+    reason: 'critique issue unanswered: The example envelopes show only observed_at, valid_from and valid_to. The
+      required fields source_id, source_record_id, ingested_at, licence and extractor_version are not shown. The
+      licence must come from CKAN metadata, and ''unknown'' must be recorded if it is absent.'
+  critique_issues:
+  - id: c-6751930d
+    field: entity.legal_name<-Licence Name
+    problem: The source column is a licence name, and the examples show venue or trading names such as 'The Eastern',
+      'Laughing Buddha Bar', 'Australia Hotel' and 'Tura Beach Country Club'. The ontology defines legal_name as
+      the registered name, not the trading name. The source does not state a registered name, so the reason given
+      ('treated as the licensee's name') is an assumption the data does not support.
+    severity: blocking
+    suggested_fix: Remove the entity.legal_name<-Licence Name mapping, or map it to a trading_name observation (one
+      per record), and leave legal_name unmapped for this source.
+  - id: c-c4dc49d8
+    field: entity.status<-Trading Status
+    problem: The source column describes current trading activity at a venue ('Trading', 'Temporarily ceased trading'),
+      not the registered status of the entity. Mapping 'Trading' to active and a temporary cessation to suspended
+      treats a venue operating fact as an entity registry status. The 'suspended' mapping is also not shown in any
+      example row, so it is untested.
+    severity: advisory
+    suggested_fix: Keep the raw value, or lower confidence and document that it is a venue trading status, not the
+      entity status. Check the 'Temporarily ceased trading' rule against real rows before relying on it.
+  - id: c-04494451
+    field: observation.valid_from
+    problem: Start Date is the licence start date, which is used as valid_from for all observations. It does not
+      necessarily say when the entity or name became true, since a licence can be transferred or re-issued to a
+      different operator.
+    severity: advisory
+    suggested_fix: Scope valid_from to the licence claim, or document that it applies only to the licence and not
+      to the entity's legal_name or status.
+  - id: c-a30cea9e
+    field: address.full<-Venue Address
+    problem: The venue address is kept as one string with locality in capitals (e.g. 'The Fairway TURA BEACH', '99
+      Mortimer St MUDGEE'). Locality and postcode are not parsed out, and state is not set even though the licence
+      prefix and LGA point to NSW.
+    severity: advisory
+    suggested_fix: Parse locality out of the trailing capitalised token, and consider deriving state (NSW) with
+      a derivation_level of L1 and a field_confidence reflecting the inference.
+  - id: c-0d8196ed
+    field: entity.trading_name<-Licence Name
+    problem: The config maps Licence Name to trading_name while its own reason says the value is not stated as a
+      registered name. The examples include legal-form suffixes such as 'Limited' and 'Ltd' (e.g. 'Mudgee Soldiers
+      Club Limited', 'Fraternity Bowling & Recreation Club Ltd', 'Ryde - Parramatta Golf Club Limited'), which suggests
+      registered entity names. The source supports a venue or licence name, not a trading-name claim about the entity,
+      so this mapping states more than the source does.
+    severity: blocking
+    suggested_fix: Either drop this mapping, or map it to a neutral venue or licence-name observation outside entity.trading_name,
+      with a note that the value may be a registered name. Do not emit it as trading_name without a source that
+      says so.
+  - id: c-b012d0ea
+    field: address.locality
+    problem: The locality appears in the Venue Address in capitals (e.g. 'WEST RYDE', 'MUDGEE', 'BONDI JUNCTION').
+      The config maps the whole string to address.full and does not parse out the locality or postcode, so the richer
+      address fields are left empty.
+    severity: advisory
+    suggested_fix: Parse the trailing capitalised locality into address.locality, and state the ALL-CAPS normalisation
+      as a deterministic L1 transform. Leave state unset unless a source states it, since the licence prefix does
+      not state the state.
+  - id: c-01d48a03
+    field: observation.valid_from
+    problem: Start Date is the licence start, not the date the trading-name or address claim became true. Using
+      it as valid_from on every observation ties the licence date to the name and address claims, which the source
+      does not say.
+    severity: advisory
+    suggested_fix: Keep the licence start, but record that it refers to the licence and not to the name or address.
+      Consider noting the basis in the observation or config reason.
+  - id: c-96477af7
+    field: observation envelope
+    problem: The example envelopes show only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not shown. The licence must come from CKAN
+      metadata, and 'unknown' must be recorded if it is absent.
+    severity: advisory
+    suggested_fix: Confirm that every emitted observation carries all required envelope fields, including the licence
+      from the dataset metadata and the record_id from hash_row, and check the shown examples are not truncated.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2ffacc2f0ff3
+  generated_at: '2026-11-12T08:51:43+00:00'

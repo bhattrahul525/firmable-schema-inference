@@ -44,8 +44,13 @@ THE CONFIG (one JSON object; pass the same object to validate, critique and fini
 observed_at.from_metadata must be one of {list(METADATA_DATE_KEYS)}. You do not set source_id or config_version.
 
 OUTCOMES (end with `finish`)
-  validated_config       a config that passed validate and critique (answer every critique issue still open)
-  partial_config         the same, with fields you could not map listed in `abstentions` (field, reason)
+  validated_config       a config that passed validate and critique (answer every BLOCKING critique issue still open; advisory
+                         issues may be left). Columns left in
+                         `unmapped` with reasons are normal and do not make a config partial. A field you drop, or re-map to a
+                         different canonical field, because the critique or the source showed it was wrong is a FIX, not an
+                         abstention: the config you finish with is then complete for what the source supports.
+  partial_config         the same, but you are leaving out a field the source DOES seem to support because you could not get it
+                         right (list each in `abstentions` with field and reason)
   no_business_entities   the data holds no businesses or organisations (needs a successful read_table and profile, and cited evidence)
   could_not_read         the file cannot be read (two failed read_table calls, or a failed download; give the reason)
 

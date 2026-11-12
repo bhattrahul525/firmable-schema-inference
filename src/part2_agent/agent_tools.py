@@ -45,7 +45,7 @@ from src.part1_triage.run import licence_of
 from src.part2_agent import agent_hooks as hooks_mod
 from src.part2_agent.agent_table import (RAW_DIR, NoTable, build_table, get_table, input_info, input_path, remember_table,
                                          save_input)
-from src.part2_agent.guard import FetchRefused
+from src.part2_agent.guard import HARNESS_MAX_USES, FetchRefused
 from src.part2_agent.loop import FinaliseHooks
 from src.part2_agent.profile import _DATE_LIKE, trim_row
 from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec, registry
@@ -776,10 +776,21 @@ class AgentKit:
         except ValueError as e:
             return fail("critique could not run on this config (reason below).", str(e)[:400])
         issues = res["issues"]
-        text = (f"critique: {len(issues)} issue(s). For each, fix the config (then re-run validate and critique on the new config) "
-                f"or answer it in `finish` by its id." if issues else "critique: the reviewer found no problems in the examples.")
+        call_no = (ctx.uses["critique"] if ctx.uses is not None else 0) + 1
+        left = max(0, HARNESS_MAX_USES["critique"] - call_no)
+        blocking = sum(1 for i in issues if i["severity"] == "blocking")
+        text = (f"critique: {len(issues)} issue(s), {blocking} blocking. " if issues else
+                "critique: the reviewer found no problems in the examples. ")
+        if left:
+            text += (f"{left} critique call(s) remain. To act on an issue: change the config (a change that adds or alters a "
+                     f"mapping needs a new critique; one that only removes fields does not) or answer it in `finish` by its id (a blocking issue must be fixed or answered; an advisory one may be left).")
+        else:
+            text += ("NO critique calls remain. From here you can only remove or abstain fields (move them to `unmapped`; that "
+                     "needs no new critique) or answer the remaining blocking issues in `finish` by their ids (advisory ones may be left). Do not add or change a "
+                     "mapping: it could not be critiqued and finish would refuse it.")
         return ToolResult(text=text, payload={"issues": issues, "overall": res["overall"]},
-                          status={"issues": [{"id": i["id"], "field": i["field"], "problem": i["problem"]} for i in issues]})
+                          status={"issues": [{"id": i["id"], "field": i["field"], "problem": i["problem"], "severity": i["severity"]}
+                                    for i in issues]})
 
     def t_ask_human(self, args: dict, ctx: ToolContext) -> ToolResult:
         q = args["question"]
