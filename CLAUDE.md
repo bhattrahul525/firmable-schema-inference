@@ -123,3 +123,20 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
   these feed WRITEUP.md.
 - Remind me to update `TIMELOG.md` at the end of each block.
 - Don't silently expand scope. If something will blow the time box, say so and propose a cut.
+
+## Architecture (round 2)
+- ARCHITECTURE.md is the single source of truth for the design. Read it at the start
+  of every session before planning or writing code. Do not re-derive the design from
+  the conversation.
+- Do not build anything while its Status line says DRAFT.
+- If a change to the design is agreed, or the code has to deviate from the document
+  (a tool added or removed, a new edge type, a changed budget, a cut, a new reader,
+  a sandbox rule), update ARCHITECTURE.md in the SAME commit as the code: edit the
+  affected section, bump the version (2.1, 2.2, ...), update "Last updated", and add
+  a Change log row saying what changed and why.
+- Never change the design silently. If you think the architecture is wrong, say so and
+  propose the edit; wait for my OK before changing the document or the code.
+- Before every commit, check that the code and ARCHITECTURE.md agree. If they do not,
+  fix the document or tell me.
+- Keep ARCHITECTURE.md under about 400 lines. Details that belong to one module go in
+  that module's docstring, with a pointer from the document.
