@@ -6,12 +6,16 @@ The model decides what to investigate. The harness (guard.py) decides everything
 gate, the fetch rule, output caps. This file wires them together and keeps the trace.
 
 Trace, replay, resume. Every model turn and tool call is appended to logs/agent_runs/<source_id>/trace.jsonl, whose
-first line is a HEADER: the reference, the input file's SHA-256 (when known), the model and the code version. Running
-the same source again REPLAYS the trace: recorded model turns and tool results are fed back through the same code path
-without calling the model or re-running tools, so a run that died resumes where it stopped and a finished run returns
-its recorded result. Resuming is REFUSED (TraceMismatch) if the header does not match this run, or if the model or the
-tools ever produce something different from the trace. We never "cut the tail and carry on live": a trace is evidence of
-one specific run. Everything replayed is announced with a REPLAY label and marked by a `resume` event in the trace.
+first line is a HEADER: source id, reference, input file SHA-256 (when known), model, code version (this file, guard.py,
+tools.py, llm.py AND the modules the tools and hooks come from), the limits, and a hash of the system prompt, task and
+tool schemas. Running the same source again REPLAYS the trace: recorded model turns and tool results are fed back through
+the same code path without calling the model or re-running tools, so a run that died resumes where it stopped and a
+finished run returns its recorded result. Resuming is REFUSED (TraceMismatch) if ANY header field differs from this run,
+if the trace is internally inconsistent (a recorded tool call that is not the one in the recorded model turn, a missing
+event), or if the harness would write a live event while recorded events remain. We never "cut the tail and carry on
+live". What is NOT detected: a trace edited consistently by hand (there is no signature), and a change in what a tool
+does that is not in the code version. Everything replayed is announced with a REPLAY label and marked by a `resume`
+event in the trace.
 
 Transient API errors (rate limit, overloaded, timeout, connection) are retried with backoff, at most 3 attempts, each
 attempt recorded as an `api_retry` event. Any other error propagates, and re-running resumes from the trace.
@@ -21,8 +25,11 @@ attempt recorded as an `api_retry` event. Any other error propagates, and re-run
 
 from __future__ import annotations
 
+import copy
 import hashlib
+import inspect
 import json
+import math
 import time
 from collections import Counter
 from dataclasses import asdict, dataclass, field
@@ -31,8 +38,8 @@ from pathlib import Path
 from typing import Callable
 
 from src import llm
-from src.part2_agent.guard import (ALL_OUTCOMES, CONFIG_OUTCOMES, HARNESS_PROMPT, INCOMPLETE, OUTCOMES, Budget,
-                                   FetchGuard, FinishGate, Limits, render_result, validate_args)
+from src.part2_agent.guard import (ALL_OUTCOMES, CONFIG_OUTCOMES, HARNESS_MAX_USES, HARNESS_PROMPT, INCOMPLETE,
+                                   OUTCOMES, Budget, FetchGuard, FinishGate, Limits, render_result, validate_args)
 from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec
 
 RUNS_DIR = Path("logs/agent_runs")
@@ -43,14 +50,31 @@ RETRY_BACKOFF_SECONDS = 2.0   # waits 2 s, then 4 s
 _SKIP_ON_REPLAY = ("resume", "api_retry")   # bookkeeping events: replay steps over them
 
 
-def _code_version() -> str:
-    """Hash of the agent's own source files. Part of the trace header, so a trace is never resumed by different code."""
+def core_files() -> list[Path]:
     root = Path(__file__).resolve().parent
-    files = [Path(llm.__file__), root / "loop.py", root / "guard.py", root / "tools.py"]
-    return hashlib.sha256(b"".join(f.read_bytes() for f in files)).hexdigest()[:12]
+    return [Path(llm.__file__), root / "loop.py", root / "guard.py", root / "tools.py"]
 
 
-CODE_VERSION = _code_version()
+def module_files(callables) -> list[Path]:
+    """Source files of the modules the given callables (tool `run` functions, hook functions) come from."""
+    out = []
+    for fn in callables:
+        f = getattr(inspect.getmodule(fn), "__file__", None)
+        if f:
+            out.append(Path(f).resolve())
+    return out
+
+
+def code_version(extra_files=()) -> str:
+    """Hash of the agent's own source plus the files its tools and hooks come from. Part of the trace header, so a
+    trace is never resumed by different code."""
+    h = hashlib.sha256()
+    for f in [*core_files(), *sorted(set(Path(x).resolve() for x in extra_files))]:
+        h.update(f.name.encode() + b"\0" + f.read_bytes() + b"\0")
+    return h.hexdigest()[:12]
+
+
+CODE_VERSION = code_version()
 
 
 def file_sha256(path: Path) -> str:
@@ -59,6 +83,16 @@ def file_sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _passes(status: dict) -> bool:
+    """One rule for 'validation passed', used by every harness path: a status with no `hard_failures` does NOT pass
+    (the finish gate defaults the same way)."""
+    return status.get("hard_failures", 1) == 0
+
+
+class _BadToolResult(Exception):
+    """Internal: a tool returned something that is not a well-formed ToolResult."""
 
 
 class TraceMismatch(ValueError):
@@ -115,8 +149,9 @@ class FinaliseHooks:
 
 
 class Trace:
-    """Append-only JSONL trace plus replay cursor. Every line is passed through llm.redact: the API key and request
-    headers can never reach this file, whatever a tool result or the model happens to contain."""
+    """Append-only JSONL trace plus replay cursor. Every string in every line is passed through the redactor BEFORE the
+    line is serialised (llm.dumps_redacted): the API key and request headers can never reach this file, and the line
+    is always valid JSON, whatever a tool result or the model happens to contain."""
 
     def __init__(self, path: Path):
         self.path = path
@@ -155,7 +190,7 @@ class Trace:
         self.cursor = len(self.events)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a") as f:
-            f.write(llm.redact(json.dumps(ev, default=str)) + "\n")
+            f.write(llm.dumps_redacted(ev) + "\n")
 
 
 class AgentRun:
@@ -164,14 +199,17 @@ class AgentRun:
                  sleep: Callable[[float], None] = time.sleep, say: Callable[[str], None] = print,
                  limits: Limits = Limits(), trace_root: Path = RUNS_DIR, model: str | None = None,
                  max_tokens: int = 4096, input_path: Path | None = None, fetcher: FetchGuard | None = None,
-                 code_version: str = CODE_VERSION):
-        if "finish" in tools:
-            raise ValueError("`finish` is owned by the harness; do not register a tool with that name")
+                 code_version: str | None = None):
+        for key, spec in tools.items():
+            if key == "finish" or spec.name == "finish":
+                raise ValueError("`finish` is owned by the harness; do not register a tool with that name")
+            if key != spec.name:
+                raise ValueError(f"tool registered as {key!r} but named {spec.name!r}: the model calls it by its name")
         self.source_id, self.reference, self.task, self.hooks = source_id, reference, task, hooks
         self.tools = {**tools, "finish": FINISH_SPEC}
         self.system = HARNESS_PROMPT + ("\n" + system if system else "")
         self.chat, self.model, self.max_tokens, self.sleep, self.say = chat, model, max_tokens, sleep, say
-        self.input_path, self.code_version = input_path, code_version
+        self.input_path = input_path
         self.budget = Budget(limits, clock)
         self.gate = FinishGate()
         self.fetch_guard = fetcher or FetchGuard(reference)
@@ -189,6 +227,9 @@ class AgentRun:
         self.messages: list[dict] = [{"role": "user", "content": task}]
         self.tool_schemas = [t.api_schema() for t in self.tools.values()]
         self.clock = clock
+        self.code_version = code_version or globals()["code_version"](module_files(
+            [t.run for t in tools.values()] + [self.hooks.validate, self.hooks.critique, self.hooks.abstain,
+                                               self.hooks.packet]))
 
     # ---- public ----------------------------------------------------------------------------------------------------
 
@@ -211,6 +252,9 @@ class AgentRun:
                 return self._force(f"budget exhausted: {why}")
             turn = self._model_turn(self.max_tokens)
             if turn.stop_reason == "max_tokens":   # may hold a cut-off tool call: retry once with more room
+                why = self.budget.exhausted()      # ...unless that turn used the last of the budget: no turn 41
+                if why:
+                    return self._force(f"budget exhausted: {why}")
                 turn = self._model_turn(self.max_tokens * 2)
                 if turn.stop_reason == "max_tokens":
                     return self._force("model output hit max_tokens twice")
@@ -218,11 +262,13 @@ class AgentRun:
                 return self._force(f"model stopped with {turn.stop_reason}")
             blocks = llm.request_blocks(turn.content) or [{"type": "text", "text": "(no output)"}]
             self.messages.append({"role": "assistant", "content": blocks})
+            tool_uses = turn.tool_uses
             why = self.budget.exhausted()
-            if why:   # this turn used the last of the budget: do not run its tool
+            if why and not (tool_uses and tool_uses[0]["name"] == "finish"):
+                # this turn used the last of the budget: do not run its tool. A `finish` is the one exception: it
+                # costs nothing and goes through the gate (if refused, the loop top forces the end).
                 return self._force(f"budget exhausted: {why}")
 
-            tool_uses = turn.tool_uses
             if not tool_uses:
                 self.text_only += 1
                 if self.text_only >= TEXT_ONLY_ALLOWED:
@@ -251,14 +297,16 @@ class AgentRun:
     # ---- trace header and replay bookkeeping -------------------------------------------------------------------------
 
     def _header(self) -> dict:
+        prompt = json.dumps({"system": self.system, "task": self.task, "tools": self.tool_schemas}, sort_keys=True)
         return {"source_id": self.source_id, "reference": self.reference, "model": self.model or llm.DEFAULT_MODEL,
-                "code_version": self.code_version,
+                "code_version": self.code_version, "limits": asdict(self.budget.limits),
+                "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()[:16],
                 "input_sha256": file_sha256(self.input_path) if self.input_path and self.input_path.exists() else None}
 
     def _open_trace(self) -> None:
         mine = self._header()
         if not self.trace.events:
-            self.trace.append("trace_header", **mine, limits=asdict(self.budget.limits))
+            self.trace.append("trace_header", **mine)
             return
         first = self.trace.events[0]
         if first["type"] != "trace_header":
@@ -270,7 +318,11 @@ class AgentRun:
         self.trace.cursor = 1
 
     def _live(self, kind: str, **data) -> None:
-        """Append a live event. The first live event after replaying marks the join with a `resume` event."""
+        """Append a live event. The first live event after replaying marks the join with a `resume` event. Writing a
+        live event while recorded events remain would mean the run has diverged from the trace: refuse."""
+        if self.trace.replaying():
+            raise self._mismatch(f"to write a live {kind!r} event, but recorded events remain: the run diverged "
+                                 f"from the trace")
         if self.replayed_events and not self._resume_marked:
             self._resume_marked = True
             self.trace.append("resume", replayed_events=self.replayed_events, replayed_turns=self.replayed_turns)
@@ -341,11 +393,17 @@ class AgentRun:
                 self.pinned_input = self.ctx.state["input_sha256"] = pinned["sha256"]
         else:
             t0 = self.clock()
+            if name == "fetch":
+                self.fetch_guard.final_url = None
             result, rendered, refused = self._execute(name, args)
-            seconds = self.clock() - t0 - result.download_seconds
+            measured = max(self.clock() - t0, 0.0)
+            # a tool's own claim about download time can never exceed the time the HARNESS measured for the call
+            result.download_seconds = min(result.download_seconds, measured)
+            seconds = measured - result.download_seconds
+            extra = {"final_url": self.fetch_guard.final_url} if name == "fetch" else {}
             self._live("tool_call", tool_use_id=tu["id"], name=name, args=args, is_error=result.is_error,
                        status=result.status, rendered=rendered, cost_usd=result.cost_usd,
-                       download_seconds=result.download_seconds, seconds=seconds, refused=refused)
+                       download_seconds=result.download_seconds, seconds=seconds, refused=refused, **extra)
             self._pin_input()
 
         self.executed += 1
@@ -372,7 +430,8 @@ class AgentRun:
         self._live("input_pinned", sha256=sha)
 
     def _execute(self, name: str, args: dict) -> tuple[ToolResult, str, str | None]:
-        """Run the pre-checks, then the tool. Returns (result, text for the model, refusal reason or None)."""
+        """Run the pre-checks, then the tool. Returns (result, text for the model, refusal reason or None). Nothing a
+        tool does (an exception, None, a malformed or lying result) can crash the run: each becomes an error result."""
         spec = self.tools.get(name)
         if spec is None:
             return self._refuse(f"unknown tool {name!r}; available: {sorted(self.tools)}")
@@ -383,21 +442,70 @@ class AgentRun:
         bad = validate_args(spec.input_schema, args)
         if bad:
             return self._refuse(f"bad arguments for {name}: {bad}")
-        if spec.max_uses is not None and self.uses[name] >= spec.max_uses:
-            return self._refuse(f"{name} may be used at most {spec.max_uses} times per run and that limit is reached")
+        limits = [n for n in (spec.max_uses, HARNESS_MAX_USES.get(name)) if n is not None]
+        if limits and self.uses[name] >= min(limits):
+            return self._refuse(f"{name} may be used at most {min(limits)} times per run and that limit is reached")
         if name in ("validate", "critique") and not isinstance(args.get("config"), dict):
             return self._refuse(f"{name} needs a `config` object")
         if name == "finish":
-            decision = self.gate.check(args)
+            try:
+                decision = self.gate.check(args)
+            except Exception as e:   # the gate is our code, but its input is the model's: refuse, never crash
+                return self._refuse(f"finish refused: could not read the arguments ({type(e).__name__})")
             if not decision.ok:
                 return self._refuse(decision.reason)
             return ToolResult(status={"accepted": True, "outcome": decision.outcome,
                                       "abstentions": decision.abstentions}), "accepted", None
+        logged_before = llm.logged_cost_total()
         try:
-            result = spec.run(args, self.ctx)
-        except Exception as e:   # a tool crash is an error result, never a crashed run; no stack trace to the model
-            result = ToolResult(text=f"{type(e).__name__}: {str(e)[:300]}", is_error=True)
-        return result, render_result(spec, result), None
+            # the tool gets a COPY: the model's original input stays exactly as it was for the gate's hash, the trace
+            # and the replay comparison, even if a tool normalises its config in place
+            result = spec.run(copy.deepcopy(args), self.ctx)
+            problem = self._result_problem(name, result)
+            if problem:
+                raise _BadToolResult(problem)
+            rendered = render_result(spec, result)
+        except _BadToolResult as e:
+            result = ToolResult(text=f"tool {name} returned an unusable result: {e}", is_error=True)
+            rendered = render_result(spec, result)
+        except Exception as e:   # a tool crash is an error result, never a crashed run; no stack trace to the model.
+            # The exception text can contain dataset content (a bad cell value), so it goes in <data>, not in prose.
+            result = ToolResult(text=f"tool {name} raised {type(e).__name__}", payload=str(e)[:300], is_error=True)
+            rendered = render_result(spec, result)
+        # what a model-calling tool cost comes from the call log we wrote, not from what the tool says about itself
+        logged = llm.logged_cost_total() - logged_before
+        if logged > 0:
+            result.cost_usd = logged
+        return result, rendered, None
+
+    @staticmethod
+    def _result_problem(name: str, result) -> str | None:
+        if not isinstance(result, ToolResult):
+            return f"expected a ToolResult, got {type(result).__name__}"
+        if not isinstance(result.text, str):
+            return "text is not a string"
+        if not isinstance(result.status, dict):
+            return "status is not an object"
+        if not isinstance(result.is_error, bool):
+            return "is_error is not a boolean"
+        for attr in ("cost_usd", "download_seconds"):
+            v = getattr(result, attr)
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
+                return f"{attr} must be a finite number >= 0, got {v!r}"
+        if result.is_error:
+            return None
+        st = result.status
+        if name == "validate":
+            if (isinstance(st.get("hard_failures"), bool) or not isinstance(st.get("hard_failures"), int)
+                    or not isinstance(st.get("failing_fields", []), list)):
+                return "validate status needs an integer hard_failures and a list failing_fields"
+        if name == "critique":
+            issues = st.get("issues", [])
+            if not isinstance(issues, list) or not all(
+                    isinstance(i, dict) and isinstance(i.get("id"), str) and isinstance(i.get("field"), str)
+                    for i in issues):
+                return "critique status needs a list of issues, each an object with string id and field"
+        return None
 
     @staticmethod
     def _refuse(reason: str) -> tuple[ToolResult, str, str]:
@@ -420,49 +528,65 @@ class AgentRun:
 
     # ---- finish and forced finish ------------------------------------------------------------------------------------
 
+    def _refused_finish(self, message: str) -> tuple[str, bool, RunResult | None]:
+        """One more refused finish in a row. The second consecutive one ends the run, whichever path refused it."""
+        self.refused_finishes += 1
+        if self.refused_finishes >= FINISH_REFUSALS_ALLOWED:
+            return message, True, self._force(f"finish refused {FINISH_REFUSALS_ALLOWED} times in a row")
+        return message, True, None
+
     def _after_finish(self, args: dict, result: ToolResult, rendered: str) -> tuple[str, bool, RunResult | None]:
         if result.is_error:
-            self.refused_finishes += 1
-            if self.refused_finishes >= FINISH_REFUSALS_ALLOWED:
-                return rendered, True, self._force(f"finish refused {FINISH_REFUSALS_ALLOWED} times in a row")
-            return rendered, True, None
+            return self._refused_finish(rendered)
         decision = result.status
         config, outcome = args.get("config"), decision["outcome"]
         abstentions = list(args.get("abstentions") or []) + list(decision["abstentions"])
         if outcome in CONFIG_OUTCOMES and decision["abstentions"]:
             # Unanswered critique issues: code removes those fields and RE-VALIDATES (code, no model). It does not
-            # re-critique: removing fields cannot add an error, only take one away.
-            config = self.hooks.abstain(config, [a["field"] for a in decision["abstentions"]])
-            status = self.hooks.validate(config)
-            if status.get("hard_failures", 1) != 0:
-                self.refused_finishes += 1
-                return "finish refused: removing unanswered fields left validation failing; fix and re-run both.", True, None
+            # re-critique: removing fields cannot add an error, only take one away. Hooks get copies.
+            config = self.hooks.abstain(copy.deepcopy(config), [a["field"] for a in decision["abstentions"]])
+            status = self.hooks.validate(copy.deepcopy(config))
+            if not _passes(status):
+                return self._refused_finish("finish refused: removing unanswered fields left validation failing; "
+                                            "fix and re-run both.")
         final = RunResult(outcome=outcome, config=config, abstentions=abstentions,
                           evidence=str(args.get("evidence", "")), reason=str(args.get("reason", "")))
         return "accepted", False, self._end(final)
 
+    def _hook_cost(self, reported, logged: float) -> float:
+        """Cost of a model-calling hook: from the call log when it logged anything, else the reported number if it is
+        a sane one (finite, >= 0), else nothing."""
+        if logged > 0:
+            return logged
+        ok = not isinstance(reported, bool) and isinstance(reported, (int, float)) and math.isfinite(reported)
+        return float(reported) if ok and reported >= 0 else 0.0
+
     def _force(self, why: str) -> RunResult:
         """The harness ends the run: validate, abstain on failing fields, one critique, write the packet; outcome
         partial_config. If no config was ever proposed there is nothing to make partial: the outcome is `incomplete`
-        with the reason. (could_not_read stays reserved for reader or fetch failures.)"""
+        with the reason; so it is when the config still fails validation after abstaining. (could_not_read stays
+        reserved for reader or fetch failures.) The critique here is the HARNESS's own call, not one of the model's
+        two critique rounds. Hooks always get copies of the config."""
         config, abstentions = self.gate.last_config, []
         if config is None:
             return self._end(RunResult(outcome=INCOMPLETE, reason=f"{why}; no config had been proposed", forced_by=why))
+        config = copy.deepcopy(config)
         for _ in range(2):
-            status = self.hooks.validate(config)
+            status = self.hooks.validate(copy.deepcopy(config))
             fields = status.get("failing_fields", [])
-            if status.get("hard_failures", 0) == 0 or not fields:
+            if _passes(status) or not fields:
                 break
             abstentions += [{"field": f, "reason": "failed validation when the harness ended the run"} for f in fields]
-            config = self.hooks.abstain(config, fields)
-        crit = self.hooks.critique(config)
-        self.budget.dollars += crit.get("cost_usd", 0.0)
+            config = self.hooks.abstain(copy.deepcopy(config), fields)
+        logged_before = llm.logged_cost_total()
+        crit = self.hooks.critique(copy.deepcopy(config))
+        self.budget.dollars += self._hook_cost(crit.get("cost_usd", 0.0), llm.logged_cost_total() - logged_before)
         fields = [i["field"] for i in crit.get("issues", [])]
         if fields:   # nobody is left to answer the critic: its fields are abstained
             abstentions += [{"field": i["field"], "reason": f"critique issue unanswered: {i.get('problem', '')}"}
                             for i in crit["issues"]]
-            config = self.hooks.abstain(config, fields)
-        if self.hooks.validate(config).get("hard_failures", 0) != 0:
+            config = self.hooks.abstain(copy.deepcopy(config), fields)
+        if not _passes(self.hooks.validate(copy.deepcopy(config))):
             return self._end(RunResult(outcome=INCOMPLETE, forced_by=why,
                                        reason=f"{why}; the config still failed validation after abstaining"))
         return self._end(RunResult(outcome="partial_config", config=config, abstentions=abstentions, forced_by=why))
@@ -476,7 +600,10 @@ class AgentRun:
         result.replayed_turns = self.replayed_turns
         result.packet_path = self.hooks.packet(result)
         if result.forced_by:
-            self._live("forced_end", reason=result.forced_by)
+            if self.trace.peek("forced_end"):   # a crash between this line and run_end: do not write it twice
+                self.trace.consume()
+            else:
+                self._live("forced_end", reason=result.forced_by)
         self._live("run_end", result=asdict(result))
         return result
 

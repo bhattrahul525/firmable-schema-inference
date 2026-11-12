@@ -305,11 +305,12 @@ class TestFetchRule(Base):
         server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
-            g = FetchGuard(f"http://127.0.0.1:{server.server_port}/ref.csv")
+            g = FetchGuard(f"http://127.0.0.1:{server.server_port}/ref.csv", allow_loopback=True)
             resp = g.open_url(g.resolve(0))
             self.assertEqual(resp.status_code, 200)
             self.assertTrue(resp.url.endswith("/moved/final.csv"))      # the redirect target was fetched
-            self.assertEqual(len(resp.history), 1)
+            self.assertEqual(len(g.hops), 2)                              # the reference, then ONE redirect hop
+            self.assertEqual(g.final_url, resp.url)
             self.assertIn(b"Acme", resp.content)
         finally:
             server.shutdown()
@@ -448,6 +449,31 @@ class TestTraceHeaderAndReplay(Base):
             self.run_loop([text_turn(), text_turn()])
         self.assertEqual(path.read_text(), before)               # the evidence on disk was not touched
 
+    def test_tampering_with_the_recorded_tool_name_is_refused(self):
+        with self.assertRaises(RuntimeError):
+            self.run_loop([tool_turn("validate", {"config": CFG}, id="t1"), ScriptedChat.CRASH])
+        path = self.root / "src1" / "trace.jsonl"
+        events = self.trace_events()
+        for e in events:
+            if e["type"] == "tool_call":
+                e["name"] = "critique"
+        path.write_text("".join(json.dumps(e) + "\n" for e in events))
+        with self.assertRaises(TraceMismatch):
+            self.run_loop([text_turn(), text_turn()])
+
+    def test_tampering_with_the_recorded_model_turn_is_refused_too(self):
+        # the other half of the self-agreement check: the recorded model turn says one thing, the tool_call another
+        with self.assertRaises(RuntimeError):
+            self.run_loop([tool_turn("validate", {"config": CFG}, id="t1"), ScriptedChat.CRASH])
+        path = self.root / "src1" / "trace.jsonl"
+        events = self.trace_events()
+        for e in events:
+            if e["type"] == "model_turn":
+                e["content"][0]["input"] = {"config": {"fields": ["tampered"]}}
+        path.write_text("".join(json.dumps(e) + "\n" for e in events))
+        with self.assertRaises(TraceMismatch):
+            self.run_loop([text_turn(), text_turn()])
+
     def test_replay_reproduces_the_budget_and_the_wrap_up_notice(self):
         script = [tool_turn("profile", {}, id=f"p{i}", cost=0.1) for i in range(8)] + [ScriptedChat.CRASH]
         with self.assertRaises(RuntimeError):
@@ -492,8 +518,6 @@ class TestSecretsNeverReachFiles(Base):
             self.assertNotIn(self.KEY, raw)
             self.assertNotIn("TESTSECRETKEY", raw)
             self.assertIn("[REDACTED]", raw)                      # it WAS in the content; redaction removed it
-            for e in self.trace_events():
-                self.assertNotIn("headers", e)
 
     def test_llm_calls_log_redacts_an_error_that_contains_the_key(self):
         err = anthropic.APIConnectionError(message=f"failed with x-api-key: {self.KEY}",

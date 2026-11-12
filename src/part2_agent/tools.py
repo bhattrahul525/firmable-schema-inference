@@ -7,7 +7,11 @@ Status contract between a tool and the harness. A tool puts machine-readable fac
 reads ONLY these keys, never the model's own words:
   validate  -> {"hard_failures": int, "failing_fields": [str]}
   critique  -> {"issues": [{"id": str, "field": str, "problem": str}]}
+  fetch     -> {"download_failed": True} when a DOWNLOAD or NETWORK failure happened (a refused index or URL is not one)
   anything else -> free-form
+The harness checks the shape of every result: a ToolResult with finite, non-negative `cost_usd` and `download_seconds`,
+a dict `status`, and for validate / critique the keys above. Anything else becomes an error result, never a crash.
+A tool receives a COPY of its arguments, so editing them in place cannot change what the gate hashes or the trace records.
 `ToolResult.text` is written by our code (trusted). `ToolResult.payload` is dataset content (untrusted): it is capped
 and wrapped in a <data> block before the model sees it.
 """

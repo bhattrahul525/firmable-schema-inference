@@ -80,15 +80,15 @@ def compute_cost(model: str, usage) -> float:
 
 _SECRET_PATTERNS = [
     re.compile(r"sk-ant-[A-Za-z0-9_\-]{6,}"),                                   # Anthropic key shape
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{10,}", re.I),                          # bearer tokens
-    re.compile(r"""((?:x-api-key|authorization|api[_-]?key)["']?\s*[:=]\s*["']?)([^\s"',}]+)""", re.I),  # header-ish
+    re.compile(r"\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=\-]{8,}", re.I),          # bearer / basic credentials anywhere
+    # header-ish `name: value` / `name=value`. The WHOLE value goes, including an auth scheme word ("Bearer x", "Basic x").
+    re.compile(r"""((?:x-api-key|authorization|api[_-]?key)(?:\\?["'])?\s*[:=]\s*(?:\\?["'])?)(?:(?:Bearer|Basic)\s+)?([^\s"',}\\]+)""",
+               re.I),   # the (?:\\?["']) parts also match a quote that is escaped inside JSON text
 ]
 
 
 def redact(text: str) -> str:
-    """Remove anything that looks like our API key or a request header value. Applied to EVERY line written to
-    logs/llm_calls.jsonl and to the agent trace, so a key that leaks into an error message, a tool result or the
-    model's own output (e.g. through a prompt injection) never reaches a file."""
+    """Remove anything that looks like our API key or a request header value from ONE string."""
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if len(key) >= 8:
         text = text.replace(key, "[REDACTED]")
@@ -97,19 +97,54 @@ def redact(text: str) -> str:
     return _SECRET_PATTERNS[2].sub(lambda m: m.group(1) + "[REDACTED]", text)
 
 
+def _redact_values(obj):
+    if isinstance(obj, str):
+        return redact(obj)
+    if isinstance(obj, list):
+        return [_redact_values(x) for x in obj]
+    if isinstance(obj, dict):
+        return {redact(str(k)): _redact_values(v) for k, v in obj.items()}
+    return obj
+
+
+def dumps_redacted(obj) -> str:
+    """JSON for ONE log or trace line with every string value (and key) redacted BEFORE serialising. Redacting the
+    serialised text is unsafe: a pattern can swallow the backslash that escapes a quote (`api_key=abc\\"`) and leave
+    an unescaped quote, breaking the JSONL line. Here the redactor only ever sees plain strings, so the JSON it
+    produces is always valid. Objects json cannot encode are turned into strings first (default=str), then redacted."""
+    return json.dumps(_redact_values(json.loads(json.dumps(obj, default=str))))
+
+
+# Cost the call log has recorded in THIS process. The agent loop reads it before and after a tool runs, so what a
+# model-calling tool cost comes from the log (which our code wrote) and not from what the tool says about itself.
+_logged_cost_total = 0.0
+
+
+def logged_cost_total() -> float:
+    return _logged_cost_total
+
+
+TRANSIENT_STATUS = (408, 429, 500, 502, 503, 504, 529)
+
+
 def is_transient(exc: BaseException) -> bool:
-    """True for errors worth retrying: rate limit (429), overloaded / server errors (5xx incl. 529), request timeout
-    (408), connection errors and timeouts. Anything else (bad request, auth, permission...) is NOT transient."""
+    """True for errors worth retrying: connection errors and timeouts, and exactly these HTTP statuses: 408 request
+    timeout, 429 rate limit, 500, 502, 503, 504 server errors, 529 overloaded. Every other status (400, 401, 403, 404,
+    413, 422, 501, ...) is NOT transient."""
     if isinstance(exc, anthropic.APIConnectionError):   # includes APITimeoutError
         return True
-    return getattr(exc, "status_code", None) in (408, 429, 500, 502, 503, 504, 529)
+    return getattr(exc, "status_code", None) in TRANSIENT_STATUS
 
 
 def _log(entry: dict) -> None:
+    global _logged_cost_total
     entry.setdefault("round", CURRENT_ROUND)
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LOG_PATH.open("a") as f:
-        f.write(redact(json.dumps(entry)) + "\n")
+        f.write(dumps_redacted(entry) + "\n")
+    cost = entry.get("cost_usd")
+    if isinstance(cost, (int, float)) and not isinstance(cost, bool) and cost == cost and cost > 0:
+        _logged_cost_total += cost
 
 
 def call(
@@ -123,7 +158,8 @@ def call(
     effort: str = "low",
     max_tokens: int = 16000,
 ) -> LLMResult:
-    """One model call.
+    """One model call. (Round 1's single-shot call. It keeps the SDK's own max_retries=3 from _get_client(); only chat()
+    below turns SDK retries off so the agent loop can trace each one.)
 
     step:      which pipeline step is calling (e.g. "part2.propose_mapping"); used for
                per-step cost/latency breakdowns.

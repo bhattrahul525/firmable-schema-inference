@@ -90,7 +90,8 @@ def make_tools(counter: Counter, clock: FakeClock | None = None) -> dict[str, To
         if "resource_index" in args:
             ctx.state["input_sha256"] = counter.sha
         return ToolResult(text="fetched", payload=ctx.fetcher.list_resources() if "resource_index" not in args else None,
-                          download_seconds=counter.fetch_slow, is_error=counter.fetch_fail)
+                          download_seconds=counter.fetch_slow, is_error=counter.fetch_fail,
+                          status={"download_failed": True} if counter.fetch_fail else {})
 
     def read_table(args, ctx):
         counter.hit("read_table")
@@ -123,7 +124,8 @@ def make_tools(counter: Counter, clock: FakeClock | None = None) -> dict[str, To
                  max_rows=20, max_cols=40, max_cell_chars=100, max_chars=6000),
         ToolSpec("profile", "profile", {"type": "object", "properties": {"payload": {}}}, profile),
         ToolSpec("validate", "validate", cfg, validate, max_chars=6000),
-        ToolSpec("critique", "critique", cfg, critique, max_uses=2),
+        ToolSpec("critique", "critique", cfg, critique),     # no max_uses: the HARNESS limits critique to 2
+        ToolSpec("ask_human", "ask", {"type": "object", "properties": {}}, lambda a, c: ToolResult(text="asked")),
         ToolSpec("boom", "crashes", {"type": "object", "properties": {}}, boom),
     )
 

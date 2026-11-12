@@ -5,7 +5,8 @@ model. Each rule is a small class or function so it can be unit-tested on its ow
 
   Budget         40 model turns (every reply counts, text-only ones too) / $1.00 / 4 minutes (download excluded);
                  one 80% wrap-up notice; stop at 100%
-  FetchGuard     the model never supplies a URL: it picks a resource BY INDEX from the supplied reference
+  FetchGuard     the model never supplies a URL: it picks a resource BY INDEX from the supplied reference; only http(s),
+                 no loopback / private / link-local address, on the CKAN target and on every redirect hop
   cap_payload    row / column / cell caps on dataset content;  render_result adds the total-character cap
   wrap_untrusted dataset content goes to the model only as JSON inside <data>...</data>, with '<' escaped
   FinishGate     finish refused unless validate AND critique ran on the exact config (matched by sha256);
@@ -16,12 +17,14 @@ model. Each rule is a small class or function so it can be unit-tested on its ow
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import re
+import socket
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from src.part2_agent.tools import ToolSpec, ToolResult
 
@@ -29,6 +32,10 @@ OUTCOMES = ("validated_config", "partial_config", "no_business_entities", "could
 CONFIG_OUTCOMES = ("validated_config", "partial_config")
 INCOMPLETE = "incomplete"   # only the HARNESS can end a run this way: no config was ever proposed (reason given)
 ALL_OUTCOMES = OUTCOMES + (INCOMPLETE,)
+
+# Limits the HARNESS owns. A tool's own `max_uses` can only make a limit tighter, never looser (section b).
+HARNESS_MAX_USES = {"critique": 2, "ask_human": 1}
+MAX_REDIRECTS = 5
 
 # Added to every system prompt by the loop. Task-specific instructions (ontology, rules for mapping) come from the
 # caller (build step 2); these are the rules the HARNESS depends on.
@@ -107,7 +114,7 @@ def cap_payload(payload: Any, max_rows: int | None, max_cols: int | None, max_ce
                 cut["cells"] += 1
                 return v[:max_cell_chars] + "…"
             return v
-        if isinstance(v, list):
+        if isinstance(v, (list, tuple)):
             if max_rows is not None and len(v) > max_rows:
                 cut["rows"] += len(v) - max_rows
                 v = v[:max_rows]
@@ -117,7 +124,16 @@ def cap_payload(payload: Any, max_rows: int | None, max_cols: int | None, max_ce
             if max_cols is not None and len(items) > max_cols:
                 cut["cols"] += len(items) - max_cols
                 items = items[:max_cols]
-            return {str(k): walk(x) for k, x in items}
+            out: dict = {}
+            for k, x in items:
+                key = str(k)
+                if len(key) > max_cell_chars:
+                    cut["cells"] += 1
+                    key = key[:max_cell_chars] + "…"
+                while key in out:   # two long keys cut to the same text must not silently overwrite each other
+                    key += "#"
+                out[key] = walk(x)
+            return out
         return v
 
     capped = walk(payload)
@@ -158,7 +174,8 @@ class Limits:
 
 
 class Budget:
-    """Tool calls, dollars and wall-clock (download excluded). `clock` is injectable so tests need no sleeping."""
+    """Model turns, dollars and wall-clock (download excluded). `calls` counts MODEL TURNS (every reply, text-only ones
+    too), not tool calls. `clock` is injectable so tests need no sleeping."""
 
     def __init__(self, limits: Limits, clock: Callable[[], float]):
         self.limits, self.clock = limits, clock
@@ -214,18 +231,32 @@ class FetchGuard:
                         anything else                                      -> a local path, one resource (index 0).
       the list shown    index, name, format, size. Never URLs. (Names are CKAN text, so the fetch tool puts them in a
                         <data> block like any other dataset content.)
-      redirects         an HTTP redirect from a supplied URL is followed (at most 5): the redirect target is not a URL
-                        the model chose, so it is not refused.
+      redirects         followed by US, one hop at a time (at most 5), never by the HTTP library.
+      fetch safety      CKAN resource targets are text a publisher wrote, and a redirect target is text a server
+                        chose. So EVERY CKAN target and EVERY redirect hop must be http or https, and must not point
+                        at a loopback, private, link-local or otherwise non-public address (names are resolved and
+                        every address checked). A local path is allowed only when it IS the reference the human
+                        supplied. The human-supplied reference itself is trusted. The final URL is kept in
+                        `final_url` and written to the trace. Limit: the check resolves the name and the HTTP client
+                        resolves it again, so DNS rebinding is not covered; a network-level egress rule is the real
+                        control.
+      loopback opt-in   `allow_loopback=True` lets tests talk to a server on 127.0.0.1. Nothing else is relaxed, and
+                        production code never sets it.
 
-    `package_show` and `session` are injectable so tests need no network."""
+    `package_show`, `session` and `resolver` are injectable so tests need no network."""
     ARG = "resource_index"
 
-    def __init__(self, reference: str, *, package_show: Callable[[str, str], dict] | None = None, session=None):
+    def __init__(self, reference: str, *, package_show: Callable[[str, str], dict] | None = None, session=None,
+                 resolver: Callable | None = None, allow_loopback: bool = False):
         self.reference = str(reference).strip()
         self.kind, self._ckan = self._classify(self.reference)
         self._package_show = package_show
         self._session = session
+        self._resolver = resolver or socket.getaddrinfo
+        self.allow_loopback = allow_loopback
         self._resources: list[dict] | None = None
+        self.final_url: str | None = None      # where the last open_url ended up (after redirects)
+        self.hops: list[str] = []              # every URL requested by the last open_url, in order
 
     @staticmethod
     def _classify(ref: str) -> tuple[str, tuple[str, str] | None]:
@@ -260,23 +291,70 @@ class FetchGuard:
         return [{k: r[k] for k in ("index", "name", "format", "size")} for r in self._load()]
 
     def resolve(self, index: int) -> str:
-        """Index -> the URL or path to fetch. Called by the fetch tool, never with model-supplied text."""
+        """Index -> the URL or path to fetch. Called by the fetch tool, never with model-supplied text. A CKAN target
+        must pass the fetch-safety rule; the human-supplied reference (a URL or a local path) is returned as given."""
         resources = self._load()
         if not 0 <= index < len(resources):
             raise FetchRefused(f"resource_index {index} is not in the list (0..{len(resources) - 1})")
-        return resources[index]["target"]
+        target = resources[index]["target"]
+        if self.kind == "ckan":
+            self.check_url(target, resolve_dns=False)   # DNS is checked on the hop itself (open_url)
+        return target
+
+    def check_url(self, url: str, *, resolve_dns: bool = True) -> None:
+        """Raise FetchRefused unless `url` is http(s) and its host is not a loopback, private, link-local or other
+        non-public address. `resolve_dns=False` checks the text only (no network)."""
+        parsed = urlparse(str(url).strip())
+        if parsed.scheme.lower() not in ("http", "https"):
+            raise FetchRefused(f"fetch refused: only http and https targets are allowed, got {parsed.scheme or 'none'!r}")
+        host = parsed.hostname
+        if not host:
+            raise FetchRefused("fetch refused: the target has no host")
+        if host.lower() == "localhost" or host.lower().endswith(".localhost"):
+            addresses = ["127.0.0.1"]
+        else:
+            try:
+                addresses = [str(ipaddress.ip_address(host))]
+            except ValueError:
+                addresses = []
+                if resolve_dns:
+                    try:
+                        addresses = [info[4][0] for info in self._resolver(host, None)]
+                    except OSError:
+                        pass   # cannot resolve: nothing to check; the download itself will fail and say so
+        for text in addresses:
+            ip = ipaddress.ip_address(text.split("%")[0])
+            ip = getattr(ip, "ipv4_mapped", None) or ip   # ::ffff:127.0.0.1 is 127.0.0.1
+            if ip.is_loopback and self.allow_loopback:
+                continue
+            if not ip.is_global:   # loopback, private, link-local, reserved, carrier-grade NAT, unspecified...
+                raise FetchRefused(f"fetch refused: the target resolves to a non-public address ({ip})")
 
     def open_url(self, url: str, *, timeout=(15, 300)):
-        """GET a resolved URL as a stream, following redirects (at most 5). Returns the response; the fetch tool
-        enforces the size cap while streaming."""
+        """GET a resolved URL as a stream. Redirects are followed HERE, one hop at a time, at most MAX_REDIRECTS, and
+        every hop passes check_url (the first hop too, unless it is the human-supplied reference). Returns the final
+        response; `final_url` and `hops` record where we went. The fetch tool enforces the size cap while streaming."""
         session = self._session
         if session is None:
             from src.common.ckan import http_session
             session = self._session = http_session()
-        session.max_redirects = 5
-        resp = session.get(url, stream=True, allow_redirects=True, timeout=timeout)
-        resp.raise_for_status()
-        return resp
+        self.final_url, self.hops = None, []
+        current, redirects = url, 0
+        while True:
+            if not (current == self.reference and current == url and not self.hops):
+                self.check_url(current)   # every hop, except the human-supplied reference itself
+            self.hops.append(current)
+            resp = session.get(current, stream=True, allow_redirects=False, timeout=timeout)
+            location = resp.headers.get("Location") if getattr(resp, "is_redirect", False) else None
+            if not location:
+                self.final_url = current
+                resp.raise_for_status()
+                return resp
+            resp.close()
+            redirects += 1
+            if redirects > MAX_REDIRECTS:
+                raise FetchRefused(f"fetch refused: more than {MAX_REDIRECTS} redirects")
+            current = urljoin(current, location)
 
     # -- internals ------------------------------------------------------------------------------------------------------
 
@@ -318,29 +396,53 @@ class FinishGate:
         self.validated: dict[str, dict] = {}     # config hash -> validate status
         self.critiqued: dict[str, list[dict]] = {}  # config hash -> critique issues
         self.ok_tools: set[str] = set()          # tools that have succeeded at least once
-        self.reader_attempts = 0
-        self.fetch_failed = False
+        self.failed_reads = 0                    # read_table calls that returned an error (successful reads don't count)
+        self.fetch_failed = False                # a DOWNLOAD or NETWORK failure (a refused index or URL does not count)
         self.last_config: dict | None = None
 
     def note(self, name: str, args: dict, result: ToolResult) -> None:
         if not result.is_error:
             self.ok_tools.add(name)
-        if name == "read_table":
-            self.reader_attempts += 1
-        if name == "fetch" and result.is_error:
+        if name == "read_table" and result.is_error:
+            self.failed_reads += 1
+        if name == "fetch" and result.is_error and result.status.get("download_failed") is True:
             self.fetch_failed = True
         if name in ("validate", "critique") and isinstance(args.get("config"), dict) and not result.is_error:
             h = config_hash(args["config"])
             self.last_config = args["config"]
             if name == "validate":
                 self.validated[h] = result.status
-            else:
-                self.critiqued[h] = list(result.status.get("issues", []))
+            else:   # a re-roll of the critique on the same config ADDS issues; it never wipes the earlier ones
+                known = self.critiqued.setdefault(h, [])
+                for issue in result.status.get("issues", []):
+                    if issue not in known:
+                        known.append(issue)
+
+    @staticmethod
+    def _bad_lists(args: dict) -> str | None:
+        """`answers` and `abstentions` come from the model: refuse malformed ones with a sentence, never raise."""
+        answers = args.get("answers")
+        if answers is not None:
+            if not isinstance(answers, list) or not all(isinstance(a, dict) and isinstance(a.get("issue_id"), str)
+                                                        for a in answers):
+                return ("finish refused: `answers` must be a list of objects, each with a string `issue_id`, "
+                        "`action` \"answered\" and a `note`")
+        abstentions = args.get("abstentions")
+        if abstentions is not None:
+            if not isinstance(abstentions, list) or not all(
+                    isinstance(a, dict) and isinstance(a.get("field"), str) and a["field"].strip()
+                    and isinstance(a.get("reason"), str) and a["reason"].strip() for a in abstentions):
+                return "finish refused: `abstentions` must be a list of objects, each with a non-empty `field` and `reason`"
+        return None
 
     def check(self, args: dict) -> Decision:
         outcome = args.get("outcome")
         if outcome not in OUTCOMES:
             return Decision(False, f"outcome must be one of {OUTCOMES}")
+
+        bad = self._bad_lists(args)
+        if bad:
+            return Decision(False, bad)
 
         if outcome == "no_business_entities":
             if not {"read_table", "profile"} <= self.ok_tools:
@@ -350,8 +452,9 @@ class FinishGate:
             return Decision(True, outcome=outcome)
 
         if outcome == "could_not_read":
-            if self.reader_attempts < 2 and not self.fetch_failed:
-                return Decision(False, "could_not_read needs two reader attempts (read_table) or a failed fetch first")
+            if self.failed_reads < 2 and not self.fetch_failed:
+                return Decision(False, "could_not_read needs two reader attempts that FAILED (read_table errors) or a "
+                                       "failed download first")
             if not str(args.get("reason", "")).strip():
                 return Decision(False, "could_not_read must give the reason")
             return Decision(True, outcome=outcome)
@@ -374,7 +477,7 @@ class FinishGate:
             return Decision(False, "partial_config must list its abstentions (field and reason)")
 
         # every critique issue on THIS config must be answered; otherwise code abstains the field
-        answered = {a.get("issue_id") for a in args.get("answers", [])
+        answered = {a["issue_id"] for a in args.get("answers") or []
                     if a.get("action") == "answered" and str(a.get("note", "")).strip()}
         unanswered = [i for i in self.critiqued[h] if i.get("id") not in answered]
         if unanswered:
