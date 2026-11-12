@@ -43,4 +43,5 @@ A **link table plus a canonical entity key**. Pairwise links with evidence are t
 - Part 1 false positive rate **26.3%** (5 no of 19 judged, 1 unsure; 30% if unsure counts as wrong), n=20.
 - Part 3 precision at the 0.80 threshold, n=30: **100% excluding unsure (95% interval 86-100%), 76.7% counting unsure as wrong**; looser band 20/20 (interval 84-100%). All 7 unsure are ABN-equal links with differing names. 42 of the 50 checks are ACT vs QLD Health and the matcher already required names to agree, so these are upper bounds.
 - Part 4: 50 profiles (40 accepted, 10 looser); 9 names unresolved by design. Deleting ACT or QLD Health ends cross-source support for 44-47 profiles; no deletion silently rewrites a name.
+- Reproducibility: the QBCC register is live; a fresh download had 47 more rows and gave 268 accepted links / 41 entities (not 266 / 40). The committed outputs are the reference; `download` warns on upstream changes.
 - Licences: five datasets are Creative Commons; ACT's is "Other", flagged on every observation. Source reliability scores are model judgements.

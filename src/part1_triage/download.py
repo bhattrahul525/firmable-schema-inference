@@ -12,6 +12,7 @@ Run: python -m src.part1_triage.download
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -94,20 +95,34 @@ def download(source: dict, pool: dict[str, dict], res: dict | None = None) -> di
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--refresh-manifest", action="store_true",
+                    help="overwrite the committed manifest with what was just downloaded")
+    refresh = ap.parse_args().refresh_manifest
     pool = {r["dataset_id"]: r for r in map(json.loads, POOL_PATH.open())}
     sources = yaml.safe_load(SOURCES_FILE.read_text())["sources"]
-    manifest = []
+    # The committed manifest records the exact files we onboarded. Publishers update live registers, so a fresh
+    # download can differ; say so instead of silently using different data.
+    onboarded = {m["source_id"]: m for m in json.loads(MANIFEST.read_text())} if MANIFEST.exists() else {}
+    manifest, changed = [], []
     for s in sources:
         try:
             m = download(s, pool)
             manifest.append(m)
             flag = "  LICENCE FLAGGED" if m["licence_flag"] else ""
             print(f"ok   {s['source_id']:30s} {m['bytes'] / 1e6:7.1f} MB  {m['file']:45s} {m['licence']}{flag}")
+            if s["source_id"] in onboarded and onboarded[s["source_id"]]["sha256"] != m["sha256"]:
+                changed.append(s["source_id"])
         except Exception as e:  # one failed source must not stop the others
             print(f"FAIL {s['source_id']:30s} {type(e).__name__}: {e}")
-    # data/raw is gitignored, so keep a committed record of exactly what was fetched
-    MANIFEST.write_text(json.dumps(manifest, indent=2))
-    print(f"manifest -> {MANIFEST}")
+    if changed:
+        print(f"\nWARNING: changed upstream since onboarding: {changed}. Extraction will use the NEW file, so counts in "
+              "Parts 2-4 will differ slightly from the committed outputs (which remain the reference).")
+    if refresh or not onboarded:
+        MANIFEST.write_text(json.dumps(manifest, indent=2))  # data/raw is gitignored, so keep a committed record
+        print(f"manifest -> {MANIFEST}")
+    else:
+        print(f"committed manifest left unchanged ({MANIFEST}); use --refresh-manifest to overwrite it")
 
 
 if __name__ == "__main__":

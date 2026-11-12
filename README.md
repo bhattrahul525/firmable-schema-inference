@@ -28,11 +28,14 @@ python -m src.part4_profiles.build                      # 50 profiles + source-d
 ```
 
 Everything in `outputs/` is already committed, so you can read the results without running anything.
-Re-running the commands above regenerates them (the engine is deterministic: same inputs, same output).
+Re-running the commands above regenerates them (the engine is deterministic for identical inputs; see the caveat below).
 
-If `extract` says a file "does not match the SHA-256 recorded at download", the publisher has changed the file since
-we onboarded it. That is the engine refusing to apply an approved config to data it was never approved for; the
-committed outputs are still valid, and the agent can onboard the new version (below).
+**Reproducibility caveat (measured):** the QBCC register is live. A fresh download on 2026-11-12 had 206,595 rows against
+206,548 when we onboarded, so a clean re-run gave 268 accepted links / 41 entities instead of 266 / 40 (47 of the 50
+hand-checked links still appear). `download` prints a WARNING when a file differs from `outputs/part1_sources_manifest.json`
+and leaves that committed manifest unchanged (`--refresh-manifest` overwrites it). Every observation also carries a fresh
+`ingested_at`, so those files differ line by line. **The committed outputs are the reference.** The whole sequence above
+ran in 24 seconds on a clean clone.
 
 ### The agent (needs `ANTHROPIC_API_KEY` in `.env`; costs cents)
 
