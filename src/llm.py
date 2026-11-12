@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -25,6 +26,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 LOG_PATH = Path("logs/llm_calls.jsonl")
+# Every call logged from now on is tagged with the round it belongs to. Lines without a "round" are round 1 (the
+# first submission), so round-2 work can never change round-1 cost figures.
+CURRENT_ROUND = 2
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "claude-haiku-5-5")
 
 # USD per 1M tokens: (input, output, cache_read). Anthropic first-party prices as of
@@ -74,10 +78,38 @@ def compute_cost(model: str, usage) -> float:
     ) / 1_000_000
 
 
+_SECRET_PATTERNS = [
+    re.compile(r"sk-ant-[A-Za-z0-9_\-]{6,}"),                                   # Anthropic key shape
+    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{10,}", re.I),                          # bearer tokens
+    re.compile(r"""((?:x-api-key|authorization|api[_-]?key)["']?\s*[:=]\s*["']?)([^\s"',}]+)""", re.I),  # header-ish
+]
+
+
+def redact(text: str) -> str:
+    """Remove anything that looks like our API key or a request header value. Applied to EVERY line written to
+    logs/llm_calls.jsonl and to the agent trace, so a key that leaks into an error message, a tool result or the
+    model's own output (e.g. through a prompt injection) never reaches a file."""
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if len(key) >= 8:
+        text = text.replace(key, "[REDACTED]")
+    text = _SECRET_PATTERNS[0].sub("[REDACTED]", text)
+    text = _SECRET_PATTERNS[1].sub("[REDACTED]", text)
+    return _SECRET_PATTERNS[2].sub(lambda m: m.group(1) + "[REDACTED]", text)
+
+
+def is_transient(exc: BaseException) -> bool:
+    """True for errors worth retrying: rate limit (429), overloaded / server errors (5xx incl. 529), request timeout
+    (408), connection errors and timeouts. Anything else (bad request, auth, permission...) is NOT transient."""
+    if isinstance(exc, anthropic.APIConnectionError):   # includes APITimeoutError
+        return True
+    return getattr(exc, "status_code", None) in (408, 429, 500, 502, 503, 504, 529)
+
+
 def _log(entry: dict) -> None:
+    entry.setdefault("round", CURRENT_ROUND)
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with LOG_PATH.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
+        f.write(redact(json.dumps(entry)) + "\n")
 
 
 def call(
@@ -167,15 +199,115 @@ def call(
     )
 
 
-def spend_summary(path: Path = LOG_PATH) -> dict:
-    """Totals from the log, overall and per step / per source. Used by the write-up."""
+@dataclass
+class LLMTurn:
+    """One assistant turn of a tool-using conversation (round 2, ARCHITECTURE.md section b)."""
+    content: list[dict]  # the assistant's blocks as plain dicts, exactly as returned (JSON-safe)
+    stop_reason: str | None
+    model: str
+    input_tokens: int
+    output_tokens: int
+    cache_read_tokens: int
+    cache_write_tokens: int
+    cost_usd: float
+    seconds: float
+
+    @property
+    def tool_uses(self) -> list[dict]:
+        return [b for b in self.content if b.get("type") == "tool_use"]
+
+
+def request_blocks(content: list[dict]) -> list[dict]:
+    """Assistant blocks -> blocks we send back in the next request.
+
+    Thinking / redacted_thinking blocks must be passed back COMPLETE and UNMODIFIED (the docs say a modified thinking
+    block returns 400), so they are copied as they came. Text and tool_use blocks are reduced to the documented
+    request fields, dropping response-only extras."""
+    out = []
+    for b in content:
+        if b["type"] == "text":
+            out.append({"type": "text", "text": b["text"]})
+        elif b["type"] == "tool_use":
+            out.append({"type": "tool_use", "id": b["id"], "name": b["name"], "input": b["input"]})
+        else:
+            out.append(b)
+    return out
+
+
+def chat(
+    messages: list[dict],
+    *,
+    step: str,
+    source_id: str | None = None,
+    system: str | None = None,
+    tools: list[dict] | None = None,
+    model: str | None = None,
+    effort: str = "low",
+    max_tokens: int = 4096,
+) -> LLMTurn:
+    """One turn of a conversation with tools. The agent loop calls this; nothing else touches the API.
+
+    Differences from call():
+      * tools are passed with tool_choice {"type": "auto", "disable_parallel_tool_use": True}. Forced tool use
+        ("any" / "tool") returns 400 on Sonnet 5.5, so the model may answer in text; the loop handles that.
+      * history caching uses the top-level `cache_control` (automatic breakpoint on the last block). Tools and system
+        stay identical for a whole run, because changing tools invalidates the entire cache.
+      * a refusal or max_tokens stop is RETURNED (stop_reason), not raised: the loop decides what to do.
+    Every turn is logged to logs/llm_calls.jsonl like any other call, with the number of tool calls it made."""
+    model = model or DEFAULT_MODEL
+    kwargs: dict = {
+        "model": model, "max_tokens": max_tokens, "messages": messages,
+        "output_config": {"effort": effort}, "cache_control": {"type": "ephemeral"},
+    }
+    if system:
+        kwargs["system"] = system
+    if tools:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = {"type": "auto", "disable_parallel_tool_use": True}
+
+    entry = {"ts": datetime.now(timezone.utc).isoformat(), "step": step, "source_id": source_id, "model": model,
+             "effort": effort}
+    t0 = time.monotonic()
+    client = _get_client()
+    if hasattr(client, "with_options"):
+        client = client.with_options(max_retries=0)   # retries are the AGENT LOOP's job, so each one is traced
+    try:
+        resp = client.messages.create(**kwargs)
+    except anthropic.APIError as e:
+        entry.update(ok=False, seconds=round(time.monotonic() - t0, 2), error=f"{type(e).__name__}: {e}")
+        _log(entry)
+        raise
+    seconds = time.monotonic() - t0
+
+    content = [b.model_dump(mode="json", exclude_none=True) for b in resp.content]
+    cost = compute_cost(model, resp.usage)
+    cache_read = getattr(resp.usage, "cache_read_input_tokens", 0) or 0
+    cache_write = getattr(resp.usage, "cache_creation_input_tokens", 0) or 0
+    entry.update(
+        ok=resp.stop_reason not in ("refusal", "max_tokens"), seconds=round(seconds, 2), stop_reason=resp.stop_reason,
+        input_tokens=resp.usage.input_tokens, output_tokens=resp.usage.output_tokens,
+        cache_read_tokens=cache_read, cache_write_tokens=cache_write, cost_usd=round(cost, 6),
+        tool_calls=sum(1 for b in content if b["type"] == "tool_use"), request_id=resp._request_id,
+    )
+    _log(entry)
+    return LLMTurn(content=content, stop_reason=resp.stop_reason, model=model, input_tokens=resp.usage.input_tokens,
+                   output_tokens=resp.usage.output_tokens, cache_read_tokens=cache_read, cache_write_tokens=cache_write,
+                   cost_usd=cost, seconds=seconds)
+
+
+def spend_summary(path: Path = LOG_PATH, round_no: int | None = 1) -> dict:
+    """Totals from the log, overall and per step / per source, for ONE round. The default is round 1, so the figures
+    quoted in the first submission (README, WRITEUP) never move when round-2 calls are logged. Lines without a "round"
+    field are round 1. Pass round_no=None for every round combined; spend_by_round() gives them side by side."""
     totals = {"calls": 0, "cost_usd": 0.0, "input_tokens": 0, "output_tokens": 0, "seconds": 0.0}
     by_step: dict[str, float] = {}
     by_source: dict[str, float] = {}
     if not path.exists():
-        return {"total": totals, "by_step": by_step, "by_source": by_source}
+        return {"round": round_no, "total": totals, "by_step": by_step, "by_source": by_source}
     for line in path.read_text().splitlines():
         e = json.loads(line)
+        if round_no is not None and e.get("round", 1) != round_no:
+            continue
         totals["calls"] += 1
         totals["seconds"] += e.get("seconds", 0)
         c = e.get("cost_usd", 0.0)
@@ -185,7 +317,15 @@ def spend_summary(path: Path = LOG_PATH) -> dict:
         by_step[e["step"]] = by_step.get(e["step"], 0.0) + c
         src = e.get("source_id") or "-"
         by_source[src] = by_source.get(src, 0.0) + c
-    return {"total": totals, "by_step": by_step, "by_source": by_source}
+    return {"round": round_no, "total": totals, "by_step": by_step, "by_source": by_source}
+
+
+def spend_by_round(path: Path = LOG_PATH) -> dict[int, dict]:
+    """{round: spend_summary} for every round present in the log, reported separately, never blended."""
+    if not path.exists():
+        return {}
+    rounds = sorted({json.loads(line).get("round", 1) for line in path.read_text().splitlines()})
+    return {r: spend_summary(path, r) for r in rounds}
 
 
 if __name__ == "__main__":
@@ -201,4 +341,5 @@ if __name__ == "__main__":
         },
     )
     print(r.data, f"${r.cost_usd:.6f}", f"{r.seconds:.1f}s")
-    print(spend_summary()["total"])
+    for rnd, summary in spend_by_round().items():
+        print(f"round {rnd}:", summary["total"])

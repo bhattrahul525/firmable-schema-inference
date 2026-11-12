@@ -70,7 +70,7 @@ records the licence, dates and SHA-256 of each downloaded file. Raw data is git-
 - Part 1: 2,440 de-duplicated datasets from 5 portals, 50 shortlisted. Hand-checked 20 at random: **14 yes, 5 no, 1 unsure,
   false positive rate 26.3%** (30% if the unsure one counts as wrong).
 - Part 2: 6 configs written by the agent, 4-7 LLM calls and $0.009-0.032 each (Haiku 5.5). 41 field verdicts across all
-  review rounds, 2 wrong (both WA name fields). Total API spend for the whole project: **$0.17** (computed from list prices).
+  review rounds, 2 wrong (both WA name fields). Total API spend for Round 1: **$0.17** (computed from list prices).
 - Part 3: 266 accepted links (40 businesses) and 119 looser links. Hand-checked 50 links covering **43 distinct businesses**.
   **Precision at the 0.80 threshold: 30 of 30 correct, 0 wrong, 0 unsure (95% interval 89-100%).** Looser band (0.60-0.80):
   19 correct, 0 wrong, **1 unsure (check 23)** of 20, i.e. 100% excluding unsure (interval 83-100%) and 95% counting unsure

@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.0
+Version: 2.2
 Last updated: 2026-11-12
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -26,12 +26,28 @@ the Part 1 outputs. Building starts in a new session; no hour budget applies (ti
 ## b. Agent
 
 **Loop.** System prompt, then the model picks one tool, the harness runs it, a capped result returns, repeat until a
-terminal outcome. Every call is appended to `logs/agent_runs/<source>/trace.jsonl`; a re-run replays the trace.
-The round-1 pipeline stays available as `--mode pipeline` (fallback).
+terminal outcome. The request uses `tool_choice` auto with parallel calls disabled (Sonnet 5.5 returns 400 for forced
+tool use); a reply with no tool call gets one nudge, and a second in a row ends the run. `finish` is owned by the
+harness: a tool registry cannot define it. The round-1 pipeline stays available as `--mode pipeline` (fallback).
+
+**Trace.** `logs/agent_runs/<source>/trace.jsonl`. Line 1 is a header: reference, input file SHA-256, model, code
+version. Every model turn, tool call and API retry follows. A re-run replays the trace (no model calls, no tool
+re-execution) and prints a REPLAY label; replayed turns are marked, and a `resume` event marks where live work
+restarts. Resuming is REFUSED (never cut-and-continue) if the header differs, or if a replayed event no longer matches
+what the run does, or if the input file's hash changes mid-run. Every line written to the trace or to
+`llm_calls.jsonl` passes through a redactor (API key, bearer tokens, header values).
+
+**API errors.** Transient errors (429, 5xx including overloaded, 408, connection and timeout errors) are retried with
+backoff (2 s, then 4 s), at most 3 attempts, each recorded as an `api_retry` event; the SDK's own retries are off so
+none are hidden. Any other error propagates, and re-running resumes from the trace.
+
+**Cost log.** Every call logged from now on carries `"round": 2` in `logs/llm_calls.jsonl`; lines without a round are
+round 1. `spend_summary()` reports round 1 by default and `spend_by_round()` reports each round separately, so round-2
+spend never changes the round-1 figures quoted in the first submission.
 
 | Tool | Does | Cap |
 |---|---|---|
-| `fetch` | The reference the human gave (URL, CKAN id, local path, CKAN datastore dump). Streams; progress lines go in the trace | 200 MB enforced while streaming (1,956 of 2,440 pool datasets publish no size) |
+| `fetch` | Only the task's reference. No arguments: lists its resources (index, name, format, size; never URLs; for a CKAN id this is the dataset's resource list). `resource_index`: downloads that one. The model never supplies a URL or path; redirects from the supplied reference are followed (max 5). Streams; progress lines go in the trace | 200 MB enforced while streaming (1,956 of 2,440 pool datasets publish no size) |
 | `list_members` / `list_sheets` | Archive members; workbook sheets with dimensions | 50 entries; 1 GB decompressed |
 | `sniff` | Magic bytes, encoding, delimiter guess, raw head | 12 lines x 300 chars |
 | `read_table` | Runs a parametric reader; returns headers, row count, first rows, or the error | 20 rows x 40 cols x 100 chars |
@@ -46,12 +62,14 @@ The round-1 pipeline stays available as `--mode pipeline` (fallback).
 | `finish` | Declares an outcome | see below |
 
 **Enforced by the harness**
-- The model can fetch only the reference the human supplied; a URL found inside a cell is never fetched.
+- `fetch` accepts no argument except `resource_index`; a URL or path found inside a cell is never fetched.
 - The held-out split is made when a table is first read; the model never sees held-out rows while proposing.
 - `finish` is refused unless both `validate` AND `critique` ran on the exact config being finished (matched by hash).
   The gate is "ran, and each issue fixed or answered", not "critic satisfied".
-- Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code.
-  At most 2 critique rounds.
+- Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code, after
+  which the harness re-validates (code) but does not re-critique: removing fields cannot add an error. At most 2
+  critique rounds.
+- "Finish refused twice in a row" means two consecutive refused `finish` calls; any other tool call resets the count.
 - `no_business_entities` requires `read_table` and `profile` to have run. `could_not_read` requires two reader
   attempts or a fetch failure.
 - Code computes `field_confidence` (lower of model confidence and parse rate; level G capped at 0.8),
@@ -61,12 +79,16 @@ The round-1 pipeline stays available as `--mode pipeline` (fallback).
 when to ask.
 
 **Terminal outcomes:** `validated_config`, `partial_config` (abstentions listed with reasons),
-`no_business_entities` (evidence cited), `could_not_read` (reason).
+`no_business_entities` (evidence cited), `could_not_read` (reader or fetch failure, with the reason), and
+`incomplete`, which only the harness can declare: the run ended (budget exhausted, repeated refusals, replies without a
+tool call, model refusal) before any config was proposed, with the reason.
 
-**Budget.** 40 tool calls, $1.00, and 4 minutes of wall-clock excluding download (the trace shows download
-progress). At 80% of any limit the harness tells the model to wrap up. At 100%, or when `finish` is refused twice
-in a row, the harness finalises itself: validate, abstain on failing fields, one critique, write the packet,
-outcome `partial_config`. No budget burn.
+**Budget.** 40 model turns (every model reply counts, text-only ones and the max_tokens retry included; a turn makes
+at most one tool call), $1.00, and 4 minutes of wall-clock excluding download (the trace shows download progress).
+At 80% of any limit the harness tells the model to wrap up, inside the next tool result (a text block after tool
+results can produce an empty reply). At 100%, or when `finish` is refused twice in a row, the harness finalises
+itself: validate, abstain on failing fields, one critique, write the packet, outcome `partial_config` (or
+`incomplete` if no config was ever proposed). No budget burn.
 
 ## c. Transforms and readers
 
@@ -297,3 +319,5 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 |---|---|---|---|
 | 2026-11-12 | 2.0 | Initial round-2 design: tool-using agent, three transform levels with sandboxed generated code, ASIC-register bridging, typed graph, generality benchmark, demo runbook | CTO feedback on the first submission: more agentic and generic ingestion, live demo on a random dataset, more creative entity resolution |
 | 2026-11-12 | 2.0 | Approved with seven edits: profiles count any source and add a single-source register-confirmed type; T3c and T4-postcode start loose with a hand-check promotion rule; people rule (own ABN may be an entity, no ABN or under a company's ABN is an edge endpoint only); xls reader added to core; critique gate and "key field missed" kept; register bridging uses unique registered current names (ambiguous refused); 12-hour limit and hour estimates removed; Demo path section added | Owner review before building |
+| 2026-11-12 | 2.1 | Build step 1 (agent loop, tool-use wrapper, guards, trace) and owner review: `tool_choice` auto with parallel calls off, plus a one-nudge rule for replies with no tool call; "finish refused twice in a row" defined as consecutive refusals; fifth, harness-only outcome `incomplete`; re-validate without re-critique after harness abstention; `finish` owned by the harness; `fetch` takes only `resource_index` (CKAN: resource list, pick by index; no model-supplied URLs; redirects followed); every model turn counts against the 40-call budget; trace header with input SHA-256, model and code version, resume refused on mismatch, REPLAY labels; transient API errors retried (max 3, traced); secrets redacted from trace and logs | Forced tool use is rejected by Sonnet 5.5; the owner required a refusal-on-mismatch trace, a single fetch rule, visible retries and no secret leakage; the live smoke test confirmed the request shapes |
+| 2026-11-12 | 2.2 | Cost log: every call logged from now on is tagged `"round": 2`; untagged lines are round 1; the spend summary reports the rounds separately (round 1 by default); the 12 smoke-test lines were retagged round 2 | Round-2 model calls must not change the round-1 cost figures in the README and WRITEUP |

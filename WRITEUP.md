@@ -3,7 +3,7 @@
 Numbers are measured unless marked *guess*; headline results are in the README. Cost is computed from list prices, not reconciled with an invoice.
 
 ## 1. Cost
-- **Whole project: $0.17** (60 calls, 459k input + 220k output tokens), including development and regenerated configs. Parts 1, 3, 4 use no model.
+- **Round 1: $0.17** (60 calls, 459k input + 220k output tokens), including development and regenerated configs. Parts 1, 3, 4 use no model.
 - **Onboarding one source** (Haiku 5.5): 4-7 calls, **$0.009-0.032** (median $0.014), 57-130k input + 12-43k output tokens, 1-3 minutes of model time, ~5 minutes of human review. **Per record: $0** (deterministic extraction, under 2 seconds for 5,000 rows).
 - *Guess:* Sonnet 5.5 would cost ~20x more for the same tokens, roughly $0.2-0.6 per source. Not run: **all six configs and the seventh-source test used Haiku 5.5**.
 

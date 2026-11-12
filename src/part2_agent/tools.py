@@ -1,0 +1,65 @@
+"""Tool mechanics for the round-2 agent (ARCHITECTURE.md section b).
+
+This file defines WHAT a tool is, not the tools themselves (those arrive in build step 2). The harness
+(guard.py, loop.py) only ever sees tools through these two small types.
+
+Status contract between a tool and the harness. A tool puts machine-readable facts in `ToolResult.status`; the guard
+reads ONLY these keys, never the model's own words:
+  validate  -> {"hard_failures": int, "failing_fields": [str]}
+  critique  -> {"issues": [{"id": str, "field": str, "problem": str}]}
+  anything else -> free-form
+`ToolResult.text` is written by our code (trusted). `ToolResult.payload` is dataset content (untrusted): it is capped
+and wrapped in a <data> block before the model sees it.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable
+
+
+@dataclass
+class ToolContext:
+    """What a tool may use. `reference` is the ONE thing the human asked us to ingest (url, CKAN id or path)."""
+    source_id: str
+    reference: str
+    work_dir: Path
+    state: dict = field(default_factory=dict)  # tool-to-tool memory (e.g. the held-out row partition, step 2)
+    fetcher: Any = None   # the harness's FetchGuard: the fetch tool lists and resolves resources through it, and sets
+                          # state["input_sha256"] once the input file is on disk (the loop pins it in the trace)
+
+
+@dataclass
+class ToolResult:
+    text: str = ""                    # trusted explanation written by our code
+    payload: Any = None               # untrusted dataset content: list of rows, dict, string...
+    status: dict = field(default_factory=dict)  # machine-readable facts for the guard (see module docstring)
+    is_error: bool = False
+    cost_usd: float = 0.0             # a tool that calls a model (critique) reports its cost so the budget counts it
+    download_seconds: float = 0.0     # excluded from the wall-clock budget (the trace shows download progress)
+
+
+@dataclass(frozen=True)
+class ToolSpec:
+    name: str
+    description: str
+    input_schema: dict
+    run: Callable[[dict, ToolContext], ToolResult]
+    # output caps, applied by the HARNESS to the payload (a tool cannot opt out)
+    max_rows: int | None = None
+    max_cols: int | None = None
+    max_cell_chars: int = 100
+    max_chars: int = 6000             # hard ceiling on everything the model sees from one call
+    max_uses: int | None = None       # e.g. critique 2, ask_human 1 (section b)
+
+    def api_schema(self) -> dict:
+        """The tool definition sent to the API. Same for the whole run (changing tools breaks the prompt cache)."""
+        return {"name": self.name, "description": self.description, "input_schema": self.input_schema}
+
+
+def registry(*specs: ToolSpec) -> dict[str, ToolSpec]:
+    names = [s.name for s in specs]
+    if len(set(names)) != len(names):
+        raise ValueError(f"duplicate tool names: {names}")
+    return {s.name: s for s in specs}
