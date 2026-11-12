@@ -1,6 +1,0 @@
-onboarding bench_injc_clean2 (round-2 agent, model claude-haiku-5-5)
-    download complete: 12,949 bytes
-outcome: validated_config
-turns=10 tool_calls=10 cost=$0.0067 agent_seconds=30.58 wall_clock_seconds=30.6
-tool sequence: fetch -> fetch -> sniff -> read_table -> profile -> check_unique -> validate -> critique -> validate -> finish
-packet: outputs/benchmark/dev_seed1/pass_c/configs/bench_injc_clean2.review.md

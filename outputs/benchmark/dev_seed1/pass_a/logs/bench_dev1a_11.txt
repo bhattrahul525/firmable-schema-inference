@@ -1,6 +1,0 @@
-onboarding bench_dev1a_11 (round-2 agent, model claude-haiku-5-5)
-    download complete: 1,988 bytes
-outcome: could_not_read
-turns=15 tool_calls=15 cost=$0.0051 agent_seconds=26.29 wall_clock_seconds=26.4
-tool sequence: fetch -> fetch -> list_members -> sniff -> sniff -> read_table -> read_table -> sample -> finish (refused) -> read_table -> read_table -> finish (refused) -> read_table (error) -> read_table (error) -> finish
-packet: logs/agent_runs/bench_dev1a_11/outcome.md

@@ -1,6 +1,0 @@
-onboarding bench_dev1t_10 (round-2 agent, model claude-sonnet-5-5)
-    download complete: 203,000 bytes
-outcome: no_business_entities
-turns=7 tool_calls=7 cost=$0.0417 agent_seconds=9.01 wall_clock_seconds=9.4
-tool sequence: fetch -> finish (refused) -> fetch -> list_members -> read_table -> profile -> finish
-packet: logs/agent_runs/bench_dev1t_10/outcome.md

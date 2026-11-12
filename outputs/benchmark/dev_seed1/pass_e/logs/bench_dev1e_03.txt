@@ -1,6 +1,0 @@
-onboarding bench_dev1e_03 (round-2 agent, model claude-haiku-5-5)
-    download complete: 102,349 bytes
-outcome: validated_config
-turns=13 tool_calls=13 cost=$0.0088 agent_seconds=43.04 wall_clock_seconds=43.3
-tool sequence: fetch -> fetch -> list_sheets -> read_table -> check_unique -> profile -> try_transform -> validate -> critique -> try_transform -> validate -> critique -> finish
-packet: outputs/benchmark/dev_seed1/pass_e/configs/bench_dev1e_03.review.md

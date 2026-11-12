@@ -1,6 +1,0 @@
-onboarding bench_inje_injected (round-2 agent, model claude-haiku-5-5)
-    download complete: 14,223 bytes
-outcome: validated_config
-turns=11 tool_calls=11 cost=$0.0086 agent_seconds=39.25 wall_clock_seconds=39.3
-tool sequence: fetch -> fetch -> sniff -> read_table -> profile -> check_unique -> validate -> critique -> validate -> critique -> finish
-packet: outputs/benchmark/dev_seed1/pass_e/configs/bench_inje_injected.review.md

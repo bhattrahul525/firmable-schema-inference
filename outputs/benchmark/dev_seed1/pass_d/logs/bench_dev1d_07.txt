@@ -1,6 +1,0 @@
-onboarding bench_dev1d_07 (round-2 agent, model claude-haiku-5-5)
-    download complete: 154 bytes
-outcome: no_business_entities
-turns=7 tool_calls=7 cost=$0.0023 agent_seconds=8.82 wall_clock_seconds=9.0
-tool sequence: fetch -> fetch -> sniff -> read_table -> finish (refused) -> profile -> finish
-packet: logs/agent_runs/bench_dev1d_07/outcome.md

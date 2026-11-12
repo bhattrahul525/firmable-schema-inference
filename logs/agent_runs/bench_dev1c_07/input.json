@@ -1,9 +1,0 @@
-{
- "resource_index": 2,
- "path": "data/raw/sources/bench_dev1c_07/south-australian-signalised-intersections-and-crossings.csv",
- "file": "south-australian-signalised-intersections-and-crossings.csv",
- "bytes": 144,
- "sha256": "1eedcfe10d61e3acbc9b4a1725ab208b64083e4465e71809707fae39e8c12a08",
- "switched_from": 1,
- "switch_reason": "Resource 1 downloaded a luminaire tariff count rather than the signalised intersections data its title describes; resource 2 is the other CSV of the same dataset."
-}

@@ -151,3 +151,13 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
 - During build: run only affected test files. Full suite once at the end.
 - Always: pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15
 - Never paste full test output into reports; give count + pass/fail + first failure line.
+
+## Cleanup rule (end of every build)
+- Before reporting, list files you created or modified this session (git status, read-only). For each NEW file, decide: keep or remove.
+- KEEP: source, tests, docs, plans in reviews/, small fixtures tests need, benchmark summary files used as evidence.
+- REMOVE (delete from local disk): scratch scripts, temp files, duplicate or superseded outputs, per-run dumps and caches, debug logs, anything you created only to check something.
+- Only delete files YOU created this session. Never delete: .env, seed 2 data, datasets, files the user added, or files that were already tracked.
+- If a new run output or log folder is generated data, add it to .gitignore instead of leaving it for commit.
+- If unsure whether to keep a file, keep it and list it under "UNSURE" in the report.
+- Report one line: "Removed: <files>. Kept new: <files>. UNSURE: <files>."
+- Never run git add, commit, push, rm, or any command that changes the repo. The user does all git steps.

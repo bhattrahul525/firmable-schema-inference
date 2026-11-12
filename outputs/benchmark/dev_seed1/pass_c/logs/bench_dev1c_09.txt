@@ -1,6 +1,0 @@
-onboarding bench_dev1c_09 (round-2 agent, model claude-haiku-5-5)
-    download complete: 119,471 bytes
-outcome: no_business_entities
-turns=6 tool_calls=6 cost=$0.0025 agent_seconds=9.29 wall_clock_seconds=9.4
-tool sequence: fetch -> fetch -> list_sheets -> read_table -> profile -> finish
-packet: logs/agent_runs/bench_dev1c_09/outcome.md
