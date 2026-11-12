@@ -10,6 +10,8 @@ from the hand check: we report measured precision per tier, never the score as a
 
 from __future__ import annotations
 
+from src.part3_resolve.features import name_core
+
 MATCHER_VERSION = "m1.0"
 ACCEPT = 0.80  # main threshold: links at or above are proposed
 LOOSE = 0.60   # looser threshold: [0.60, 0.80) is reported separately; below is the unlinked queue
@@ -57,7 +59,25 @@ def score_m1_0(f: dict) -> tuple[float, str, str | None]:
     return 0.50, "T3_fuzzy", "similar_name_not_exact"
 
 
-SCORERS = {"m1.0": score_m1_0}
+# Words that say where or what kind of company it is, not WHICH company. Two names that share only these
+# ("Cantel (Australia)" / "Steris Australia") should not count as agreeing.
+GENERIC_WORDS = {"australia", "australian", "australasia", "group", "services", "holdings", "international",
+                 "pacific", "global", "solutions", "company", "queensland", "nsw", "victoria", "and", "of"}
+
+
+def score_m1_1(f: dict) -> tuple[float, str, str | None]:
+    """m1.0 plus one rule, computed ONLY from the features stored on each link (so it can be applied to old
+    links without re-reading any source): an identifier match whose names share nothing but generic words
+    is refused instead of accepted."""
+    conf, tier, why = score_m1_0(f)
+    if tier.startswith(("T1", "T2")) and conf >= ACCEPT and not f["shared_trading_name"]:
+        shared = set(name_core(f["name_a"]).split()) & set(name_core(f["name_b"]).split())
+        if not shared - GENERIC_WORDS:
+            return 0.40, tier, "identifier_match_but_only_generic_words_shared"
+    return conf, tier, why
+
+
+SCORERS = {"m1.0": score_m1_0, "m1.1": score_m1_1}
 
 
 def band(conf: float) -> str:

@@ -1,0 +1,79 @@
+{
+  "from_versions": [
+    "m1.0"
+  ],
+  "to_version": "m1.1",
+  "thresholds": {
+    "accept": 0.8,
+    "loose": 0.6
+  },
+  "links_considered": 420,
+  "band_moves": {
+    "loose -> loose": 119,
+    "accepted -> accepted": 264,
+    "accepted -> refused": 2,
+    "refused -> refused": 35
+  },
+  "links_changed": 2,
+  "effect_on_hand_labelled_links": {
+    "accepted->refused hand label U": 1
+  },
+  "changed_links": [
+    {
+      "link_id": "6f0362b7dab9",
+      "a": {
+        "source_id": "act_notifiable_invoices",
+        "source_record_id": "row-3xdn~w93x~4jh9",
+        "entity_ref": "row-3xdn~w93x~4jh9#main:0"
+      },
+      "b": {
+        "source_id": "qld_health_contracts_2023_24",
+        "source_record_id": "h:a82e4a92cc81bd48",
+        "entity_ref": "h:a82e4a92cc81bd48#main:0"
+      },
+      "names": [
+        "TYCO AUSTRALIA PTY LIMITED",
+        "WORMALD AUSTRALIA PTY LTD"
+      ],
+      "from": [
+        "m1.0",
+        0.98,
+        "accepted"
+      ],
+      "to": [
+        "m1.1",
+        0.4,
+        "refused"
+      ],
+      "why": "identifier_match_but_only_generic_words_shared"
+    },
+    {
+      "link_id": "563db49d32e7",
+      "a": {
+        "source_id": "act_notifiable_invoices",
+        "source_record_id": "row-6tfe.wkbt.559c",
+        "entity_ref": "row-6tfe.wkbt.559c#main:0"
+      },
+      "b": {
+        "source_id": "qld_health_contracts_2023_24",
+        "source_record_id": "h:469234cd8d934a7c",
+        "entity_ref": "h:469234cd8d934a7c#main:0"
+      },
+      "names": [
+        "CANTEL (AUSTRALIA) PTY LTD",
+        "STERIS AUSTRALIA PTY LTD"
+      ],
+      "from": [
+        "m1.0",
+        0.98,
+        "accepted"
+      ],
+      "to": [
+        "m1.1",
+        0.4,
+        "refused"
+      ],
+      "why": "identifier_match_but_only_generic_words_shared"
+    }
+  ]
+}
