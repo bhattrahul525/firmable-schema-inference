@@ -1,0 +1,146 @@
+what_it_is: ACT construction occupations licensee disciplinary actions
+one_row_is: a licence disciplinary action
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Action Date
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields:
+- source: Licensee Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: licensee name
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 0
+    ok: 197
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: A.C.N
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: ACN
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 1
+    ok: 145
+    skipped_not_applicable: 50
+    rejected: 1
+    parse_rate: 0.9932
+unmapped:
+- source: Licence Number
+  reason: licence id, no ontology field
+- source: Occupation
+  reason: not ANZSIC
+- source: Occupation Class
+  reason: class
+- source: Licence Conditions/Endorsement
+  reason: n/a
+- source: Action Type
+  reason: n/a
+- source: Action End Date
+  reason: mostly N/A
+- source: Circumstances/Reasons
+  reason: free text
+- source: Action under review by the ACAT
+  reason: n/a
+- source: Period licensee can apply to ACAT for review expired
+  reason: n/a
+- source: Applicant has applied to ACAT for review and the review is incomplete
+  reason: n/a
+- source: Partnership details (Partnerships only)
+  reason: n/a
+- source: Compliance with Rectification Order
+  reason: n/a
+- source: Related licensees
+  reason: n/a
+- source: Licence Expiry Date
+  reason: n/a
+- source: Date stop work notice lifted
+  reason: n/a
+- source: Reason stop work notice lifted
+  reason: n/a
+needs_transform:
+- source: A.C.N
+  why: spaced ACNs need space removal
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government regulator
+source_id: bench_dev1s_05
+config_version: 1
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 197
+  observations_in_held_out: 539
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-81238d0f
+    field: entity.legal_name<-Licensee Name
+    problem: For individual licensees the Licensee Name is a person's name (e.g. 'JOHNSTONE, James', 'DARREN JOHN
+      EDGE'), not a registered legal entity name. Mapping it to legal_name states a registration the source does
+      not support.
+    severity: blocking
+    suggested_fix: Only emit legal_name for rows with an ACN or a company suffix (Pty Ltd). For individuals, skip
+      or map to a person-name field; keep entity_type unknown or sole_trader only if stated.
+  - id: c-b28f510b
+    field: entity.legal_name<-Licensee Name
+    problem: Trailing punctuation is left in the name ('DYNAMIC PROJECTS (AUS) PTY LTD,'). Clean_whitespace does
+      not strip it.
+    severity: advisory
+    suggested_fix: Add a transform to strip trailing commas and punctuation.
+  - id: c-22d5eb2c
+    field: valid_from
+    problem: The envelope valid_from is taken from Action Date, which is when a suspension/condition began, not
+      when the name or ACN claim became true. Also valid_to stays null even where Action End Date is given (e.g.
+      02/02/2026, 18/06/2026, 04/12/2018), so the suspension is shown as still current. The config does not document
+      this.
+    severity: advisory
+    suggested_fix: Document that valid_from is the action date, and populate valid_to from Action End Date when
+      it is not N/A, or avoid presenting it as validity of the entity claims.
+  - id: c-36f27361
+    field: status
+    problem: The dataset is a register of suspensions and conditions, but no status observation is emitted. Suspended
+      licensee information is dropped, and Action Type is unmapped.
+    severity: advisory
+    suggested_fix: Consider mapping Action Type 'Automatic Suspension' to status=suspended (licence-level, so with
+      caution), or flag it in a note.
+  - id: c-d235d589
+    field: observed_at
+    problem: observed_at (2026-09-30) comes from the resource's last-modified metadata, and it is later than many
+      action dates. This is a file-level timestamp and not necessarily when each record was stated.
+    severity: advisory
+    suggested_fix: Document that observed_at is the file modification time.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:29:34+00:00'

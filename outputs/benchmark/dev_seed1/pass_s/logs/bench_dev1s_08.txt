@@ -1,0 +1,5 @@
+onboarding bench_dev1s_08 (round-2 agent, model claude-sonnet-5-5)
+outcome: could_not_read
+turns=3 tool_calls=3 cost=$0.0256 agent_seconds=4.0 wall_clock_seconds=4.6
+tool sequence: fetch -> fetch (error) -> finish
+packet: logs/agent_runs/bench_dev1s_08/outcome.md

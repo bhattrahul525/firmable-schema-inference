@@ -170,12 +170,12 @@ class TestRunner(unittest.TestCase):
             self.assertEqual(log.read_text().strip(), "hi")
             self.assertEqual(RUN.subprocess_runner([sys.executable, "-c", "raise SystemExit(3)"], 20, log), "exit 3")
 
-    def test_main_runs_the_dev_draw_on_haiku_only(self):
+    def test_main_runs_the_dev_draw_on_haiku_or_sonnet_only_and_seed_1_only(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "draw.json"
             p.write_text(json.dumps({"seed": 2, "items": [], "injection": {}}))
             for argv, msg in ((["--draw", str(p), "--pass", "a", "--baseline", "0"], "dev draw"),
-                              (["--draw", str(p), "--pass", "a", "--baseline", "0", "--model", "claude-sonnet-5-5"], "Haiku")):
+                              (["--draw", str(p), "--pass", "a", "--baseline", "0", "--model", "claude-opus-5-5"], "Haiku or Sonnet")):
                 with mock.patch.object(sys, "argv", ["run", *argv]):
                     with self.assertRaises(SystemExit) as cm:
                         RUN.main()

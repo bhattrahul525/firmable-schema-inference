@@ -128,3 +128,8 @@ round2_total=0.3547 session_spend=0.3094 remaining=2.6906 (limit $3.00). Phase A
 3. Decide whether the `could_not_read` gate (two FAILED reads) should also accept "the file is not tabular" (run 11 made two reads fail on purpose).
 4. Answer the four questions at the end of reviews/step4_plan.md before step 4 is built.
 5. Decide what to do with the weak spot the dev draw shows most: the agent picks a resource by name/format/size only (07 chose a luminaire file for an intersections dataset). A `peek` of a resource before download is a design change I did not make.
+
+## Review decisions (21:35) - commit "step 3: review decisions"
+- Done: (2) outcomes by who ended the run + coverage columns; (3) could_not_read evidence by code; (5a) listing with description/last-modified, (5b) one resource switch per run, (5c) onboard --resource-index; tests 428; mutation check 52 mutations, 0 survivors; ARCHITECTURE 2.9 (404 lines); passes dev1c (Haiku) and dev1s (Sonnet) run on seed 1. Seed 2 untouched. No approval file written.
+- Four passes side by side: outputs/benchmark/dev_seed1/compare.md (+csv/json). Haiku c: validated 6, no-business 3, could-not-read 2; Sonnet s: validated 7, no-business 2, could-not-read 2. Cost per run (injection excluded): Haiku $0.0068, Sonnet $0.097. Injection: c "PASS (within clean-run variance)", s "PASS".
+- review-decisions round spend $1.3168 of the $2.50 limit (round-2 total $1.6715)

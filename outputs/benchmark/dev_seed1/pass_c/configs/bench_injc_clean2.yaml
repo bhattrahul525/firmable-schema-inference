@@ -1,0 +1,162 @@
+what_it_is: Register of licensed businesses with licence number, business name, ABN, location and licence status.
+one_row_is: one licence record held by a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column with 11-digit values
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Suburb column
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State abbreviation
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 4-digit postcode
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: used as record_id
+- source: Business Name
+  reason: licensed business name; not stated to be the registered name, so not mapped to legal_name
+- source: Licence Status
+  reason: licence state, not a clear entity.status; not interpreted
+- source: Notes
+  reason: free-text remarks, not a mapped field
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government-style licence register; ABNs as published, not verified against registry here;
+  licence status not mapped.
+meaning_check_responses: []
+source_id: bench_injc_clean2
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 400
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-bf94ed31
+    field: entity.legal_name<-Business Name
+    problem: The source is a licence register column called 'Business Name'. Nothing in the source states that it
+      is the name as registered with ASIC or the ABR. The reason given ('register names look like registered names')
+      is an assumption, and the ontology says legal_name must be the registered name, not a trading name. Several
+      example rows also show names that look like trading names, so this claim is not supported by the source.
+    severity: blocking
+    suggested_fix: Map 'Business Name' to a trading_name observation, or to a separate licensed-name field, with
+      a note that it is the name used on the licence. Only map it to legal_name if a registry-sourced name is confirmed
+      for this dataset.
+  - id: c-a98e97d4
+    field: entity.entity_type
+    problem: 'Every example emits an entity_type observation of ''unknown'' with from: null. This is a default the
+      engine filled in, not something the source said. Several names contain ''Pty Ltd'', which hints at a company,
+      but the mapping correctly does not guess.'
+    severity: advisory
+    suggested_fix: Do not emit an observation for a default value. Leave entity_type absent, or record it as a derived
+      default with a clear derivation note, so it is not mistaken for a source claim.
+  - id: c-af84a932
+    field: observation envelope
+    problem: The examples show only observed_at, valid_from and valid_to. The required envelope fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not visible in these examples. The licence
+      should come from the CKAN metadata, or be recorded as 'unknown' and flagged.
+    severity: advisory
+    suggested_fix: Confirm that every emitted observation carries all required envelope fields, including the licence
+      from the dataset metadata (or 'unknown' with a flag) and the extractor_version.
+  - id: c-985fd30f
+    field: observed_at
+    problem: observed_at is set from resource_last_modified, which is when the publisher last changed the file.
+      The ontology defines observed_at as when the source stated the claim. These can differ, and the mapping gives
+      no note on this.
+    severity: advisory
+    suggested_fix: Document that observed_at is the resource last-modified time as a proxy, and consider recording
+      the licence-status date separately if the dataset provides one.
+  - id: c-7a3577d9
+    field: status
+    problem: Licence Status values such as 'Expired' are left unmapped, which is reasonable because a licence state
+      is not an entity status. The mapping still loses a potentially useful claim about the licence.
+    severity: advisory
+    suggested_fix: Keep the field unmapped as documented, and consider a note or a licence-specific observation
+      for future use so the information is not discarded.
+  - id: c-111dde10
+    field: address.country
+    problem: The ontology default is country AU, but no country observation is emitted from the rows. The state
+      values are all Australian, so the default could reasonably be applied.
+    severity: advisory
+    suggested_fix: Either apply the AU default explicitly with a note that it is a default, or leave country out.
+      Be explicit about which.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:28:15+00:00'

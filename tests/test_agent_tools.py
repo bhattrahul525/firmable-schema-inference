@@ -66,7 +66,7 @@ class TestFetch(Env):
     def test_no_arguments_lists_resources_without_urls(self):
         self.start(self.src, fetch=False)
         res, rendered = self.call("fetch", {})
-        self.assertEqual(res.payload, [{"index": 0, "name": "in.csv", "format": "CSV", "size": None}])
+        self.assertEqual(res.payload, [{"index": 0, "name": "in.csv", "description": "", "format": "CSV", "size": None, "last_modified": None}])
         self.assertNotIn("http", rendered)
 
     def test_local_file_is_copied_hashed_and_described(self):
@@ -88,10 +88,10 @@ class TestFetch(Env):
         s = Session({"https://a.example.org/f.csv": Resp([b"a,b\n1,2\n"])})
         self.start("nsw:demo", fetch=False, session=s, resolver=PUBLIC, package_show=lambda p, n: PKG)
         self.assertFalse(self.call("fetch", {"resource_index": 0})[0].is_error)
-        res, _ = self.call("fetch", {"resource_index": 1})
+        res, _ = self.call("fetch", {"resource_index": 1})                 # a switch needs a reason
         self.assertTrue(res.is_error)
         self.assertNotIn("download_failed", res.status)
-        self.assertIn("one table", res.text)
+        self.assertIn("switch to a different resource ONCE, with a reason", res.text)
         again, _ = self.call("fetch", {"resource_index": 0})
         self.assertFalse(again.is_error)
         self.assertEqual(len(s.requested), 1)                    # not downloaded twice

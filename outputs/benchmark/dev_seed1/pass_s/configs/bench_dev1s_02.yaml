@@ -1,0 +1,88 @@
+what_it_is: JMEI exploration credit allocations to companies (2024-25 sheet)
+one_row_is: a company allocated credits
+reader:
+  format: xlsx
+  sheet: 2024-25
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - ABN
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: name of successful applicant
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Commissioners allocation $
+  reason: credit amount, no ontology field
+source_reliability:
+  identity: 0.9
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: ATO publication
+source_id: bench_dev1s_02
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 15
+  observations_in_held_out: 45
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-b04de3cf
+    field: entity.entity_type
+    problem: Every row is emitted as entity_type 'unknown' with no source column, although all names end in 'Limited'
+      or 'Ltd', which suggests a company. The default is safe under the ontology, but the mapping carries no richer
+      signal.
+    severity: advisory
+    suggested_fix: Optionally derive 'company' from a Limited/Ltd suffix as a flagged L1 derivation. Otherwise keep
+      'unknown'.
+  - id: c-03afdf43
+    field: entity.legal_name<-Name
+    problem: The source is a list of successful grant applicants. The Name column may be the name the applicant
+      used, not necessarily the registered legal name. The examples show registered-style names, so this is only
+      a caveat.
+    severity: advisory
+    suggested_fix: Lower the field_confidence for legal_name, or confirm the name against ABN lookup data later.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:28:54+00:00'

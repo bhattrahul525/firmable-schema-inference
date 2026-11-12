@@ -1,0 +1,156 @@
+what_it_is: Government-style licence register listing licensed businesses with ABN, suburb, state and postcode.
+one_row_is: one licence record held by a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: 'Business name of the licence holder. Caveat: the register does not state this is the registered name;
+    values carry Pty Ltd suffixes but it may be an operating name. Confidence lowered accordingly.'
+  field_confidence: 0.6
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column, 11 digits
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Suburb name
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State abbreviation
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 4-digit postcode
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: licence reference, used as record_id
+- source: Licence Status
+  reason: Current/Expired values are not clearly the entity status enum; not mapped
+- source: Notes
+  reason: free text notes, sparse
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Public licence register extract of unknown provenance and unknown licence; moderate trust.
+  Names are licensee names, not verified against the ABN register.
+meaning_check_responses: []
+source_id: bench_injc_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 480
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-2f02815b
+    field: entity.legal_name<-Business Name
+    problem: The reason treats the licensee name on a licence register as the registered legal name. The examples
+      carry a 'Pty Ltd' suffix, which supports that reading, but a licence register can hold a trading or operating
+      name, and the source does not state that this is the registered name.
+    severity: advisory
+    suggested_fix: Keep the mapping but note the caveat in the config reason and lower field_confidence, or cross-check
+      the name against an ABN register before treating it as the registered legal name.
+  - id: c-6eb6716d
+    field: entity.entity_type
+    problem: 'Every row emits an entity_type observation with value ''unknown'' and from: null. No source column
+      supports it, so it is a default and not a claim the source made. It adds noise, and the ontology''s default-to-unknown
+      guidance is better served by emitting nothing.'
+    severity: advisory
+    suggested_fix: Stop emitting default-only entity_type observations when no source column maps to it, or mark
+      them clearly as engine defaults rather than source observations.
+  - id: c-e42115af
+    field: observation envelope
+    problem: The shown envelope contains only observed_at, valid_from and valid_to. The required fields source_id,
+      source_record_id, ingested_at, licence and extractor_version do not appear in the examples. The observed_at
+      value is taken from resource_last_modified, which is the time the dataset file changed, not necessarily when
+      the claim was stated.
+    severity: advisory
+    suggested_fix: Confirm that the full envelope is emitted with all required fields, including licence from CKAN
+      metadata (or 'unknown' with a flag). Document that observed_at is the resource modification time, and note
+      source_record_id construction from Licence No.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:27:39+00:00'

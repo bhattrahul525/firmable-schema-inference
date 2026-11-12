@@ -183,7 +183,7 @@ class TestFinishGate(Base):
     def test_could_not_read_stays_reserved_for_reader_or_fetch_failure(self):
         ev = {"outcome": "could_not_read", "reason": "gave up"}
         res = self.run_loop([tool_turn("finish", ev, id="f1"), tool_turn("finish", ev, id="f2")])
-        self.assertIn("two reader attempts", self.tool_results(1)[0]["content"])   # refused: no reader failure yet
+        self.assertIn("two FAILED `read_table` calls", self.tool_results(1)[0]["content"])   # refused: no reader failure yet
         self.assertEqual(res.outcome, "incomplete")                                # NOT could_not_read
 
     def test_any_other_tool_call_resets_the_refusal_count(self):
@@ -200,7 +200,7 @@ class TestFinishGate(Base):
         cfg = {"fields": ["a", "b"], "bad": [], "issues": [issue]}
         base = [tool_turn("validate", {"config": cfg}, id="v"), tool_turn("critique", {"config": cfg}, id="c")]
         res = self.run_loop(base + [tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f")])
-        self.assertEqual(res.outcome, "partial_config")
+        self.assertEqual(res.outcome, "validated_config")                    # the agent's own finish was accepted
         self.assertEqual(res.config["fields"], ["a"])
         self.assertIn("unanswered", res.abstentions[0]["reason"])
         self.assertEqual(self.counter.runs["critique"], 1)      # re-validated by code, NOT re-critiqued
@@ -231,7 +231,7 @@ class TestFinishGate(Base):
         ev = {"outcome": "could_not_read", "reason": "encrypted workbook"}
         res = self.run_loop([tool_turn("read_table", {"fail": True}, id="r1"), tool_turn("finish", ev, id="f1"),
                              tool_turn("read_table", {"fail": True}, id="r2"), tool_turn("finish", ev, id="f2")])
-        self.assertIn("two reader attempts", self.tool_results(2)[0]["content"])
+        self.assertIn("two FAILED `read_table` calls", self.tool_results(2)[0]["content"])
         self.assertEqual((res.outcome, res.forced_by), ("could_not_read", None))
 
         self._tmp.cleanup(); self.setUp()
@@ -261,7 +261,7 @@ class TestFetchRule(Base):
         self.assertEqual(g.kind, "ckan")
         listing = g.list_resources()
         self.assertEqual([r["index"] for r in listing], [0, 1, 2])
-        self.assertEqual(listing[0], {"index": 0, "name": "Licences 2026", "format": "CSV", "size": 1200})
+        self.assertEqual(listing[0], {"index": 0, "name": "Licences 2026", "description": "", "format": "CSV", "size": 1200, "last_modified": None})
         self.assertNotIn("https://", json.dumps(listing))              # the model is never shown (or asked for) a URL
         self.assertEqual(g.resolve(2), "https://files.example.gov.au/c.xlsx")   # index -> URL happens inside the harness
         with self.assertRaises(FetchRefused):
@@ -281,7 +281,7 @@ class TestFetchRule(Base):
         self.assertEqual(FetchGuard("https://example.com/data/file.csv").kind, "url")
         self.assertEqual(FetchGuard("/tmp/my file.csv").kind, "path")
         one = FetchGuard("https://example.com/data/file.csv").list_resources()
-        self.assertEqual(one, [{"index": 0, "name": "file.csv", "format": "CSV", "size": None}])
+        self.assertEqual(one, [{"index": 0, "name": "file.csv", "description": "", "format": "CSV", "size": None, "last_modified": None}])
 
     def test_loop_refuses_a_url_from_a_cell_and_the_tool_never_runs(self):
         script = [tool_turn("fetch", {"ref": "https://evil.example.com/steal"}, id="f"),

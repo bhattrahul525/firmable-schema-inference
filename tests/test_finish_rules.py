@@ -169,7 +169,7 @@ class TestNarrowingRule(unittest.TestCase):
                          issue("observation envelope", "blocking", "3")])
         d = g.check({"outcome": "validated_config", "config": cfg("b")}, OK)
         self.assertTrue(d.ok)
-        self.assertEqual(d.outcome, "partial_config")
+        self.assertEqual(d.outcome, "validated_config")                              # accepted finish = validated, always
         self.assertEqual([a["field"] for a in d.abstentions], ["entity.b<-b", "observation envelope"])   # a's issue is gone
         ans = [{"issue_id": "i2", "action": "answered", "note": "n"}, {"issue_id": "i3", "action": "answered", "note": "n"}]
         d = g.check({"outcome": "validated_config", "config": cfg("b"), "answers": ans}, OK)
@@ -179,7 +179,7 @@ class TestNarrowingRule(unittest.TestCase):
         g, c = FinishGate(), cfg("a", "b")
         critiqued(g, c, [issue("entity.a<-a", "advisory", "1"), issue("entity.b<-b", "blocking", "2"), issue("envelope", "advisory", "3")])
         d = g.check({"outcome": "validated_config", "config": c}, OK)
-        self.assertEqual((d.outcome, [a["field"] for a in d.abstentions]), ("partial_config", ["entity.b<-b"]))   # only blocking abstains
+        self.assertEqual((d.outcome, [a["field"] for a in d.abstentions]), ("validated_config", ["entity.b<-b"]))   # only blocking abstains
         self.assertEqual([i["id"] for i in d.open_advisory], ["i1", "i3"])
         d = g.check({"outcome": "validated_config", "config": c, "answers": [{"issue_id": "i2", "action": "answered", "note": "n"}]}, OK)
         self.assertEqual((d.ok, d.outcome, d.abstentions), (True, "validated_config", []))     # the advisory ones may stay open
@@ -222,11 +222,11 @@ class TestEveryRefusalNamesTheNextCall(unittest.TestCase):
         g.ok_tools.update({"read_table", "profile"})
         d = g.check({"outcome": "no_business_entities"}, OK)
         self.assertIn("Call finish again with `evidence`", d.reason)
-        critiqued(g, c)
-        d = g.check({"outcome": "partial_config", "config": c}, OK)
-        self.assertIn("Call finish again with `abstentions`", d.reason)
-        g.failed_reads = 1
-        self.assertIn("Call `read_table` again", g.check({"outcome": "could_not_read", "reason": "r"}, OK).reason)
+        g2 = FinishGate()
+        g2.failed_reads = 1
+        d = g2.check({"outcome": "could_not_read", "reason": "r"}, OK)
+        self.assertIn("Call `sniff` now", d.reason)
+        self.assertIn("`read_table` with reader options", d.reason)
 
     def test_the_malformed_lists_refusal_shows_the_shape(self):
         d = FinishGate().check({"outcome": "validated_config", "config": cfg("a"), "answers": "x"}, OK)
@@ -382,7 +382,7 @@ class TestNoConfigWithoutFields(Base):
 
     def test_the_gate_refuses_a_config_with_no_mapped_field_and_names_the_next_call(self):
         for c in (cfg(), {"reader": {}, "unmapped": []}, {"fields": "x"}):
-            d = FinishGate().check({"outcome": "partial_config", "config": c, "abstentions": [{"field": "a", "reason": "r"}]}, OK, 2)
+            d = FinishGate().check({"outcome": "validated_config", "config": c, "abstentions": [{"field": "a", "reason": "r"}]}, OK, 2)
             self.assertFalse(d.ok)
             self.assertIn("maps none", d.reason)
             self.assertIn("outcome no_business_entities", d.reason)
@@ -415,16 +415,22 @@ class TestNoConfigWithoutFields(Base):
 class TestOutcomeDefinitions(unittest.TestCase):
     """Generic wording only: nothing here may name a dataset, a column or a value."""
 
-    def test_prompt_and_finish_description_say_a_fix_is_not_an_abstention(self):
+    def test_prompt_and_finish_description_define_outcomes_by_who_ended_the_run(self):
         from src.part2_agent.agent_prompt import SYSTEM_TASK
         from src.part2_agent.loop import FINISH_SPEC
         flat = " ".join(SYSTEM_TASK.split())
-        self.assertIn("is a FIX, not an abstention", flat)
-        self.assertIn("Columns left in `unmapped` with reasons are normal", flat)
-        self.assertIn("because you could not get it right", flat)
-        self.assertIn("do not make a config partial", flat)
-        self.assertIn("dropping or re-mapping a field the critique showed was wrong is a fix", FINISH_SPEC.description)
-        self.assertIn("Use validated_config when the config is complete for what the source supports", FINISH_SPEC.description)
+        self.assertIn("the outcome is decided by who ended the run", flat)
+        self.assertIn("your own finish was accepted", flat)
+        self.assertIn("is a FIX", flat)
+        self.assertIn("How much the config covers is measured separately", flat)
+        self.assertIn("If the harness ends the run first", flat)
+        self.assertIn("You never declare those", flat)
+        self.assertIn("Your own statement is not enough", flat)
+        d = " ".join(FINISH_SPEC.description.split())
+        self.assertIn("If your finish is accepted the outcome is validated_config", d)
+        self.assertNotIn("partial_config", d)
+        self.assertEqual(FINISH_SPEC.input_schema["properties"]["outcome"]["enum"],
+                         ["validated_config", "no_business_entities", "could_not_read"])
 
     def test_the_task_prompt_and_tool_text_mention_no_dataset(self):
         from src.part2_agent import agent_prompt

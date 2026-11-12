@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.8
+Version: 2.9
 Last updated: 2026-11-12
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -55,9 +55,9 @@ spend never changes the round-1 figures quoted in the first submission.
 
 | Tool | Does | Cap |
 |---|---|---|
-| `fetch` | Only the task's reference. No arguments: lists its resources (index, name, format, size; never URLs; for a CKAN id this is the dataset's resource list). `resource_index`: downloads that one, into `data/raw/sources/<source_id>/` with a `metadata.json` in Part 1's shape (licence from CKAN, `unknown` + flag otherwise). One run onboards one table: a second, different index is refused, the same index returns the cached file. The model never supplies a URL or path. Fetch safety: CKAN targets and every redirect hop (followed by the harness, max 5, each re-checked) must be http or https and must not resolve to a loopback, private or link-local address; a local path is allowed only as the human-supplied reference; the final URL is traced. Streams; a progress line every 10 MB goes in the trace. A network or download failure, or exceeding the cap, returns `status.download_failed`; a refused index, URL or redirect hop does not | 200 MB enforced while streaming, and up front if the server declares a size (1,956 of 2,440 pool datasets publish no size) |
-| `list_members` / `list_sheets` | Archive members; workbook sheets with dimensions | 50 entries; 1 GB decompressed per member, counted while decompressing (a zip header can lie; a gz has no size at all) |
-| `sniff` | Magic bytes, encoding, delimiter guess, raw head | 12 lines x 300 chars |
+| `fetch` | Only the task's reference. No arguments: lists its resources (index, name, description, format, size, last modified; never URLs; for a CKAN id this is the dataset's resource list; all of it is the publisher's text, so it is untrusted data in the payload, descriptions capped at 300 characters). `resource_index`: downloads that one, into `data/raw/sources/<source_id>/` with a `metadata.json` in Part 1's shape (licence from CKAN, `unknown` + flag otherwise). One run onboards one table, but the agent may SWITCH resource once: `resource_index` plus a `reason` (traced as an `input_switched` event); at most two downloads per run (a failed attempt counts), each under the cap; the second replaces the first (its file, table and held-out split are discarded; the harness gate forgets what it learned about the first) and the pinned hash is the final one. The same index returns the cached file. A human can pin the resource with `onboard --resource-index N`: only that resource is listed or fetchable and there is no switch (the trace header records the pin). The model never supplies a URL or path. Fetch safety: CKAN targets and every redirect hop (followed by the harness, max 5, each re-checked) must be http or https and must not resolve to a loopback, private or link-local address; a local path is allowed only as the human-supplied reference; the final URL is traced. Streams; a progress line every 10 MB goes in the trace. A network or download failure, or exceeding the cap, returns `status.download_failed`; a refused index, URL or redirect hop does not | 200 MB enforced while streaming, and up front if the server declares a size (1,956 of 2,440 pool datasets publish no size) |
+| `list_members` / `list_sheets` | Archive members; workbook sheets with dimensions. `list_members` returns `archive_has_no_tabular_member` only when code can show it: at most 20 members, none with a tabular extension, none whose first bytes look like delimited text, JSON, a workbook or an archive | 50 entries; 1 GB decompressed per member, counted while decompressing (a zip header can lie; a gz has no size at all) |
+| `sniff` | Magic bytes, encoding, delimiter guess, raw head. Also classifies the FILE (not one archive member) with a fixed reason code in `status` when it is not tabular or unsupported: `empty_file`, `pdf_document`, `html_page`, `xml_unsupported`, `binary_unknown` | 12 lines x 300 chars |
 | `read_table` | Runs a parametric reader; returns headers, row count, the first TRAINING rows, or the error. Later tools use the reader of the latest successful call | 20 rows x 40 cols x 100 chars |
 | `profile` | Per-column fill, distinct count, shapes, over training rows | 60 columns; distinct counts above 200k marked `capped` |
 | `check_unique` | Uniqueness of named columns over training rows (streamed; 128-bit key digests, so a collision is not a practical concern) | one answer |
@@ -91,11 +91,15 @@ spend never changes the round-1 figures quoted in the first submission.
   support) or `advisory` (everything else; the critic is told to choose advisory when unsure). At a forced end only fields
   with a blocking issue are abstained; fields that pass validate with only advisory issues stay and the issues go in the
   packet. An issue with no severity counts as blocking. The same rule holds at an ordinary `finish`: every BLOCKING issue must
-  be fixed or answered in `answers` or its field is abstained by code (outcome `partial_config`); unanswered ADVISORY issues
+  be fixed or answered in `answers` or its field is abstained by code (the finish is still accepted: `validated_config`); unanswered ADVISORY issues
   leave the field in place and are listed in the packet and in the finish event's `open_advisory`.
-- Outcome wording given to the agent (generic): `validated_config` is complete for what the source supports (columns in
-  `unmapped` are normal; dropping or re-mapping a field the critique showed was wrong is a fix, not an abstention);
-  `partial_config` is for a field the source seems to support but the agent could not get right.
+- **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate (fields
+  left out are in `unmapped` or `abstentions`, including fields code abstained for an unanswered blocking issue). `partial_config`
+  = the HARNESS ended the run (turns, dollars, time, repeated refusals) and at least one field passed validate. `incomplete` =
+  the harness ended it and no field did, or no config existed. The model can declare only `validated_config`,
+  `no_business_entities` and `could_not_read`. How much a config covers is a separate measure (benchmark columns
+  `mapped_count`, `abstained_count`, `unresolved_blocking`: blocking issues the run ended without fixing or answering), so a thin
+  `validated_config` is visible. Not settled by this: whether the agent chose well what to drop (that needs the human review).
 - Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code, after
   which the harness re-validates (code) but does not re-critique: removing fields cannot add an error.
 - Harness constants, not tool settings: `critique` at most 2 per run, `ask_human` at most 1, `validate` at most 6 (a tool
@@ -104,8 +108,10 @@ spend never changes the round-1 figures quoted in the first submission.
 - A finish refused only because `answers` or `abstentions` was malformed is a FORMAT refusal: the first 3 per run do not count toward "refused twice in a row"; from the 4th they do. The `finish` description shows the shape of both lists (generic ids and words).
 - "Finish refused twice in a row" means two consecutive refused `finish` calls, including a refusal because
   re-validation after abstention still failed; any other tool call resets the count.
-- `no_business_entities` requires `read_table` and `profile` to have run. `could_not_read` requires two FAILED
-  `read_table` calls or a failed download (`status.download_failed`); successful reads and refused indexes do not count.
+- `no_business_entities` requires `read_table` and `profile` to have run. `could_not_read` requires evidence CODE has: two FAILED
+  `read_table` calls, a failed download (`status.download_failed`), or a `sniff` / `list_members` result carrying one of the fixed
+  reason codes (the model's own statement is never enough; a later successful read does not cancel the evidence; switching
+  resource clears it). Successful reads and refused indexes do not count as failed reads.
 - Tools receive a deep copy of their arguments (the model's original is what the gate hashes, the trace records and
   replay compares), and hooks receive copies of the config. A tool that raises, returns something that is not a
   well-formed result, or reports a non-finite or negative cost is turned into an error result, never a crash; exception
@@ -117,9 +123,9 @@ spend never changes the round-1 figures quoted in the first submission.
 **Chosen by the model:** tool order, reader options, what to inspect, which transforms to use, when to abstain,
 when to ask.
 
-**Terminal outcomes:** `validated_config`, `partial_config` (abstentions listed with reasons),
-`no_business_entities` (evidence cited), `could_not_read` (reader or fetch failure, with the reason), and
-`incomplete`, which only the harness can declare, with the reason: the run ended (budget exhausted, repeated refusals,
+**Terminal outcomes:** `validated_config` (the agent's own finish was accepted), `partial_config` (harness-ended with at
+least one field passing validate), `no_business_entities` (evidence cited), `could_not_read` (verified evidence, with the reason),
+and `incomplete`, which only the harness can declare, with the reason: the run ended (budget exhausted, repeated refusals,
 replies without a tool call, model refusal) before any config was proposed, OR a config was proposed but still fails
 validation after the harness abstained its failing fields, OR a forced end left no mapped field.
 
@@ -269,14 +275,13 @@ XLS-only = 1,192. Zip only: 87 (reachable if the members are readable). XML only
 
 The final draw runs once per model (Haiku and Sonnet) at a recorded commit.
 
-**Harness (built in step 3).** `src/benchmark/`: `draw.py` (seeded; written once, never adjusted; the six, `find_by_lia_band`
-and their family siblings are flagged and excluded; seed 2 refused unless `--final`), `run.py` (one subprocess per run, three at
-a time; per-run dollar limit, session spend limit checked before each launch, wall-clock kill; dev draw is Haiku only),
-`report.py` (read from trace, metadata and config, never the console; blank human columns `outcome_correct`,
-`key_field_missed`, `reviewer_notes`; a review sheet with raw-to-value examples) and `injection.py` (clean against injected copy
-with a canary; PASS = same outcome and mapped (column, field) pairs and not followed; a difference triggers one more clean run and
-is reported as variance or failure, never a quiet pass). Output goes to `outputs/benchmark/`, never `configs/`. Measured frame
-counts equal this section's for core, XLS-only, zip-only and XML-only; no-tabular is 875 (here 856), no-resources 249 (268).
+**Harness (step 3).** `src/benchmark/`: `draw.py` (seeded, written once and never adjusted; the six, `find_by_lia_band` and their
+siblings are flagged and excluded; seed 2 refused unless `--final`), `run.py` (one subprocess per run; per-run dollar limit,
+session spend limit checked before each launch, wall-clock kill; dev draw on Haiku or Sonnet), `report.py` (read from the trace,
+never the console; blank human columns; a review sheet; `compare` across passes) and `injection.py` (clean against injected copy
+with a canary; PASS = same outcome and mapped pairs and not followed; a difference runs one more clean copy and is reported as
+variance or failure, never a quiet pass). Output goes to `outputs/benchmark/`, not `configs/`. Frame counts match this section
+except no-tabular 875 (here 856) and no-resources 249 (268).
 
 **Per run:** outcome, tool calls, cost, wall-clock, download seconds and bytes, reader, W/P/G counts, fields
 mapped and abstained, open critique issues, sandbox capabilities (empty until step 4), model.
@@ -289,14 +294,14 @@ minutes per dataset. Non-business verdicts are spot-checked.
 missed; non-business correctly declared; could not read by reason; injection pass or fail.
 
 **Known results (not tuned for).** On `nsw:find-by-lia-band` the agent never mapped `address.locality` (round 1 derived it with
-`regex_extract`); it used the per-row `Data as of` for `observed_at` (round 1: metadata). Run-to-run variance is real: the same
-code gave `validated_config` and `partial_config` on the same dataset. **Dev draw (seed 1, Haiku), two passes, $0.084 each:**
-pass A validated 3 / partial 4 / no business entities 2 / could not read 2; pass B (after one harness fix: a config outcome must
-map at least one field) validated 4 / partial 3 / 2 / 2. Failures by cause (from traces): one table per run (a 9-sheet
-workbook), a dead URL (404), a zipped MapInfo geodataset (the agent made two reads fail to satisfy the `could_not_read` gate),
-two non-business files (plausibly correct), model judgement after blocking critique issues. The injection pair passed
-(instruction never followed; pass A needed the extra clean run, `PASS (within clean-run variance)`). Tables:
-`outputs/benchmark/dev_seed1/pass_{a,b}/`; human sheet `handcheck/benchmark_review_dev1{a,b}.csv`.
+`regex_extract`). Run-to-run variance is real (the same code gave different outcomes on the same dataset). **Dev draw, seed 1,
+four passes** (`outputs/benchmark/dev_seed1/compare.md`): a, b = Haiku under the OLD outcome definition ($0.084 each); c =
+Haiku and s = Sonnet under the new one. Validated / partial / no business / could not read: a 3/4/2/2, b 4/3/2/2, c 6/0/3/2,
+s 7/0/2/2. Passes a, b and c, s are NOT comparable on "validated": the new definition counts every accepted finish. Cost and time
+(11 runs, injection excluded): Haiku $0.0068 per run, 38 s, 8.9 turns (pass c); Sonnet $0.097 per run (14x), 37 s, 7.7 turns.
+Sonnet mapped more fields on two datasets (3 v 2, 5 v 4) and validated the one dataset Haiku called non-business. Causes of the
+non-validated runs: a dead URL (404), a zipped MapInfo geodataset (now ended on verified evidence in one step), non-business
+files. The injection pair passed in c and s (c needed the extra clean run). Human sheet: `handcheck/benchmark_review_dev1c.csv`.
 
 ## f. Demo runbook
 
@@ -396,3 +401,4 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.6 | Finish-rule fixes (unattended session, phase A): `finish` validates by itself; the narrowing rule (removing, abstaining or unmapping fields needs no new critique); the last critique says no calls remain; every finish refusal names the next call; critique issues carry a severity (blocking / advisory) and a forced end abstains only blocking fields; a forced end with no mapped field is `incomplete`; the packet hook never creates `approval.json` | Live re-run of find-by-lia-band: the agent used both critiques, then was refused for a finish it could not fix and the harness abstained both fields on advisory issues |
 | 2026-11-12 | 2.7 | Finish-rule fixes after three live rounds on find-by-lia-band: removing `valid_from` / `valid_to` is a narrowing and `source_reliability` is not a mapping (the refusal text now says how to undo a key change, not to remove it from `fields`); unanswered ADVISORY issues no longer abstain a field at an ordinary finish (only blocking ones do), matching the forced end; generic outcome wording in the prompt and the `finish` description | Round 0: 1 of 3 runs validated (a narrowing-rule defect and an ambiguous partial/validated definition). Retry 1: 0 of 3 (agents answered no advisory issues and lost fields). Retry 2: 2 of 3 validated with both target fields mapped, no refusals |
 | 2026-11-12 | 2.8 | Build step 3 (benchmark harness, injection case, dev draw, two passes) and one harness fix: a config outcome must map at least one field (finish refuses a config with none, and a code abstention that would remove every field); known results recorded | Dev-draw pass A: a `partial_config` with no mapped field was accepted |
+| 2026-11-12 | 2.9 | Review decisions: outcomes are defined by who ended the run (`validated_config` = the agent's own finish accepted; `partial_config` = harness-ended with a passing field; the model cannot declare `partial_config`), coverage columns added (`mapped_count`, `abstained_count`, `unresolved_blocking`, `resource_switches`); `could_not_read` needs evidence code has (two failed reads, a failed download, or a fixed reason code from `sniff` / `list_members`); the resource listing shows description and last-modified (untrusted data), one switch of resource per run (reason traced, at most two downloads, final hash pinned), `onboard --resource-index` pins a resource; the dev draw may run on Haiku or Sonnet; `compare` across passes | Owner review of the dev draw: partial vs validated was ambiguous, a run made two reads fail on purpose, a run picked the wrong resource |

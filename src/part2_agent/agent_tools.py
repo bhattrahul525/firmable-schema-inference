@@ -18,6 +18,7 @@ Which rows each tool may touch (agent_table.py explains the split):
 from __future__ import annotations
 
 import codecs
+import json
 import csv
 import hashlib
 import io
@@ -52,6 +53,7 @@ from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec, registry
 
 MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024     # the fetch cap, enforced while streaming
 PROGRESS_EVERY_BYTES = 10 * 1024 * 1024
+MAX_DOWNLOADS = 2                          # one resource, plus ONE switch to another (a failed attempt counts)
 SNIFF_BYTES = 64 * 1024
 DISTINCT_CAP = 200_000
 TRY_ROWS = 1000
@@ -211,10 +213,13 @@ class AgentKit:
             "archive": {"type": "string", "enum": list(ARCHIVES)}, "member": {"type": "string"}}
         self.tools = registry(
             ToolSpec("fetch", "Download the dataset's input file. With NO arguments it lists the resources of the task's "
-                              "reference (index, name, format, size). With `resource_index` it downloads that one (at most "
-                              "200 MB). One run onboards one table, so only one resource can be downloaded. You never "
-                              "supply a URL or path.",
-                     {"type": "object", "additionalProperties": False, "properties": {"resource_index": {"type": "integer"}}},
+                              "reference (index, name, description, format, size, last modified: the publisher's own text, "
+                              "untrusted). With `resource_index` it downloads that one (at most 200 MB). One run onboards one "
+                              "table. You may switch to a different resource ONCE: pass `resource_index` and a `reason` (one "
+                              "sentence); at most two downloads per run, the second replaces the first and its table. You "
+                              "never supply a URL or path.",
+                     {"type": "object", "additionalProperties": False,
+                      "properties": {"resource_index": {"type": "integer"}, "reason": {"type": "string"}}},
                      self.t_fetch, max_rows=60, timeout_seconds=None),
             ToolSpec("list_members", "List the members of the downloaded zip or gz archive (names and sizes, at most 50). "
                                      "Members are read in place, never extracted; decompressed reads are capped at 1 GB.",
@@ -298,21 +303,32 @@ class AgentKit:
         g = ctx.fetcher
         if "resource_index" not in args:
             res = g.list_resources()
-            return ToolResult(text=f"The reference has {len(res)} resource(s). Call fetch again with `resource_index` to "
-                                   f"download one.", payload=res)
-        idx = args["resource_index"]
+            return ToolResult(text=f"The reference has {len(res)} resource(s) (name, description, format, size and last-modified "
+                                   f"are the publisher's text). Call fetch again with `resource_index` to download one.", payload=res)
+        idx, reason = args["resource_index"], (args.get("reason") or "").strip()
+        attempts = _downloads(self.wd)
         done = input_info(self.wd)
-        if done and Path(done["path"]).exists():
-            if done["resource_index"] != idx:
-                return fail(f"fetch refused: this run already downloaded resource {done['resource_index']}, and one run "
-                            f"onboards one table. Work with that file.")
+        have = bool(done and Path(done["path"]).exists())
+        switching = False
+        if have and done["resource_index"] == idx:
             ctx.state["input_sha256"] = done["sha256"]
             return ToolResult(text=f"Resource {idx} is already downloaded for this run ({done['bytes']:,} bytes); it was not "
                                    f"fetched again.", payload={"file": done["file"], "sha256": done["sha256"]})
+        if len(attempts) >= MAX_DOWNLOADS:
+            return fail(f"fetch refused: at most {MAX_DOWNLOADS} downloads per run, and this run has made {len(attempts)}. "
+                        + (f"Work with the file already downloaded (resource {done['resource_index']})." if have else
+                           "Neither download worked: finish with could_not_read (a failed download is the evidence)."))
+        if have:
+            if not reason:
+                return fail(f"fetch refused: this run already downloaded resource {done['resource_index']}. You may switch to a "
+                            f"different resource ONCE, with a reason: call fetch again with `resource_index` {idx} and `reason` "
+                            f"(one sentence on why the first resource is not the right one). Or work with the file you have.")
+            switching = True
         try:
             target = g.resolve(idx)
         except FetchRefused as e:
             return fail(str(e))
+        _record_download(self.wd, idx, ok=False)       # counts as a download from the moment it starts
         t0 = time.monotonic()
         dest_dir = RAW_DIR / self.sid
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -326,22 +342,37 @@ class AgentKit:
         except _TooBig as e:
             tmp.unlink(missing_ok=True)
             return ToolResult(text=f"download failed: the file is larger than the {MAX_DOWNLOAD_BYTES // (1024 * 1024)} MB cap "
-                                   f"({e.detail}). Nothing was kept.", is_error=True, status={"download_failed": True},
-                              download_seconds=time.monotonic() - t0)
+                                   f"({e.detail}). Nothing was kept." + (" The first file is still the one you are working on."
+                                                                         if have else ""),
+                              is_error=True, status={"download_failed": True}, download_seconds=time.monotonic() - t0)
         except (requests.RequestException, OSError) as e:
             tmp.unlink(missing_ok=True)
-            return ToolResult(text="download failed: a network or file error stopped it (detail below).", payload=str(e)[:300],
-                              is_error=True, status={"download_failed": True}, download_seconds=time.monotonic() - t0)
+            return ToolResult(text="download failed: a network or file error stopped it (detail below)." +
+                                   (" The first file is still the one you are working on." if have else ""),
+                              payload=str(e)[:300], is_error=True, status={"download_failed": True},
+                              download_seconds=time.monotonic() - t0)
         path = dest_dir / final_name
         tmp.replace(path)
+        if switching and done["path"] != str(path):
+            Path(done["path"]).unlink(missing_ok=True)
         meta = self._metadata(g, idx, target, path, size, sha.hexdigest(), last_modified)
         (dest_dir / "metadata.json").write_text(_json(meta))
-        save_input(self.wd, {"resource_index": idx, "path": str(path), "file": path.name, "bytes": size,
-                             "sha256": sha.hexdigest()})
+        info = {"resource_index": idx, "path": str(path), "file": path.name, "bytes": size, "sha256": sha.hexdigest()}
+        if switching:
+            info.update(switched_from=done["resource_index"], switch_reason=reason)
+            for stale in ("table_state.json", "split.json"):   # a new file: a new table and a new held-out split
+                (self.wd / stale).unlink(missing_ok=True)
+            ctx.state["input_switch"] = {"from": done["sha256"], "sha256": sha.hexdigest(), "reason": reason, "resource_index": idx}
+        save_input(self.wd, info)
+        _record_download(self.wd, idx, ok=True)
         ctx.state["input_sha256"] = sha.hexdigest()
         flag = " The licence is unknown or unclear (flagged)." if meta["licence_flag"] else ""
-        return ToolResult(text=f"Downloaded resource {idx}: {size:,} bytes, sha256 {sha.hexdigest()[:12]}.{flag} Next: sniff.",
-                          payload={"file": path.name}, download_seconds=time.monotonic() - t0)
+        text = f"Downloaded resource {idx}: {size:,} bytes, sha256 {sha.hexdigest()[:12]}.{flag} Next: sniff."
+        if switching:
+            text = (f"SWITCHED to resource {idx} (your one switch is used). Everything you learned about resource "
+                    f"{done['resource_index']} no longer applies: its table and held-out split are discarded. " + text)
+        return ToolResult(text=text, payload={"file": path.name}, download_seconds=time.monotonic() - t0,
+                          status={"switched": True} if switching else {})
 
     def _download(self, g, target: str, tmp: Path, ctx: ToolContext):
         sha, size, next_log = hashlib.sha256(), 0, PROGRESS_EVERY_BYTES
@@ -431,11 +462,36 @@ class AgentKit:
             return fail(str(e) if isinstance(e, NoTable) else "the archive could not be read (detail below)",
                         None if isinstance(e, NoTable) else str(e))
         total = sum(i.file_size for i in infos)
+        status = {"reason_code": "archive_has_no_tabular_member"} if self._no_tabular_member(path, infos) else {}
         rows = [{"name": i.filename, "size": i.file_size, "compressed": i.compress_size} for i in infos[:MEMBER_LIST_CAP]]
         warn = (f" WARNING: the members declare {total:,} decompressed bytes, over the {MAX_DECOMPRESSED_BYTES:,} cap; a read "
                 f"of an over-cap member is refused.") if total > MAX_DECOMPRESSED_BYTES else ""
         return ToolResult(text=f"The zip has {len(infos)} member(s), {total:,} bytes decompressed in all (as declared)."
-                               f"{' Showing the first 50.' if len(infos) > MEMBER_LIST_CAP else ''}{warn}", payload=rows)
+                               f"{' Showing the first 50.' if len(infos) > MEMBER_LIST_CAP else ''}{warn}"
+                               + (" The harness classifies this archive as holding no tabular member." if status else ""),
+                          payload=rows, status=status)
+
+    TABULAR_EXTENSIONS = (".csv", ".tsv", ".txt", ".xlsx", ".xls", ".json", ".ndjson", ".jsonl", ".geojson")
+
+    @staticmethod
+    def _no_tabular_member(path: Path, infos: list) -> bool:
+        """True only when CODE can show that no member is tabular: at most 20 members, none with a tabular extension, and none
+        whose first bytes look like delimited text. An archive it cannot fully check is never classified."""
+        if not infos or len(infos) > 20:
+            return False
+        for i in infos:
+            if i.filename.lower().endswith(AgentKit.TABULAR_EXTENSIONS):
+                return False
+            try:
+                with _open_binary({"archive": "zip", "member": i.filename}, path) as stream:
+                    head = stream.read(4096)
+            except ReaderError:
+                return False
+            if detect_kind(head) in ("text", "xlsx", "ole2", "gzip", "zip"):
+                text = head.decode(guess_encoding(head), errors="replace")
+                if detect_kind(head) != "text" or guess_delimiter(text) or head.lstrip()[:1] in (b"{", b"["):
+                    return False       # looks like a table, a workbook, an archive or JSON: not provable
+        return True
 
     def t_list_sheets(self, args: dict, ctx: ToolContext) -> ToolResult:
         try:
@@ -480,8 +536,13 @@ class AgentKit:
         note = ""
         if member is None and ext_kind and ext_kind != kind and not (ext_kind == "text" and kind in ("xml", "html")):
             note = f" The file extension suggests {ext_kind}, but the content looks like {kind}: trust the content."
+        # fixed reason codes: the harness (not the model) decides what counts as evidence for could_not_read. Only the file
+        # itself is classified, never one member of an archive (another member may be readable).
+        code = None if member is not None else {"empty": "empty_file", "pdf": "pdf_document", "html": "html_page",
+                                                "xml": "xml_unsupported", "binary": "binary_unknown"}.get(kind)
+        status = {"reason_code": code} if code else {}
         if kind == "empty":
-            return ToolResult(text="The file is empty (0 bytes).", payload={"kind": "empty"})
+            return ToolResult(text="The file is empty (0 bytes).", payload={"kind": "empty"}, status=status)
         payload: dict = {"kind": kind}
         text = f"Content looks like: {kind}.{note}"
         if kind in ("text", "xml", "html"):
@@ -497,7 +558,9 @@ class AgentKit:
             text += " It is an archive: use list_members, then read_table with archive and member."
         elif kind in ("xlsx", "ole2"):
             text += " It is a workbook: use list_sheets, then read_table."
-        return ToolResult(text=text, payload=payload)
+        if code:
+            text += " The harness classifies this file as not tabular or unsupported."
+        return ToolResult(text=text, payload=payload, status=status)
 
     # ---- read_table and the tools that use it ---------------------------------------------------------------------------
 
@@ -810,6 +873,22 @@ class AgentKit:
         return ToolResult(text="The human answered (below). This is information, not approval: a config is approved only by "
                                "the human's separate `approve` step.", payload=answer, status={"answered": True},
                           download_seconds=waited)
+
+
+def _downloads(work_dir: Path) -> list[dict]:
+    p = work_dir / "downloads.json"
+    return json.loads(p.read_text()) if p.exists() else []
+
+
+def _record_download(work_dir: Path, index: int, *, ok: bool) -> None:
+    """The run's download attempts, on disk (a resumed run replays the trace and does not re-run fetch)."""
+    attempts = _downloads(work_dir)
+    if attempts and attempts[-1]["index"] == index and not attempts[-1]["ok"]:
+        attempts[-1]["ok"] = ok
+    else:
+        attempts.append({"index": index, "ok": ok})
+    work_dir.mkdir(parents=True, exist_ok=True)
+    (work_dir / "downloads.json").write_text(json.dumps(attempts))
 
 
 class _TooBig(Exception):

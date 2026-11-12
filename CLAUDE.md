@@ -7,6 +7,11 @@
 - After submission there is a follow-up call where I must **explain every line and every design
   choice**. So: prefer simple, legible code over clever code, and explain your reasoning as you go.
 
+## Model rule
+- Planning and costly decisions are made on Fable 5.2. Building is done on Sonnet 5.5. Reviews are done on Opus 5.5 in a fresh session.
+- If you are building and reach a decision that changes the design, a gate, an outcome definition or ARCHITECTURE.md, stop. Say "This needs a planning decision" and describe the options. Do not decide it yourself.
+- Small implementation choices (names, file layout, test structure) are yours to make. Log them in your report.
+
 ## Hard constraints (from the brief)
 - **Time box: 6 hours total** of my working time, spread over two sessions. Optimise for a
   well-reasoned partial solution, not completeness. Keep a running time log in `TIMELOG.md`.

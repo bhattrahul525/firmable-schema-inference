@@ -19,7 +19,8 @@ is possible. You investigate with tools; nobody tells you the file's shape in ad
 mapping is worse than a missing one, and abstaining is a correct result.
 
 HOW TO WORK (a suggestion, not a script; you choose the order)
-  fetch (list, then download) -> sniff -> list_members / list_sheets if it is an archive or workbook -> read_table with reader
+  fetch (list the resources and read their descriptions, then download one; you may switch to another resource ONCE, with a
+  reason, if the first turns out to be wrong) -> sniff -> list_members / list_sheets if it is an archive or workbook -> read_table with reader
   options (re-read until the columns look right) -> profile -> sample / search / check_unique -> try_transform for any column
   whose parsing you are unsure of -> write the config -> validate -> critique -> fix or answer what they raise -> finish.
   The held-out rows are for `validate` and `critique` only. You never see them; do not try to find them.
@@ -43,16 +44,18 @@ THE CONFIG (one JSON object; pass the same object to validate, critique and fini
 }}
 observed_at.from_metadata must be one of {list(METADATA_DATE_KEYS)}. You do not set source_id or config_version.
 
-OUTCOMES (end with `finish`)
-  validated_config       a config that passed validate and critique (answer every BLOCKING critique issue still open; advisory
-                         issues may be left). Columns left in
-                         `unmapped` with reasons are normal and do not make a config partial. A field you drop, or re-map to a
-                         different canonical field, because the critique or the source showed it was wrong is a FIX, not an
-                         abstention: the config you finish with is then complete for what the source supports.
-  partial_config         the same, but you are leaving out a field the source DOES seem to support because you could not get it
-                         right (list each in `abstentions` with field and reason)
+OUTCOMES (end with `finish`; the outcome is decided by who ended the run)
+  validated_config       your own finish was accepted: the config you pass passed validate and critique (answer every BLOCKING
+                         critique issue still open; advisory issues may be left). Columns and fields you leave out go in
+                         `unmapped` with reasons or in `abstentions`; that is normal and does not change the outcome. Dropping or
+                         re-mapping a field because the critique or the source showed it was wrong is a FIX. How much the config
+                         covers is measured separately, so do not pad it: map what the source supports and no more.
   no_business_entities   the data holds no businesses or organisations (needs a successful read_table and profile, and cited evidence)
-  could_not_read         the file cannot be read (two failed read_table calls, or a failed download; give the reason)
+  could_not_read         the file cannot be read (give the reason). The harness needs evidence it can verify: two failed
+                         read_table calls, a failed download, or a sniff / list_members result that classifies the file as not
+                         tabular. Your own statement is not enough.
+  (If the harness ends the run first, because of turns, dollars, time or repeated refusals, it records partial_config or
+  incomplete itself. You never declare those.)
 
 ONTOLOGY (a contract: use these exact field names; fields not listed here do not exist):
 {ONTOLOGY_PATH.read_text()}
@@ -81,6 +84,7 @@ RULES
 """
 
 
-def make_task(reference: str, source_id: str) -> str:
+def make_task(reference: str, source_id: str, pinned_index: int | None = None) -> str:
+    pin = (f"\nA human pinned resource {pinned_index} for this run: fetch that one." if pinned_index is not None else "")
     return (f"Onboard the dataset whose reference is: {reference}\n"
-            f"Its source id is {source_id}. Investigate it with the tools and end with `finish`.")
+            f"Its source id is {source_id}. Investigate it with the tools and end with `finish`.{pin}")

@@ -49,13 +49,14 @@ class Wiring(Env):
         self.sid = self.SID
         self.root = Path("logs/agent_runs")
 
-    def agent(self, script, *, tools=None, ask=lambda q: None, limits=Limits(), code_version="v1", src=None, kit=None):
+    def agent(self, script, *, tools=None, ask=lambda q: None, limits=Limits(), code_version="v1", src=None, kit=None,
+              reference=None, fetcher=None, task="onboard it"):
         self.kit = kit or AgentKit(self.sid, self.root / self.sid, code_version=code_version)
         self.chat = ScriptedChat(script)
         self.out: list[str] = []
-        return AgentRun(source_id=self.sid, reference=str(src or self.src), task="onboard it", tools=tools or self.kit.tools,
+        return AgentRun(source_id=self.sid, reference=reference or str(src or self.src), task=task, tools=tools or self.kit.tools,
                         hooks=self.kit.hooks, chat=self.chat, trace_root=self.root, say=self.out.append,
-                        sleep=lambda s: None, ask=ask, limits=limits, code_version=code_version)
+                        sleep=lambda s: None, ask=ask, limits=limits, code_version=code_version, fetcher=fetcher)
 
     def events(self, kind=None):
         p = self.root / self.sid / "trace.jsonl"
@@ -249,8 +250,9 @@ class TestOutcomesAndHooks(Wiring):
         with mock.patch("src.part2_agent.agent_hooks.llm.call", FakeCritic([issue])):
             res = self.agent(front() + [t("validate", {"config": CFG}), t("critique", {"config": CFG}),
                                         t("finish", {"outcome": "validated_config", "config": CFG})]).run()
-        self.assertEqual(res.outcome, "partial_config")
+        self.assertEqual(res.outcome, "validated_config")                    # the agent's own finish was accepted
         self.assertNotIn("entity.legal_name", [f["canonical"] for f in res.config["fields"]])
+        self.assertTrue(any("blocking critique issue unanswered" in a["reason"] for a in res.abstentions))
 
     def test_an_answered_issue_lets_the_config_through(self):
         issue = {"field": "entity.legal_name", "problem": "p", "suggested_fix": "f"}
@@ -273,7 +275,7 @@ class TestOutcomesAndHooks(Wiring):
         bad = ("read_table", {"format": "xlsx"})
         res = self.agent([t("fetch", {"resource_index": 0}), t(*bad), t("finish", {"outcome": "could_not_read", "reason": "r"}),
                           t(*bad), t("finish", {"outcome": "could_not_read", "reason": "not a workbook"})]).run()
-        self.assertIn("two reader attempts", self.calls()[2]["refused"])
+        self.assertIn("two FAILED `read_table` calls", self.calls()[2]["refused"])
         self.assertEqual(res.outcome, "could_not_read")
 
     def test_an_approved_config_is_never_overwritten_by_the_packet_hook(self):
@@ -345,7 +347,7 @@ class TestFinishFormatRefusals(Wiring):
         self.assertFalse(g.check({"outcome": "approved"}).format)
         self.assertFalse(g.check({"outcome": "validated_config", "config": {}}).format)
         self.assertTrue(g.check({"outcome": "validated_config", "config": {}, "answers": "x"}).format)
-        self.assertTrue(g.check({"outcome": "partial_config", "config": {}, "abstentions": [1]}).format)
+        self.assertTrue(g.check({"outcome": "validated_config", "config": {}, "abstentions": [1]}).format)
 
     def test_an_invalid_outcome_is_a_real_refusal_not_a_format_refusal(self):
         script = front() + [t("finish", {"outcome": "approved"}), t("finish", {"outcome": "approved"})]

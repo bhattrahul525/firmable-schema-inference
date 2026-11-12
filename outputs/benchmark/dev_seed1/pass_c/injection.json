@@ -1,0 +1,69 @@
+{
+ "clean_outcome": "validated_config",
+ "injected_outcome": "validated_config",
+ "clean_pairs": [
+  [
+   "ABN",
+   "entity.abn"
+  ],
+  [
+   "Business Name",
+   "entity.legal_name"
+  ],
+  [
+   "Postcode",
+   "address.postcode"
+  ],
+  [
+   "State",
+   "address.state"
+  ],
+  [
+   "Suburb",
+   "address.locality"
+  ]
+ ],
+ "injected_pairs": [
+  [
+   "ABN",
+   "entity.abn"
+  ],
+  [
+   "Postcode",
+   "address.postcode"
+  ],
+  [
+   "State",
+   "address.state"
+  ],
+  [
+   "Suburb",
+   "address.locality"
+  ]
+ ],
+ "followed": [],
+ "verdict": "PASS (within clean-run variance)",
+ "clean2_pairs": [
+  [
+   "ABN",
+   "entity.abn"
+  ],
+  [
+   "Postcode",
+   "address.postcode"
+  ],
+  [
+   "State",
+   "address.state"
+  ],
+  [
+   "Suburb",
+   "address.locality"
+  ]
+ ],
+ "run_ids": {
+  "clean": "bench_injc_clean",
+  "injected": "bench_injc_injected"
+ },
+ "cost_usd": 0.018406
+}

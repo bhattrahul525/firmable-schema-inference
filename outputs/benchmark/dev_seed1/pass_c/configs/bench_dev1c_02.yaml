@@ -1,0 +1,122 @@
+what_it_is: 'Junior Minerals Exploration Incentive: Commissioner''s exploration credit allocations to successful
+  applicants, FY2024-25 sheet of a multi-year workbook.'
+one_row_is: one successful JMEI applicant (company) and its Commissioner's allocation for 2024-25
+reader:
+  format: xlsx
+  sheet: 2024-25
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - ABN
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Name column lists company names with Limited/Ltd suffixes; the grant is made to the applicant company
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column, 11 digits, checksum validated
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Commissioners allocation $
+  reason: Dollar credit amount; no ontology field for grant amounts
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government (Geoscience/Commissioner) published allocation register; identity names and
+  ABNs are authoritative for the listing but not verified by us; no address or contact data.
+meaning_check_responses: []
+source_id: bench_dev1c_02
+config_version: 1
+validation_summary:
+  held_out_rows: 15
+  observations_in_held_out: 45
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name / entity.abn for sheets 2017-18, 2018-19, 2019-20, 2020-21, 2021-22, 2022-23, 2023-24
+    reason: Workbook holds one sheet per financial year; this config reads only the latest 2024-25 sheet because
+      the reader takes a single sheet. Other years are not ingested by this config (2022-23 has a different 6-column
+      layout).
+  - field: valid_from / valid_to
+    reason: The sheet states the financial year but not when the allocation started or ended in a per-row form;
+      not mapped.
+  - field: entity.entity_type
+    reason: Not mapped; entity_type_from_suffix not applied to avoid guessing from names.
+  critique_issues:
+  - id: c-508f5d8b
+    field: entity.legal_name<-Name
+    problem: The config justifies this mapping only by the suffix (Limited/Ltd) and the grant recipient role. Nothing
+      in the source shows these names are the registered legal names rather than trading names. The ontology says
+      legal_name is 'as registered', so the claim is not fully supported.
+    severity: advisory
+    suggested_fix: Cross-check a sample of Name values against the ABN register, or record a field_confidence below
+      1 and a note that the name is the applicant name as stated in the grant sheet.
+  - id: c-24ddefa6
+    field: record_id
+    problem: The source_record_id is built from ABN alone. If one company receives several allocations in the 2024-25
+      sheet, the key will collide and the records cannot be traced back to their exact raw rows.
+    severity: advisory
+    suggested_fix: Build source_record_id from the sheet name plus the row number (or ABN plus row index) and document
+      the construction, as the ontology requires for keyless sources.
+  - id: c-fa155814
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified, which is the publication or file-modified date, not
+      a date the source stated for the allocation. The ontology asks for the time the source stated the claim.
+    severity: advisory
+    suggested_fix: Keep resource_last_modified but document it as a proxy, or record the financial year (2024-25)
+      as valid_from or valid_to where the grant period is known.
+  - id: c-f35940e4
+    field: observation envelope
+    problem: The examples show only observed_at, valid_from and valid_to. The required envelope fields source_id,
+      source_record_id, ingested_at, licence and extractor_version are not visible in the output, and no licence
+      has been recorded for this dataset.
+    severity: advisory
+    suggested_fix: Confirm the emitted observations carry all required envelope fields. Take licence from the CKAN
+      metadata, or record 'unknown' and flag it.
+  - id: c-668b352d
+    field: entity.abn<-ABN
+    problem: The config says the ABN is checksum-validated, but the examples do not show which values passed or
+      failed. The output does not evidence the checksum step.
+    severity: advisory
+    suggested_fix: Add a check or log showing the number of ABNs that failed the checksum, and route failures to
+      a flagged state rather than emitting them as valid.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:23:57+00:00'

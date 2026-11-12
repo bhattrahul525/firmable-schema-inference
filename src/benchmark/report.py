@@ -19,8 +19,8 @@ RAW_DIR = Path("data/raw/sources")
 HUMAN_COLUMNS = ("outcome_correct", "key_field_missed", "reviewer_notes")
 COLUMNS = ["source_id", "slot", "stratum", "dataset_id", "title", "format_class", "outcome", "forced_by", "turns", "tool_calls",
            "cost_usd", "agent_seconds", "download_seconds", "download_bytes", "file_format", "reader", "levels_W_P_G",
-           "mapped_fields", "abstained_fields", "unmapped_columns", "critique_blocking", "critique_advisory", "open_advisory",
-           "refusals", "licence", "licence_flag", "model", "tool_sequence", "cause", "fix", *HUMAN_COLUMNS]
+           "mapped_count", "mapped_fields", "abstained_count", "abstained_fields", "unresolved_blocking", "unmapped_columns",
+           "critique_blocking", "critique_advisory", "open_advisory", "resource_switches", "refusals", "licence", "licence_flag", "model", "tool_sequence", "cause", "fix", *HUMAN_COLUMNS]
 
 
 def read_events(source_id: str, runs_dir: Path = RUNS_DIR) -> list[dict] | None:
@@ -62,6 +62,11 @@ def summarise(source_id: str, *, runs_dir: Path = RUNS_DIR, raw_dir: Path = RAW_
                            "field_confidence": f.get("field_confidence")} for f in fields],
         "abstained_fields": [a.get("field") for a in result.get("abstentions") or []],
         "unmapped_columns": len(cfg.get("unmapped") or []),
+        # coverage, separate from the outcome (who ended the run): a thin validated config shows up here
+        "mapped_count": len(fields), "abstained_count": len(result.get("abstentions") or []),
+        "unresolved_blocking": sum(1 for a in result.get("abstentions") or []
+                                   if str(a.get("reason", "")).startswith("blocking critique issue unanswered")),
+        "resource_switches": sum(1 for e in ev if e["type"] == "input_switched"),
         "critique_blocking": sum(1 for i in last_issues if i.get("severity", "blocking") == "blocking"),
         "critique_advisory": sum(1 for i in last_issues if i.get("severity") == "advisory"),
         "open_advisory": len(fin["status"].get("open_advisory", [])) if fin else 0,
@@ -85,6 +90,7 @@ def row_for(summary: dict, item: dict | None = None, cause: dict | None = None) 
     for k in ("slot", "stratum", "dataset_id", "title", "format_class"):
         flat[k] = item.get(k, "")
     flat["cause"], flat["fix"] = cause.get("cause", ""), cause.get("fix", "")
+    flat["mapped_count"] = summary.get("mapped_count", "")
     for k in HUMAN_COLUMNS:
         flat[k] = ""
     return {k: flat.get(k, "") for k in COLUMNS}
@@ -141,3 +147,95 @@ def write_review(rows: list[dict], path: Path) -> None:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
         w.writerows(rows)
+
+
+# ---- comparison across passes ---------------------------------------------------------------------------------------
+
+def _read_pass(path: Path) -> list[dict]:
+    with (path / "results.csv").open() as f:
+        return list(csv.DictReader(f))
+
+
+def compare(pass_dirs: dict[str, Path]) -> dict:
+    """Side by side: each dataset's outcome in every pass, plus per pass and per model totals (runs, outcomes, cost, time).
+    Rows are matched by dataset_id; a pass that lacks a dataset shows `-`."""
+    passes = {label: _read_pass(d) for label, d in pass_dirs.items()}
+    order, titles = [], {}
+    for rows in passes.values():
+        for r in rows:
+            if r["dataset_id"] not in titles:
+                order.append(r["dataset_id"])
+                titles[r["dataset_id"]] = (r["title"], r["format_class"])
+    datasets = []
+    for did in order:
+        outcomes, mapped = {}, {}
+        for label, rows in passes.items():
+            hit = next((r for r in rows if r["dataset_id"] == did), None)
+            outcomes[label] = hit["outcome"] if hit else "-"
+            mapped[label] = (hit.get("mapped_count") or "n/a") if hit else "-"
+        datasets.append({"dataset_id": did, "title": titles[did][0], "format_class": titles[did][1], "outcomes": outcomes, "mapped": mapped})
+    totals = {}
+    for label, rows in passes.items():
+        costs = [float(r["cost_usd"] or 0) for r in rows]
+        secs = [float(r["agent_seconds"] or 0) for r in rows if r["agent_seconds"] not in ("", None)]
+        turns = [int(float(r["turns"])) for r in rows if r["turns"] not in ("", None)]
+        totals[label] = {"model": next((r["model"] for r in rows if r["model"]), ""), "runs": len(rows),
+                         "outcomes": dict(Counter(r["outcome"] for r in rows)), "cost_usd": round(sum(costs), 4),
+                         "mean_cost_usd": round(sum(costs) / len(costs), 4) if costs else 0,
+                         "mean_agent_seconds": round(sum(secs) / len(secs), 1) if secs else 0,
+                         "mean_turns": round(sum(turns) / len(turns), 1) if turns else 0}
+    by_model: dict[str, dict] = {}
+    for label, t in totals.items():
+        m = by_model.setdefault(t["model"] or "?", {"passes": [], "runs": 0, "cost_usd": 0.0, "seconds": 0.0, "turns": 0})
+        rows = passes[label]
+        m["passes"].append(label)
+        m["runs"] += t["runs"]
+        m["cost_usd"] = round(m["cost_usd"] + t["cost_usd"], 4)
+        m["seconds"] += sum(float(r["agent_seconds"] or 0) for r in rows if r["agent_seconds"] not in ("", None))
+        m["turns"] += sum(int(float(r["turns"])) for r in rows if r["turns"] not in ("", None))
+    for m in by_model.values():
+        m["mean_cost_usd"] = round(m["cost_usd"] / m["runs"], 4) if m["runs"] else 0
+        m["mean_agent_seconds"] = round(m["seconds"] / m["runs"], 1) if m["runs"] else 0
+        m["mean_turns"] = round(m["turns"] / m["runs"], 1) if m["runs"] else 0
+        del m["seconds"], m["turns"]
+    return {"datasets": datasets, "totals": totals, "by_model": by_model, "passes": list(pass_dirs)}
+
+
+def write_compare(cmp: dict, out_dir: Path, notes: str = "") -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    labels = cmp["passes"]
+    md = [notes, "", "## Outcome per dataset (and mapped-field count) across passes", "",
+          "| dataset | fmt | " + " | ".join(labels) + " |", "|---|---|" + "---|" * len(labels)]
+    for d in cmp["datasets"]:
+        md.append(f"| {d['dataset_id'][:60]} | {d['format_class']} | " + " | ".join(
+            f"{d['outcomes'][l]} ({d['mapped'][l]})" for l in labels) + " |")
+    md += ["", "## Per pass", "", "| pass | model | runs | outcomes | cost | mean cost | mean agent s | mean turns |", "|---|---|---|---|---|---|---|---|"]
+    for l, t in cmp["totals"].items():
+        md.append(f"| {l} | {t['model']} | {t['runs']} | {t['outcomes']} | ${t['cost_usd']} | ${t['mean_cost_usd']} | {t['mean_agent_seconds']} | {t['mean_turns']} |")
+    md += ["", "## Per model", "", "| model | passes | runs | cost | mean cost per run | mean agent s | mean turns |", "|---|---|---|---|---|---|---|"]
+    for name, m in cmp["by_model"].items():
+        md.append(f"| {name} | {','.join(m['passes'])} | {m['runs']} | ${m['cost_usd']} | ${m['mean_cost_usd']} | {m['mean_agent_seconds']} | {m['mean_turns']} |")
+    (out_dir / "compare.md").write_text("\n".join(md) + "\n")
+    with (out_dir / "compare.csv").open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["dataset_id", "title", "format_class", *[f"outcome_{l}" for l in labels], *[f"mapped_{l}" for l in labels]])
+        for d in cmp["datasets"]:
+            w.writerow([d["dataset_id"], d["title"], d["format_class"], *[d["outcomes"][l] for l in labels], *[d["mapped"][l] for l in labels]])
+    (out_dir / "compare.json").write_text(json.dumps(cmp, indent=1))
+
+
+def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser(description="Compare benchmark passes side by side.")
+    ap.add_argument("--dir", required=True, help="e.g. outputs/benchmark/dev_seed1")
+    ap.add_argument("--passes", nargs="+", required=True, help="pass labels, e.g. a b c s")
+    ap.add_argument("--notes", default="")
+    a = ap.parse_args()
+    base = Path(a.dir)
+    cmp = compare({l: base / f"pass_{l}" for l in a.passes})
+    write_compare(cmp, base, a.notes)
+    print((base / "compare.md").read_text())
+
+
+if __name__ == "__main__":
+    main()

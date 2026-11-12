@@ -1,0 +1,207 @@
+what_it_is: Queensland CHHHS (Cairns and Hinterland Hospital and Health Service) contract disclosure register entries
+  for FY2020-21, one row per disclosed contract.
+one_row_is: one disclosed contract awarded by CHHHS to a supplier
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 2
+  header_rows: 3
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier address Parties/address not assessed
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Supplier address as free text.
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 0
+    ok: 24
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Supplier ABN Parties/identifier/uri not assessed
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Column is labelled Supplier ABN; checksum-validated by the abn transform. Populated sparsely.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 23
+    ok: 1
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Supplier name Parties additionalidentifiers/id not assessed
+  reason: Supplier name in a contract disclosure is not stated to be the registered name; withheld from legal_name
+    pending a registry join (critique blocking issue).
+- source: Description OCDS name KDS
+  reason: Blank column in data rows
+- source: Agency (Dept or Stat Body) OCDS name
+  reason: government buyer, not the supplier entity
+- source: Agency address OCDS name
+  reason: government buyer address
+- source: Contract description/name Contracts/Title Contract Name
+  reason: contract title, no ontology field
+- source: Award contract date Contracts/dateSigned Contract Awarded Date
+  reason: contract award date, not the entity registration date
+- source: Contract value Contracts/value/amount Executed Contract Value
+  reason: no ontology field for contract value
+- source: Variation to contract (Yes/No) Not listed Not listed
+  reason: no ontology field
+- source: Specific confidentiality provision used Not listed
+  reason: no ontology field
+- source: Procurement method Tender procurementMethod Contract Type
+  reason: no ontology field
+- source: Form of contract Tender procurementMethod
+  reason: no ontology field
+- source: Number of offers sought Tender procurementMethod
+  reason: no ontology field
+- source: Evaluation criteria and weightings Tender procurementMethod
+  reason: no ontology field
+- source: Deliverables Tender procurementMethod
+  reason: no ontology field
+- source: Contract milestones Tender procurementMethod
+  reason: no ontology field
+- source: Contract performance management Tender procurementMethod
+  reason: no ontology field
+- source: Contract reference number Contracts/AwardID Tender Number
+  reason: contract identifier, not an entity identifier; partly blank
+- source: Contract category group Contracts/items/classification/description Category Group
+  reason: procurement category, no ontology field
+- source: Parent contract number/SOA Contracts Contracts
+  reason: no ontology field
+- source: Commence date Contracts/period/Start Date Planned Commencement Date
+  reason: mostly blank contract period, not entity validity
+- source: Finish date Contracts/period/endDate Planned Finish Date
+  reason: contract planned finish period, mostly blank; not entity validity
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.6
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Official Queensland government contract disclosure; supplier addresses are free text,
+  ABN is sparsely populated, and supplier names are not confirmed as registered names.
+meaning_check_responses: []
+source_id: bench_dev1c_04
+config_version: 1
+validation_summary:
+  held_out_rows: 24
+  observations_in_held_out: 49
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-36a4d9dd
+    field: entity.legal_name<-Supplier name Parties additionalidentifiers/id not assessed
+    problem: The ontology defines legal_name as the name as registered, not the trading name. The config's own reason
+      admits the register does not say this column is the registered name. Examples such as '1300 Smiles', 'Stryker'
+      and 'Baxter Healthcare' read like trading names, and the mapping still asserts a registered-name meaning the
+      source does not state.
+    severity: blocking
+    suggested_fix: Do not map this column to entity.legal_name. Map it to a supplier-name or trading_name observation
+      with a caveat, or leave legal_name unmapped until a registered-name source (ABN Lookup or ASIC) is joined.
+  - id: c-3e1ec40c
+    field: entity.abn
+    problem: The config lists 'Supplier ABN' as an entirely empty column that is unmapped. Row 3 (Rauland Australia)
+      has 'Supplier ABN' = '63 056 360 653'. That value passes the ABN checksum (weighted sum 445, divisible by
+      89), so the column is not empty and holds a usable identifier that is being discarded.
+    severity: advisory
+    suggested_fix: Map 'Supplier ABN Parties/identifier/uri not assessed' to entity.abn, strip spaces, validate
+      the checksum, record derivation_level L1, and correct the 'entirely empty' note.
+  - id: c-07565435
+    field: 'unmapped: Finish date Contracts/period/endDate Planned Finish Date'
+    problem: The reason says this column is entirely empty, but row 3 has '1/02/2026'. The documentation does not
+      match the data and may hide values that matter.
+    severity: advisory
+    suggested_fix: Correct the reason to say the column is mostly blank, or remove it from the unmapped list with
+      a note that it is contract-period data, not entity validity.
+  - id: c-32e5169e
+    field: address.full<-Supplier address Parties/address not assessed
+    problem: The raw address contains parseable parts such as state and postcode ('West End 4101', 'Atherton', 'NSW'),
+      but the mapping stores the whole string in address.full only. The ontology's state, postcode and locality
+      fields stay empty, and the address is not parsed further.
+    severity: advisory
+    suggested_fix: Keep address.full as the raw text and add parsed observations for address.state, address.postcode
+      and address.locality where present, at derivation_level L1 with field_confidence reflecting parse quality.
+  - id: c-0338a922
+    field: entity.entity_type
+    problem: Each record emits entity.entity_type = 'unknown' with source null. That is the ontology default, but
+      it is shown as an observation without a derivation level or confidence values, so it reads like a claim rather
+      than a default.
+    severity: advisory
+    suggested_fix: Either omit default-unknown entity_type observations or mark them explicitly as defaults with
+      derivation_level and field_confidence, so they are not confused with source claims.
+  - id: c-ace93277
+    field: observation envelope (source_id, source_record_id, ingested_at, licence, extractor_version)
+    problem: The example envelopes show only observed_at, valid_from and valid_to. The ontology marks source_id,
+      source_record_id, ingested_at, licence and extractor_version as required on every record, and none appear
+      in the examples. This may be display truncation, but it is unverified.
+    severity: advisory
+    suggested_fix: Confirm the emitted records carry all required envelope fields. Set licence from CKAN metadata,
+      or 'unknown' with a flag. Use the 'Contract reference number' column as source_record_id in preference to
+      a row hash, since it is traceable to the exact record.
+  - id: c-c7d83009
+    field: observation.source_record_id (record_id hash_row)
+    problem: source_record_id is a hash of the row, which the ontology requires to be traceable to the exact raw
+      record. The source has a stable key ('Contract reference number', for example CHHHS89289-3), which is more
+      traceable than a row hash, and the config does not document how the hash is built.
+    severity: advisory
+    suggested_fix: Use the contract reference number (plus row position if needed) as source_record_id, or document
+      the deterministic hash construction and keep the raw row offset alongside it.
+  - id: c-12d6716b
+    field: entity.legal_name<-Supplier name Parties additionalidentifiers/id not assessed
+    problem: The ontology defines legal_name as the name as registered, not the trading name. The config justifies
+      mapping this contract-disclosure supplier name to legal_name by saying the ontology accepts 'supplier name'
+      as legal_name, but the ontology says no such thing. The examples show names that are plausibly trading names
+      rather than registered names, such as '1300 Smiles', 'A1 Cleaners', 'Bunzl Outsourcing', 'Stryker' and 'Baxter
+      Healthcare'. The source does not state that these are registered legal names.
+    severity: blocking
+    suggested_fix: Stop emitting entity.legal_name from this column. Either emit it as a trading_name observation
+      (one per record, with the source column cited), or hold it until an ABN or registry lookup confirms the registered
+      name. Remove the reason text that claims the ontology accepts supplier name as legal_name.
+  - id: c-72fa01a0
+    field: entity.entity_type
+    problem: 'Every example emits entity_type ''unknown'' with from: null. No source column supports it. The default
+      is correct under the ontology, but the observation carries no source trace.'
+    severity: advisory
+    suggested_fix: Either omit the observation when no source supports it, or document it explicitly as a default
+      rather than a source-derived claim, with derivation level and provenance recorded.
+  - id: c-28649806
+    field: address.full<-Supplier address Parties/address not assessed
+    problem: Addresses are passed through as free text. Some contain a state or postcode that could be parsed, for
+      example '249 Boundary Street, West End 4101' and '43 Robert Street Atherton', and some lack a state, for example
+      'Level 23, Riverside Centre 123 Eagle Street Brisbane'. The address.state and address.postcode fields are
+      never populated.
+    severity: advisory
+    suggested_fix: Add a deterministic parse step that extracts postcode (4-digit) and state where present, recording
+      these as L1 derived values with field_confidence reflecting the parse. Leave them null where absent.
+  - id: c-ff87e2c3
+    field: entity.abn<-Supplier ABN Parties/identifier/uri not assessed
+    problem: The ABN column is populated in only one example. The checksum for 63 056 360 653 validates, so that
+      example is fine. The header label 'identifier/uri not assessed' suggests the column's provenance has not been
+      checked, and the config does not record that caveat.
+    severity: advisory
+    suggested_fix: Keep the abn transform, which already validates the checksum. Record the 'not assessed' provenance
+      caveat in the config notes, and lower field_confidence or note the source limitation for the ABN observation.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 1a7883522343
+  generated_at: '2026-11-12T10:25:08+00:00'

@@ -25,6 +25,7 @@ from src import llm
 from src.benchmark import injection, report
 
 DEFAULT_MODEL = "claude-haiku-5-5"
+DEV_MODELS = ("claude-haiku-5-5", "claude-sonnet-5-5")    # the dev draw may run on either; the final draw is a separate decision
 
 
 def session_spend(baseline: float, log_path: Path | None = None) -> float:
@@ -116,18 +117,18 @@ def run_injection(draw: dict, pass_label: str, out_dir: Path, *, model: str, per
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Run a benchmark draw (dev draw: seed 1, Haiku).")
+    ap = argparse.ArgumentParser(description="Run a benchmark draw (dev draw: seed 1, Haiku or Sonnet).")
     ap.add_argument("--draw", required=True)
     ap.add_argument("--pass", dest="pass_label", required=True, help="a, b ... (suffix of the source ids and the output folder)")
     ap.add_argument("--baseline", type=float, required=True, help="round-2 spend at the start of the session")
     ap.add_argument("--session-limit", type=float, default=3.0)
     ap.add_argument("--per-run-dollars", type=float, default=0.5)
-    ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--model", default=DEFAULT_MODEL, help="claude-haiku-5-5 (default) or claude-sonnet-5-5")
     ap.add_argument("--parallel", type=int, default=3)
     ap.add_argument("--timeout", type=float, default=900)
     a = ap.parse_args()
-    if a.model != DEFAULT_MODEL:
-        raise SystemExit("the dev draw runs on Haiku only")
+    if a.model not in DEV_MODELS:
+        raise SystemExit(f"the dev draw runs on Haiku or Sonnet only ({DEV_MODELS})")
     draw_path = Path(a.draw)
     draw = json.loads(draw_path.read_text())
     if draw["seed"] != 1:

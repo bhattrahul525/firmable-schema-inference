@@ -103,12 +103,13 @@ class TraceMismatch(ValueError):
 
 FINISH_SPEC = ToolSpec(
     name="finish",
-    description=("Declare the outcome and end the run. Outcomes: validated_config, partial_config, no_business_entities, "
-                 "could_not_read. For a config outcome pass the exact `config` you stand behind (finish validates it itself) "
-                 "and in `answers` answer every BLOCKING critique issue still open on it (advisory issues may be left; they stay in "
-                 "the review packet and the field stays). Use validated_config when the config is "
-                 "complete for what the source supports (dropping or re-mapping a field the critique showed was wrong is a "
-                 "fix); partial_config only for a field the source seems to support but you could not get right. Shapes: "
+    description=("Declare the outcome and end the run. Outcomes: validated_config, no_business_entities, could_not_read. For "
+                 "validated_config pass the exact `config` you stand behind (finish validates it itself) and in `answers` "
+                 "answer every BLOCKING critique issue still open on it (advisory issues may be left; they stay in the review "
+                 "packet and the field stays). If your finish is accepted the outcome is validated_config: columns and fields "
+                 "you leave out go in `unmapped` or `abstentions`. could_not_read needs evidence the harness can verify (two "
+                 "failed read_table calls, a failed download, or a sniff / list_members result that classifies the file as "
+                 "not tabular); your own statement is not enough. Shapes: "
                  "answers = [{\"issue_id\": \"c-1a2b3c4d\", \"action\": \"answered\", \"note\": \"why this is intended\"}]; "
                  "abstentions = [{\"field\": \"entity.abn<-SomeColumn\", \"reason\": \"why it is left out\"}]."),
     input_schema={
@@ -309,6 +310,7 @@ class AgentRun:
         prompt = json.dumps({"system": self.system, "task": self.task, "tools": self.tool_schemas}, sort_keys=True)
         return {"source_id": self.source_id, "reference": self.reference, "model": self.model or llm.DEFAULT_MODEL,
                 "code_version": self.code_version, "limits": asdict(self.budget.limits),
+                "pinned_resource_index": self.fetch_guard.pinned_index,
                 "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()[:16],
                 "input_sha256": file_sha256(self.input_path) if self.input_path and self.input_path.exists() else None}
 
@@ -401,7 +403,7 @@ class AgentRun:
                                 download_seconds=ev["download_seconds"])
             rendered, seconds, refused = ev["rendered"], ev["seconds"], ev["refused"]
             self.budget.replayed_seconds += seconds
-            pinned = self.trace.peek("input_pinned")
+            pinned = self.trace.peek("input_pinned") or self.trace.peek("input_switched")
             if pinned:
                 self.trace.consume()
                 self.pinned_input = self.ctx.state["input_sha256"] = pinned["sha256"]
@@ -441,6 +443,13 @@ class AgentRun:
         if not sha or sha == self.pinned_input:
             return
         if self.pinned_input:
+            sw = self.ctx.state.get("input_switch")
+            if sw and sw.get("from") == self.pinned_input and sw.get("sha256") == sha:   # the ONE allowed switch of resource
+                self.ctx.state.pop("input_switch")
+                self.pinned_input = sha
+                self._live("input_switched", from_sha256=sw["from"], sha256=sha, reason=sw.get("reason", ""),
+                           resource_index=sw.get("resource_index"))
+                return
             raise TraceMismatch(f"the input file changed during the run (pinned {self.pinned_input[:12]}, now {sha[:12]})")
         self.pinned_input = sha
         self._live("input_pinned", sha256=sha)
@@ -476,7 +485,8 @@ class AgentRun:
                     result.status = {"format_refusal": True}
                 return result, text, why
             return ToolResult(status={"accepted": True, "outcome": decision.outcome, "abstentions": decision.abstentions,
-                                      "open_advisory": [i.get("id") for i in decision.open_advisory]}), "accepted", None
+                                      "open_advisory": [i.get("id") for i in decision.open_advisory],
+                                      "unreadable_evidence": decision.unreadable_evidence}), "accepted", None
         logged_before = llm.logged_cost_total()
         try:
             # the tool gets a COPY: the model's original input stays exactly as it was for the gate's hash, the trace
