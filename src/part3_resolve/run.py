@@ -20,7 +20,8 @@ from itertools import combinations
 from pathlib import Path
 
 from src.part3_resolve.features import load_mentions, pair_features
-from src.part3_resolve.score import ACCEPT, LOOSE, MATCHER_VERSION, SCORERS, band
+from src.part3_resolve.keys import rekey_conflicting_name_links
+from src.part3_resolve.score import ACCEPT, KEY_RULE_VERSIONS, LOOSE, MATCHER_VERSION, SCORERS, band
 
 SOURCES = ["asic_credit_licensee", "qbcc_licensed_contractors", "qld_health_contracts_2023_24",
            "wa_tenders_awards_2023_24", "vic_liquor_licences", "act_notifiable_invoices"]
@@ -150,6 +151,7 @@ def main() -> None:
         raw = f"{ia}|{ib}|{MATCHER_VERSION}"
         l["link_id"] = hashlib.sha1(raw.encode()).hexdigest()[:12]
     links = [l for l in links if l["band"] in ("accepted", "loose")]
+    key_changes = rekey_conflicting_name_links(links) if MATCHER_VERSION in KEY_RULE_VERSIONS else []
 
     # records we believed were businesses but cannot link at all (no name and no identifier)
     for m in mentions:
@@ -183,6 +185,7 @@ def main() -> None:
         "queue_by_reason": dict(Counter(q["reason"] for q in queue)),
         "mentions_with_abn_in_no_accepted_link": sum(1 for m in mentions if m["abn"] and m["mention_id"] not in linked_ids),
         "atf_relationships": len(relationships),
+        "canonical_keys_rekeyed": len(key_changes),
     }
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))

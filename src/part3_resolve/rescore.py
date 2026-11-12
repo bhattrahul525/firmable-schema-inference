@@ -20,7 +20,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from src.part3_resolve.score import ACCEPT, LOOSE, SCORERS, band
+from src.part3_resolve.keys import rekey_conflicting_name_links
+from src.part3_resolve.score import ACCEPT, KEY_RULE_VERSIONS, LOOSE, SCORERS, band
 
 OUT = Path("outputs/part3")
 HANDCHECK = Path("handcheck/part3_link_check.csv")
@@ -57,6 +58,9 @@ def main() -> None:
         if new_band != "refused":
             rescored.append(row)
 
+    # canonical-key rule (m1.2+): also a pure function of the stored evidence
+    key_changes = rekey_conflicting_name_links(rescored) if new_v in KEY_RULE_VERSIONS else []
+
     # what would this change have done to the 50 links a human labelled?
     labels = {((r["a_source"], r["a_record_id"]), (r["b_source"], r["b_record_id"])): r["label"].strip().upper()[:1]
               for r in csv.DictReader(HANDCHECK.open(encoding="utf-8-sig"))}
@@ -71,9 +75,12 @@ def main() -> None:
     report = {"from_versions": sorted({l["matcher_version"] for l in links}), "to_version": new_v,
               "thresholds": {"accept": ACCEPT, "loose": LOOSE}, "links_considered": len(links) + len(refused),
               "band_moves": dict(moves), "links_changed": len(changed),
-              "effect_on_hand_labelled_links": dict(effect), "changed_links": changed[:40]}
+              "effect_on_hand_labelled_links": dict(effect),
+              "labelled_yes_links_demoted_or_refused": sum(v for k, v in effect.items() if k.endswith("hand label Y") and k.split("->")[1].startswith("refused")),
+              "canonical_keys_rekeyed": key_changes, "changed_links": changed[:40]}
     (OUT / f"rescore_to_{new_v}.json").write_text(json.dumps(report, indent=2))
-    print(json.dumps({k: v for k, v in report.items() if k != "changed_links"}, indent=2))
+    print(json.dumps({k: v for k, v in report.items() if k not in ("changed_links", "canonical_keys_rekeyed")}, indent=2))
+    print("canonical keys re-keyed:", [(k["names"][0], k["from"], "->", k["to"]) for k in key_changes])
     for c in changed[:8]:
         print(f"  {c['names'][0]!r} == {c['names'][1]!r}: {c['from'][1:]} -> {c['to'][1:]} ({c['why']})")
 

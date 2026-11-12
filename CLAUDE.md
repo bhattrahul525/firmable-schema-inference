@@ -80,8 +80,9 @@ per-source parsers; one blended confidence score; links without a precision numb
 - data.gov.au CKAN API: `https://data.gov.au/data/api/3/action/` (`package_search`,
   `package_show`, `resource_search`). No key. State portals (NSW/QLD/VIC/SA) use the same API.
 - Python 3.10+. LLM provider: **Claude API via the official `anthropic` Python SDK.**
-  Dev iterations on `claude-haiku-5-5` ($0.10/$0.50 per MTok); final runs on `claude-sonnet-5-5`
-  ($2/$10 per MTok). The model is a setting in `src/llm.py`, never hard-coded in agent code; all
+  Dev iterations on `claude-haiku-5-5` ($0.10/$0.50 per MTok). Plan was Sonnet for final runs
+  (`claude-sonnet-5-5`, $2/$10 per MTok); all six configs and the seventh-source test shipped with
+  claude-haiku-5-5 (see DECISIONS.md). The model is a setting in `src/llm.py`, never hard-coded in agent code; all
   provider-specific code stays inside `src/llm.py`. API key via `.env` (never commit it).
 - Part 1 is fully deterministic (metadata score + content probe), with no LLM calls. Decided 2026-11-11.
 - The user runs `git init` and handles all git operations themselves.

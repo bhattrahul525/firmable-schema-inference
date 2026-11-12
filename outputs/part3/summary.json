@@ -1,5 +1,5 @@
 {
-  "matcher_version": "m1.0",
+  "matcher_version": "m1.2",
   "thresholds": {
     "accept": 0.8,
     "loose": 0.6
@@ -29,5 +29,6 @@
     "similar_name_not_exact": 3
   },
   "mentions_with_abn_in_no_accepted_link": 11605,
-  "atf_relationships": 13
+  "atf_relationships": 13,
+  "canonical_keys_rekeyed": 1
 }

@@ -27,7 +27,7 @@ import random
 import sys
 from pathlib import Path
 
-from src.part3_resolve.features import load_mentions
+from src.part3_resolve.features import load_mentions, name_core
 from src.part3_resolve.run import SOURCES
 
 LINKS = Path("outputs/part3/links.jsonl")
@@ -102,6 +102,31 @@ def make() -> None:
           f"accepted={len(frame['accepted'])} loose={len(frame['loose'])} distinct units (seed {SEED}).")
 
 
+def distinct_businesses(rows: list[dict]) -> dict:
+    """How many different real-world businesses the checked rows cover (several rows can be the same business,
+    e.g. the same supplier on two source pairs). Rows are joined when they share an ABN (accepted rows only: a
+    loose link's ABN may come from one record and be wrong) or share a normalised name. Reported so the sample
+    size is not overstated."""
+    parent: dict[str, str] = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    for r in rows:
+        nodes = [f"name:{name_core(r['a_legal_name'])}", f"name:{name_core(r['b_legal_name'])}"]
+        if r["band"] == "accepted" and r["a_abn"] and r["a_abn"] == r["b_abn"]:
+            nodes.append(f"abn:{r['a_abn']}")
+        for n in nodes[1:]:
+            parent[find(n)] = find(nodes[0])
+    comp = {band: len({find(f"name:{name_core(r['a_legal_name'])}") for r in rows if r["band"] == band})
+            for band in ("accepted", "loose")}
+    return {"all_rows": len({find(f"name:{name_core(r['a_legal_name'])}") for r in rows}), "accepted_rows": comp["accepted"],
+            "loose_rows": comp["loose"]}
+
+
 def score() -> None:
     rows = list(csv.DictReader(SHEET.open(encoding="utf-8-sig")))
     bad = [r["check_id"] for r in rows if r["label"].strip().upper()[:1] not in ("Y", "N", "U")]
@@ -121,11 +146,15 @@ def score() -> None:
             "precision_unsure_counted_wrong": round(y / len(sub), 3) if sub else None,
             "wrong_links": [{"check_id": r["check_id"], "a": r["a_legal_name"], "b": r["b_legal_name"], "tier": r["tier"],
                              "note": r["note"]} for r, x in zip(sub, lab) if x == "N"]}
+    res["distinct_businesses_checked"] = distinct_businesses(rows)
+    res["rows_checked"] = len(rows)
     a, l = res["strata"]["accepted"], res["strata"]["loose"]
     if a["precision_excl_unsure"] is not None and l["precision_excl_unsure"] is not None:
         wa, wl = a["frame_distinct_units"], l["frame_distinct_units"]
         res["at_loose_threshold_0.60_weighted_by_unit_counts"] = round(
             (a["precision_excl_unsure"] * wa + l["precision_excl_unsure"] * wl) / (wa + wl), 3)
+        res["at_loose_threshold_0.60_weighted_unsure_counted_wrong"] = round(
+            (a["precision_unsure_counted_wrong"] * wa + l["precision_unsure_counted_wrong"] * wl) / (wa + wl), 3)
     RESULT.write_text(json.dumps(res, indent=2))
     print(json.dumps({k: v for k, v in res.items() if k != "labelling_rule"}, indent=2))
 

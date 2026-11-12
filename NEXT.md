@@ -27,3 +27,9 @@
 - A display name for unresolved-name profiles (rule-based, clearly labelled) without pretending a winner.
 - Fix the QLD Health / ACT source_reliability ties with measured agreement against ASIC/QBCC (an independent reference) instead of model judgement.
 - Cross-source ACN/ABN enrichment: where ABN is known, look up ACN consistency (evidence only).
+
+## From the Part 3 verification
+- ABN name history (ABN Lookup / ABR) as link evidence, so renames (Cantel -> Steris, Limited -> Pty Ltd) are matched on evidence, not on a shared word.
+- Hand-check a sample of the REFUSED identifier-match pairs (23): they may contain true renames the names-agree rule discards.
+- Flag a record whose ABN belongs to a different named business elsewhere (ACT Stryker carrying J.J. Richards' ABN) as a source error at ingest.
+- Lower or abstain `field_confidence` on legal_name values that contain several comma-joined suppliers (QLD Health, 24 of 433).

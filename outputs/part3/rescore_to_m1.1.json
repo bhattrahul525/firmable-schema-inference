@@ -1,6 +1,6 @@
 {
   "from_versions": [
-    "m1.0"
+    "m1.2"
   ],
   "to_version": "m1.1",
   "thresholds": {
@@ -16,11 +16,13 @@
   },
   "links_changed": 2,
   "effect_on_hand_labelled_links": {
-    "accepted->refused hand label U": 1
+    "accepted->refused hand label Y": 1
   },
+  "labelled_yes_links_demoted_or_refused": 1,
+  "canonical_keys_rekeyed": [],
   "changed_links": [
     {
-      "link_id": "6f0362b7dab9",
+      "link_id": "952cfcf6fd04",
       "a": {
         "source_id": "act_notifiable_invoices",
         "source_record_id": "row-3xdn~w93x~4jh9",
@@ -36,7 +38,7 @@
         "WORMALD AUSTRALIA PTY LTD"
       ],
       "from": [
-        "m1.0",
+        "m1.2",
         0.98,
         "accepted"
       ],
@@ -48,7 +50,7 @@
       "why": "identifier_match_but_only_generic_words_shared"
     },
     {
-      "link_id": "563db49d32e7",
+      "link_id": "959b57d37e89",
       "a": {
         "source_id": "act_notifiable_invoices",
         "source_record_id": "row-6tfe.wkbt.559c",
@@ -64,7 +66,7 @@
         "STERIS AUSTRALIA PTY LTD"
       ],
       "from": [
-        "m1.0",
+        "m1.2",
         0.98,
         "accepted"
       ],

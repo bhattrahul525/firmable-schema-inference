@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from src.part3_resolve.features import name_core
 
-MATCHER_VERSION = "m1.0"
+MATCHER_VERSION = "m1.2"
 ACCEPT = 0.80  # main threshold: links at or above are proposed
 LOOSE = 0.60   # looser threshold: [0.60, 0.80) is reported separately; below is the unlinked queue
 
@@ -77,7 +77,16 @@ def score_m1_1(f: dict) -> tuple[float, str, str | None]:
     return conf, tier, why
 
 
-SCORERS = {"m1.0": score_m1_0, "m1.1": score_m1_1}
+def score_m1_2(f: dict) -> tuple[float, str, str | None]:
+    """m1.2 scores exactly like m1.0. It is NOT built on m1.1: the hand check showed m1.1's generic-words rule
+    demoted a TRUE link (Cantel (Australia) -> Steris Australia, a registered rename on the same ABN), so that rule
+    is rejected, not shipped. What m1.2 changes is the canonical key of name-only links (see keys.py)."""
+    return score_m1_0(f)
+
+
+SCORERS = {"m1.0": score_m1_0, "m1.1": score_m1_1, "m1.2": score_m1_2}
+# versions whose canonical-key rule (keys.rekey_conflicting_name_links) applies
+KEY_RULE_VERSIONS = {"m1.2"}
 
 
 def band(conf: float) -> str:

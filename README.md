@@ -5,14 +5,14 @@ decides which records are the same business, and 50 transparent company profiles
 [WRITEUP.md](WRITEUP.md); decisions and their reasons are in [DECISIONS.md](DECISIONS.md); ideas for later are in
 [NEXT.md](NEXT.md); the time log is [TIMELOG.md](TIMELOG.md).
 
-## Run it from a clean checkout (about 8 minutes, no API key needed)
+## Run it from a clean checkout (under a minute after install: 24 s measured, plus 1-3 min download; no API key needed)
 
 Needs Python 3.10+ and [uv](https://docs.astral.sh/uv/) (or plain `python -m venv`).
 
 ```bash
 uv venv --python 3.13 && source .venv/bin/activate
 uv pip install -r requirements.txt
-python -m unittest discover tests                       # 37 tests, under a second
+python -m unittest discover tests                       # 41 tests, under a second
 
 python -m src.part1_triage.download                     # fetches the 6 source files (~140 MB, 1-3 min)
 
@@ -23,7 +23,7 @@ for pair in asic_credit_licensee:10000 qld_health_contracts_2023_24:10000 wa_ten
 done
 
 python -m src.part3_resolve.run                         # links, unlinked queue, entities
-python -m src.part3_resolve.rescore --to m1.1           # re-score the links with a newer matcher (no sources read)
+python -m src.part3_resolve.rescore --to m1.1           # re-test the REJECTED m1.1 rule on stored links (no sources read)
 python -m src.part4_profiles.build                      # 50 profiles + source-deletion test
 ```
 
@@ -71,9 +71,13 @@ records the licence, dates and SHA-256 of each downloaded file. Raw data is git-
   false positive rate 26.3%** (30% if the unsure one counts as wrong).
 - Part 2: 6 configs written by the agent, 4-7 LLM calls and $0.009-0.032 each (Haiku 5.5). 41 field verdicts across all
   review rounds, 2 wrong (both WA name fields). Total API spend for the whole project: **$0.17** (computed from list prices).
-- Part 3: 266 accepted links (40 businesses) and 119 looser links. Hand-checked 50 (one per distinct business and source pair):
-  accepted 23 yes / 0 no / 7 unsure of 30; looser 20 / 0 / 0 of 20. **Precision at the 0.80 threshold: 100% if unsure is
-  excluded (95% interval 86-100%), 76.7% if unsure counts as wrong.** The sample is narrow (see WRITEUP.md).
+- Part 3: 266 accepted links (40 businesses) and 119 looser links. Hand-checked 50 links covering **43 distinct businesses**.
+  **Precision at the 0.80 threshold: 30 of 30 correct, 0 wrong, 0 unsure (95% interval 89-100%).** Looser band (0.60-0.80):
+  19 correct, 0 wrong, **1 unsure (check 23)** of 20, i.e. 100% excluding unsure (interval 83-100%) and 95% counting unsure
+  as wrong. **Treat these as upper bounds, not as expected real-world precision:** the sample is narrow (42 of the 50
+  checked links are ACT invoices against QLD Health); the matcher already required names to agree before proposing a link;
+  the labels were drafted with an AI assistant and then every row was checked by the author on ABN Lookup (notes in
+  `handcheck/part3_verify.csv`); and the intervals treat the 50 rows as independent although several are the same business.
 - Part 4: 50 profiles; 9 have an unresolved legal name (shown, not guessed).
 
 ## Known issues and honest limits
