@@ -1,13 +1,13 @@
 # Architecture (round 2)
 
-Status: DRAFT (not approved)
+Status: APPROVED
 Version: 2.0
 Last updated: 2026-11-12
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
 DECISIONS.md. This document is the round-2 design that answers the CTO's feedback: a tool-using agent that can
 ingest a random dataset live, and richer entity resolution. Numbers marked (measured) come from read-only checks on
-the Part 1 outputs.
+the Part 1 outputs. Building starts in a new session; no hour budget applies (time is logged from actuals).
 
 ## a. Ground rules
 
@@ -19,7 +19,8 @@ the Part 1 outputs.
    through a link to a register record that carries it.
 4. Three confidences, never blended. Relationship edges carry their own `relation_confidence`.
 5. Abstaining is a correct result: "no business entities" and "could not read" are valid outcomes.
-6. Round-1 raw files are pinned by SHA-256 and not re-downloaded (QBCC is a live register; labels must carry over).
+6. Raw files are pinned by SHA-256 when fetched. The six round-1 files are not re-downloaded (QBCC is a live
+   register; labels must carry over).
 7. Package names do not change. New modules sit beside existing ones; README commands and tests keep working.
 
 ## b. Agent
@@ -48,6 +49,7 @@ The round-1 pipeline stays available as `--mode pipeline` (fallback).
 - The model can fetch only the reference the human supplied; a URL found inside a cell is never fetched.
 - The held-out split is made when a table is first read; the model never sees held-out rows while proposing.
 - `finish` is refused unless both `validate` AND `critique` ran on the exact config being finished (matched by hash).
+  The gate is "ran, and each issue fixed or answered", not "critic satisfied".
 - Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code.
   At most 2 critique rounds.
 - `no_business_entities` requires `read_table` and `profile` to have run. `could_not_read` requires two reader
@@ -85,12 +87,12 @@ needed. Recurring G transforms are listed by a `promote` report for the human to
 |---|---|
 | delimited | encoding, delimiter, quote, `skip_rows`, `header_rows` (0, 1 or n merged), `skip_footer_rows` |
 | xlsx | sheet, `skip_rows`, `header_rows`, drop empty columns |
+| xls | same options as xlsx (legacy format; adds the `xlrd` dependency) |
 | json | `records_path`, flatten depth, NDJSON (GeoJSON via `features`) |
 | archive | zip or gz member, dispatched to the readers above |
 
-Files over 50 MB are streamed. Not in the core: PDF, HTML, parquet, XLS, XML, reshape (XLS is a recommended
-stretch: 52 pool datasets are reachable only through XLS, measured). One run onboards one table; cross-table
-joins are out of scope.
+Files over 50 MB are streamed. Not in the core: PDF, HTML, parquet, XML, reshape. One run onboards one table; cross-
+table joins are out of scope.
 
 **Sandbox for level G: defence in depth, not a security boundary.**
 - *Static check.* One function `transform(value)`. Allowlist of AST node types and of every name and attribute
@@ -119,28 +121,36 @@ joins are out of scope.
 2. **Rarity-weighted names.** Token IDF over all mentions and register names; "Australia" and "Group" count for
    almost nothing.
 3. **ASIC registers, onboarded by the agent like any source** (both CC BY 3.0 AU, measured). Companies: 79 MB zip /
-   401 MB CSV, carries ACN, ABN, type, status, registration date and former-name rows. Business Names: 72 MB zip,
-   business name to holder ABN. A generic engine row filter keeps only rows whose ABN, ACN or name key appears in
-   our mentions; the trimmed result is committed with attribution.
+   401 MB CSV, carries ACN, ABN, type, status, registration date and former-name rows. Business Names: 72 MB zip /
+   247 MB CSV, business name to holder ABN. A generic engine row filter keeps only rows whose ABN, ACN or name key
+   appears in our mentions. For the six, the trimmed result is committed with attribution. For a NEW source,
+   `resolve` re-runs the row filter over the full registers on disk (`data/raw/reference/`); the time on the 401 MB
+   file is measured at build step 6 and recorded in the runbook (not yet known).
 4. **ABR lookup (stretch, not on the critical path).** Only for ABNs in candidate links and profiles, git-ignored
    cache, terms saved to `docs/abr_terms.txt`; the method name is read from the live WSDL, not from memory.
+
+**Register bridging uses registered, current names only** (Companies: current-name rows; Business Names: status
+Registered). A name matching more than one holder is **refused**, not loose.
 
 **Offline fallback = the two ASIC registers.** They lack non-company entity types, ABN status and location. With
 no internet the matcher runs with ABR features marked absent and the output says so.
 
 **Matcher m2.0** (hand-set tiers; accept 0.80, loose 0.60). Scores are calibrated by the hand check, not fitted.
+**Promotion rule:** T3c and "T4 exact name plus postcode" START in the loose band (capped below 0.80). A tier moves
+to accepted only after its hand-check stratum is clean (at least 15 rows labelled, 0 wrong, at most 1 unsure); the
+matcher version is bumped and the promotion plus its evidence is recorded in DECISIONS.md.
 
 | Tier | Evidence | Confidence |
 |---|---|---|
 | T1 | Equal ABN or ACN, names agree by rarity-weighted overlap | 0.98 |
 | T1r | Equal identifier, names differ, a register or ABR name history confirms both names | 0.95 |
 | T2 | ACN inside ABN, names agree | 0.88 |
-| T3c | No-ABN record bridges to exactly one registered holder AND a second independent hit agrees (licensee to Companies, trading name to Business Names, same ABN) | 0.88 |
-| T3 | Single uncorroborated register hit | 0.75 (loose) |
-| T4 | Exact name plus postcode / plus state / both companies with no location | 0.85 / 0.70 / 0.65 |
+| T3c | No-ABN record bridges to exactly one registered current holder AND a second independent hit agrees (licensee to Companies, trading name to Business Names, same ABN) | 0.70, loose until promoted (0.88 after) |
+| T3 | Single uncorroborated register hit on a unique registered current name | 0.65 (loose) |
+| T4 | Exact name plus postcode / plus state / both companies with no location | 0.70 loose until promoted (0.85 after) / 0.70 / 0.65 |
 
-Refused: identifier match with unconfirmed name conflict, ambiguous register name, generic name, different ABNs,
-person-like on both sides. Address evidence is postcode + state only (no address parser).
+Refused: identifier match with unconfirmed name conflict, a name matching more than one registered holder, generic
+name, different ABNs, person-like on both sides without an equal ABN. Address evidence is postcode + state only.
 
 **Graph**
 
@@ -153,21 +163,30 @@ person-like on both sides. Address evidence is postcode + state only (no address
 **Rescore** stays a pure function over stored evidence (no sources, no extractor, no model). New: it refuses to
 write if a human-labelled Y would be demoted or a human-labelled N promoted.
 
-**People stay out of profiles.** A person-like mention under a company's ABN becomes a `nominee_of` endpoint.
-Components made only of person-like mentions get no profile. Profiles are built from `same_as` components with
-mentions from two or more of the six sources; register and ABR records enrich but do not count toward that.
-(Known cost: sole traders who hold an ABN are excluded; stated in the write-up.)
+**People**
+- A person-like name WITH ITS OWN valid ABN may be an entity (sole trader), linked only on equal ABN with agreeing
+  names. `entity_type` stays `unknown` unless a source states otherwise.
+- A person with no ABN, or listed under a company's ABN (the ABN belongs to a company-like name or a registered
+  company), is an edge endpoint only (`nominee_of`, `trustee_for`) and never a profile.
+
+**Profiles** count ANY onboarded source, not only the six. Two types, always labelled:
+- `cross_source`: mentions from two or more onboarded sources linked by `same_as`.
+- `single_source_register_confirmed`: one source plus a register record joined by a `same_as` link; the link's band
+  (`accepted` or `loose`) is shown on the profile. Register and ABR records enrich fields but never count as a second
+  source. Components made only of people with no ABN get no profile.
+So a new dataset that contains a registered company always ends with a profile, at the trust level its link earned.
 
 **Hand check.** Round-1 labels carry over wherever both records are unchanged (same source, row hash, name and
 identifier); expected 45 to 50 of 50 survive. They become the frozen regression set and the ABN-equal stratum.
-New labelling samples only new strata (register-bridged, no-ABN, ABR-assisted if built): 15 rows each, so 30 to
-45 rows, about 45 to 70 minutes. Round-2 precision is labelled non-independent (the registers are matcher
-features, and ABN Lookup shows ASIC business names); no-ABN links are judged by hand.
+New labelling samples only new strata: register-bridged, no-ABN, sole-trader (person with own ABN), and ABR-assisted
+if built; 15 rows each, so 45 to 60 rows, about 70 to 90 minutes. Round-2 precision is labelled non-independent
+(the registers are matcher features, and ABN Lookup shows ASIC business names); no-ABN links are judged by hand.
 
 ## e. Benchmark
 
-**Frame.** The 2,440-dataset pool minus the six (measured). Reachable through the readers above: 1,140. Zip only:
-87. XLS only: 52. XML only: 37. No tabular file (PDF, shapefile, web services): 856. No resources: 268.
+**Frame.** The 2,440-dataset pool minus the six (measured). Reachable through the core readers: 1,140 plus 52
+XLS-only = 1,192. Zip only: 87 (reachable if the members are readable). XML only: 37 (out of core). No tabular file
+(PDF, shapefile, web services): 856. No resources: 268.
 
 **Draws** (at most one dataset per publisher-and-title family; siblings of the six flagged):
 
@@ -183,93 +202,98 @@ mapped and abstained, open critique issues, sandbox capabilities, model.
 
 **Verification.** One sheet, `handcheck/benchmark_review.csv`: for each business-bearing dataset one row per mapped
 field (three raw to value examples, level, "wrong?"), plus "outcome correct?" and "key field missed?". About 5
-minutes per dataset, 30 to 40 minutes in total. Non-business verdicts are spot-checked.
+minutes per dataset. Non-business verdicts are spot-checked.
 
 **Published (final draw only, dev rate beside it):** validated; validated with 0 wrong fields on review; key field
 missed; non-business correctly declared; could not read by reason; injection pass or fail.
 
 ## f. Demo runbook
 
-`onboard <ref>` (live trace) -> packet -> `approve` -> `extract` -> `resolve` (full re-run, seconds) -> one profile
-with provenance. A second rehearsal uses a deliberately wrong dataset (weather data) to show "no business entities".
-
 | Case | Works | Degrades |
 |---|---|---|
 | My machine, internet | Everything | Nothing |
 | My machine, no internet | Extract, resolve, rescore, profiles, trace replay | No LLM, so no onboarding of a new dataset (phone hotspot is the backup) |
-| Their machine, internet | Onboarding with their key and model access | Registers need a ~150 MB download; without it the new dataset links by identifier and name only; sandbox weaker on macOS/Windows |
+| Their machine, internet | Onboarding with their key and model access | Register-confirmed profiles need the registers on disk (151 MB of zips, plus the filter pass); without them the new dataset links by identifier and name only; sandbox weaker on macOS/Windows |
 | Their machine, no internet | Tests and committed outputs | A walkthrough only |
 
-## g. File layout
+The register row-filter time on the 401 MB file is recorded here once measured (build step 6).
+
+## g. Demo path
+
+Dataset A contains registered companies; dataset B contains no businesses. Times marked "target" are goals, not
+measurements; "to measure" is filled in during the build.
+
+| Step | Command | Time | What the audience sees |
+|---|---|---|---|
+| 1 Onboard | `python -m src.part2_agent.onboard <url or file>` | target 4 min excl. download | Live trace: fetch progress, `sniff`, `read_table` headers, `profile` shapes, `try_transform` parse rates, `validate` pass, `critique` issues answered, outcome `validated_config`. For B the trace ends at `no_business_entities` with the cited evidence, and the demo stops there |
+| 2 Review | open `configs/<source>.review.md` | 1-2 min (human) | Fields with raw to value examples, transform level W/P/G, generated code if any, unmapped columns with reasons |
+| 3 Approve | `python -m src.part2_agent.approve <source_id>` | 1 min | One question: which numbers are wrong; approval stores the hash (covers any generated code) |
+| 4 Extract | `python -m src.engine.extract <source_id>` | target under 10 s | Rows, observations, rejects with reasons |
+| 5 Resolve | `python -m src.part3_resolve.run` | to measure (registers filter on 401 MB file + seconds) | Links by tier and band, refused pairs with reasons, edges by type |
+| 6 Profile | `python -m src.part4_profiles.show <source_id>` | target under 2 s | A profile for the new dataset: fields with provenance and confidence, the register record that confirmed it, the profile type and link band. For A it always shows at least one profile |
+
+## h. File layout
 
 **Changed:** `src/llm.py` (tool-use call, history caching); `src/part2_agent/` (`onboard.py`, `fetch.py`,
-`packet.py`, `approve.py` numbers every setting and shows generated code); `src/engine/` (`readers.py`,
+`packet.py`, `approve.py` numbers every setting and shows generated code); `src/engine/` (`readers.py` incl. xls,
 `transforms.py`, `config.py`, `extract.py`: row hash, row filter, streaming); `src/part3_resolve/` (`features.py`,
-`score.py`, `run.py`, `rescore.py`, `handcheck.py`); `src/part4_profiles/build.py`; `requirements.txt`.
+`score.py`, `run.py`, `rescore.py`, `handcheck.py`); `src/part4_profiles/build.py`; `requirements.txt` (`xlrd`).
 
 **New:** `src/part2_agent/` (`loop.py`, `tools.py`, `guard.py`); `src/engine/` (`sandbox.py`, `custom.py`);
-`src/common/names.py`; `src/part3_resolve/` (`idf.py`, `registers.py`, `graph.py`, `abr.py`); `src/benchmark/`;
-`demo/RUNBOOK.md`; `docs/abr_terms.txt`; new tests.
+`src/common/names.py`; `src/part3_resolve/` (`idf.py`, `registers.py`, `graph.py`, `abr.py`);
+`src/part4_profiles/show.py`; `src/benchmark/`; `demo/RUNBOOK.md`; `docs/abr_terms.txt`; new tests.
 
-## h. Build order (12-hour limit, including your review time)
+## i. Build order (no hour budget; time is logged from actuals)
 
-| # | Step | Hours |
-|---|---|---|
-| 1 | Loop, tool-use wrapper, guards, outcomes, trace | 1.25 |
-| 2 | Tools and parametric readers | 1.5 |
-| 3 | Benchmark harness, injection case, dev draw and fixes | 1.5 |
-| 4 | Primitives, sandbox, custom execution, tests | 1.25 |
-| 5 | Re-onboard the six, your 6 approvals, extract | 0.75 |
-| 6 | Registers (streaming, row filter, 2 approvals), bridging | 1.25 |
-| 7 | IDF, m2.0, graph, rescore gate, profiles | 1.5 |
-| 8 | Round-2 hand check | 1.0 |
-| 9 | Final draw on both models, your review sheet | 1.0 |
-| 10 | Write-up, README, runbook, rehearsal | 1.0 |
-| | **Total** | **12.0** |
+1. Loop, tool-use wrapper, guards, outcomes, trace.
+2. Tools and parametric readers (incl. xls).
+3. Benchmark harness, injection case, dev draw and fixes.
+4. Primitives, sandbox, custom execution, tests.
+5. Re-onboard the six, your approvals, extract.
+6. Registers (streaming, row filter, two approvals), bridging; time the 401 MB filter pass.
+7. IDF, m2.0, graph, rescore gate, profiles (both types).
+8. Round-2 hand check (new strata); tier promotions recorded in DECISIONS.md.
+9. Final draw on both models; your review sheet.
+10. Write-up, README, runbook, rehearsal.
 
-No slack. Stretch outside the 12 hours: ABR lookup (0.75), XLS reader (0.25), XML and reshape (0.5).
+Stretch: ABR lookup.
 
-**Cut order if over:** (1) stretch items; (2) hand check down to 10 rows per stratum; (3) `renamed_to` edges;
-(4) Business Names register only. Never cut: enforced validate and critique, the sandbox tests, the unchanged
-final draw, the hand-judged no-ABN stratum, the human gate.
+**Cut order when time is called:** (1) stretch items; (2) hand check down to 10 rows per stratum; (3) `renamed_to`
+edges; (4) Business Names register only. Never cut: enforced validate and critique, the sandbox tests, the
+unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 
-## i. CTO feedback to design
+## j. CTO feedback to design
 
 | Feedback | Answered by |
 |---|---|
-| Agents with tools, not rigid; ingest a random dataset live | Tool loop (b); three transform levels and generated code (c); parametric readers; four clean outcomes; the benchmark's published final-draw rate (e); the runbook (f) |
-| More creative entity resolution, connect more data points | Recovered WA and QLD names; register bridging with two-register corroboration; name history; rarity-weighted names; typed graph edges; richer profiles (d) |
+| Agents with tools, not rigid; ingest a random dataset live | Tool loop (b); three transform levels and generated code (c); parametric readers incl. xls; four clean outcomes; the benchmark's published final-draw rate (e); the demo path (g) |
+| More creative entity resolution, connect more data points | Recovered WA and QLD names; register bridging with unique registered-current-name rule; name history; rarity-weighted names; typed graph edges; sole-trader and nominee handling; register-confirmed profiles for any new source (d) |
 
-## j. Open questions and risks
+## k. Open questions and risks
 
-1. No internet means no agent: the largest demo risk. Recommend a hotspot and asking Chath; no local-model path planned.
-2. Critique gate is "ran, and each issue fixed or answered", not "critic satisfied": the critic raised a false
-   alarm in round 1 and shares the agent's blind spots.
-3. "0 wrong fields" rewards under-mapping, hence the "key field missed" measure.
+1. No internet means no agent: the largest demo risk. Recommend a hotspot and asking Chath; no local-model path.
+2. The critique gate can pass a wrong mapping (the critic shares the agent's blind spots); the benchmark's human
+   review measures this.
+3. "0 wrong fields" rewards under-mapping, hence "key field missed".
 4. Sandbox on Windows has no CPU limit, only the wall timeout.
 5. Full independence is unachievable: ABN Lookup shows ASIC business names. We report matcher evidence versus
    labeller evidence.
 6. Carried labels are not a random sample of the new matcher's links: regression gate and unchanged stratum only.
-7. The people rule excludes sole traders with an ABN, which the ontology allows.
-8. Register bridging could add thousands of name-based links from VIC and WA; uncorroborated hits stay loose.
-9. XLS reader recommended (52 datasets); the owner decides.
-10. `nzbn` cut: an NZ dataset can still map a 13-digit NZBN at level P without a check digit.
-11. Cost estimate $8 to $10 for round 2, so project spend will likely pass $10; we report the real number.
+7. Register-confirmed single-source profiles rest on one register match, not a second source; the profile type and
+   link band are always shown. Loose-band profiles are lower trust by design.
+8. The register filter over 401 MB per new source has unknown time; if it is slow, the demo needs a pre-built
+   index (not in this design, would be a change).
+9. Promotion of T3c and T4 depends on a clean 15-row stratum; if it is not clean they stay loose and name-only
+   bridging contributes no accepted links.
+10. Sole traders are linked only on an equal ABN; people with no ABN never become profiles, which loses some real
+    businesses.
+11. Cost estimate $8 to $10 for round 2; project spend will likely pass $10; we report the real number.
 12. Sonnet may miss the 4-minute target; the benchmark will show it.
 13. If the final draw crashes, publish as-is and report fixes separately.
-14. 12 hours is tight; the time limit N is not yet confirmed by the owner.
-
-## k. Change from the round-2 plan before this version
-
-Critique harness-enforced before `finish`; two benchmark rates plus a review sheet; sandbox rlimit probe, attribute
-allowlist, facade and `.format` ban; registers built before ABR, agent-onboarded, labelled non-independent; label
-carry-over by row hash with an estimate of new rows; cut address parser, postcode table, `--incremental`,
-`co_located`, parquet, `nzbn`, `second_opinion`, calibrated-score fit; kept package names; download excluded from
-the 4-minute budget; four demo cases; new `check_unique`, held-out partition rule, fetch restriction, two-register
-corroboration tier, stable edge ids, rescore gate.
 
 ## Change log
 
 | Date | Version | What changed | Why |
 |---|---|---|---|
 | 2026-11-12 | 2.0 | Initial round-2 design: tool-using agent, three transform levels with sandboxed generated code, ASIC-register bridging, typed graph, generality benchmark, demo runbook | CTO feedback on the first submission: more agentic and generic ingestion, live demo on a random dataset, more creative entity resolution |
+| 2026-11-12 | 2.0 | Approved with seven edits: profiles count any source and add a single-source register-confirmed type; T3c and T4-postcode start loose with a hand-check promotion rule; people rule (own ABN may be an entity, no ABN or under a company's ABN is an edge endpoint only); xls reader added to core; critique gate and "key field missed" kept; register bridging uses unique registered current names (ambiguous refused); 12-hour limit and hour estimates removed; Demo path section added | Owner review before building |
