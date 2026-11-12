@@ -518,13 +518,24 @@ def field_matches(config: dict, name: str) -> list[str]:
 def narrowing_changes(new: dict, old: dict) -> list[str]:
     """What `new` adds or alters compared with a critiqued config `old`. An EMPTY list means `new` only removes fields,
     abstains fields, drops valid_from / valid_to, or moves columns to unmapped, and so needs no new critique. Anything
-    that adds a field, changes a field's source / canonical / transforms / group, or adds or changes the reader, record_id,
-    observed_at, valid_from or valid_to is a change."""
+    that adds a field, changes a field's source / canonical / transforms / group, RAISES a field's mapping_confidence above its
+    critiqued value (lowering it is fine), or adds or changes the reader, record_id, observed_at, valid_from or valid_to is a
+    change."""
     changes = []
-    old_defs = {field_def(f) for f in (old.get("fields") or [])} if isinstance(old.get("fields"), list) else set()
+    old_fields = (old.get("fields") or []) if isinstance(old.get("fields"), list) else []
+    old_defs = {field_def(f) for f in old_fields}
+    old_by_def = {field_def(f): f for f in old_fields if isinstance(f, dict)}
     for f in (new.get("fields") or []) if isinstance(new.get("fields"), list) else []:
-        if field_def(f) not in old_defs:
+        d = field_def(f)
+        if d not in old_defs:
             changes.append(field_key(f))
+            continue
+        # After the last critique a field's mapping_confidence may go DOWN but not UP: a higher confidence is a stronger claim
+        # the critic never saw, so it needs a critique on that config.
+        o = old_by_def.get(d)
+        nc, oc = (f.get("mapping_confidence"), o.get("mapping_confidence")) if isinstance(f, dict) and o else (None, None)
+        if all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in (nc, oc)) and nc > oc + 1e-9:
+            changes.append(f"{field_key(f)} (mapping_confidence raised from {oc} to {nc})")
     for k in sorted((set(new) | set(old)) - _FREE_KEYS):
         if k in _OPTIONAL_KEYS and not new.get(k):
             continue          # removed (or still absent): needs no critique
@@ -678,7 +689,8 @@ class FinishGate:
                                        f"critique.")
             how = []
             if fields_changed:
-                how.append(f"for the field(s) {fields_changed}: remove them from `fields` and list them in `unmapped`")
+                how.append(f"for the field(s) {fields_changed}: remove them from `fields` and list them in `unmapped`, or, if only "
+                           f"the mapping_confidence was raised, set it back to at most the value it had when last critiqued")
             if keys_changed:
                 how.append(f"for the key(s) {keys_changed}: put the value back exactly as it was when last critiqued"
                            + (" (or, for valid_from / valid_to, delete the key)" if any(k in _OPTIONAL_KEYS for k in keys_changed) else ""))

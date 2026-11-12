@@ -1,0 +1,157 @@
+what_it_is: Cairns and Hinterland HHS contract disclosure register 2020-21
+one_row_is: a contract awarded to a supplier
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 5
+  header_rows: 0
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: col_21
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+valid_to:
+  source: col_23
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields:
+- source: col_7
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: supplier/party name
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 1
+    ok: 23
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: col_8
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: supplier address
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 0
+    ok: 24
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: col_22
+  canonical: entity.abn
+  transforms:
+  - name: regex_extract
+    arg: ^([\d ]+)$
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: party identifier, ABN where present
+  field_confidence: 0.5
+  transform_level: W
+  validation:
+    held_out_rows: 24
+    blank: 24
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+unmapped:
+- source: col_1
+  reason: blank
+- source: col_2
+  reason: government buyer
+- source: col_3
+  reason: government buyer address
+- source: col_4
+  reason: contract title
+- source: col_5
+  reason: contract date
+- source: col_6
+  reason: contract value
+- source: col_9
+  reason: flag
+- source: col_10
+  reason: flag
+- source: col_11
+  reason: procurement method
+- source: col_12
+  reason: contract type
+- source: col_13
+  reason: flag
+- source: col_14
+  reason: flag
+- source: col_15
+  reason: flag
+- source: col_16
+  reason: flag
+- source: col_17
+  reason: flag
+- source: col_18
+  reason: tender number
+- source: col_19
+  reason: category
+- source: col_20
+  reason: contract ref
+source_reliability:
+  identity: 0.7
+  address: 0.6
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government register, manually compiled
+source_id: bench_dev1t_04
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 24
+  observations_in_held_out: 71
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-4d0bc988
+    field: entity.abn<-col_22
+    problem: No example row contains col_22, so the ABN mapping cannot be checked against real values. The reason
+      given ('party identifier, ABN where present') is vague. The regex only accepts digits and spaces, so any 9-digit
+      ACN values in the column would be dropped silently.
+    severity: advisory
+    suggested_fix: Confirm col_22 holds ABNs from the profile. If it mixes 11-digit and 9-digit identifiers, also
+      map it with the acn transform. Otherwise lower mapping_confidence.
+  - id: c-3b1a86e3
+    field: col_21
+    problem: col_21 appears in a raw row (value '`') but is not in fields or unmapped, so rule 3 (account for every
+      column) is not met. col_22 is mapped, but col_21 is not accounted for.
+    severity: advisory
+    suggested_fix: Add col_21 to unmapped with the reason 'stray/junk character'.
+  - id: c-eac533fb
+    field: col_5
+    problem: The contract date (col_5) is left unmapped. It states when the contract started, which could arguably
+      feed valid_from, but it does not describe the entity's name or address claims. Leaving it out is defensible.
+    severity: advisory
+    suggested_fix: Leave it unmapped, or document the choice in the reason.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:38:40+00:00'

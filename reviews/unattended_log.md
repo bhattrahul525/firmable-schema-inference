@@ -133,3 +133,13 @@ round2_total=0.3547 session_spend=0.3094 remaining=2.6906 (limit $3.00). Phase A
 - Done: (2) outcomes by who ended the run + coverage columns; (3) could_not_read evidence by code; (5a) listing with description/last-modified, (5b) one resource switch per run, (5c) onboard --resource-index; tests 428; mutation check 52 mutations, 0 survivors; ARCHITECTURE 2.9 (404 lines); passes dev1c (Haiku) and dev1s (Sonnet) run on seed 1. Seed 2 untouched. No approval file written.
 - Four passes side by side: outputs/benchmark/dev_seed1/compare.md (+csv/json). Haiku c: validated 6, no-business 3, could-not-read 2; Sonnet s: validated 7, no-business 2, could-not-read 2. Cost per run (injection excluded): Haiku $0.0068, Sonnet $0.097. Injection: c "PASS (within clean-run variance)", s "PASS".
 - review-decisions round spend $1.3168 of the $2.50 limit (round-2 total $1.6715)
+
+## Round 3 review changes (22:43) - local edits only, NO git commands run (Rahul does all git)
+- Done: (1) confidence only down after the last critique; (2) critic gets MAPPING_RULES + severity guidance; (3) business-entity rule 18 in agent and critic; (4) has_name / has_identifier + coverage counts; (5) injection verdict by canary only; (6) identifier-checksum warning in validate (dataset-06 finding). Tests 453; mutation check 41 mutations, 0 survivors; passes dev1d (Haiku) and dev1t (Sonnet) on seed 1; seed 2 untouched. ARCHITECTURE 2.10.
+- this round: $1.0845 of the $1.50 limit
+- NEEDS A PLANNING DECISION: rule 18 ("people are not organisations") vs sole traders (ARCHITECTURE section d, ontology entity_type sole_trader). Haiku d declared no_business_entities on the SMSF auditor file (individuals with ABNs); c, s, t validated it.
+
+## Round 4 (23:01) - local edits only, NO git commands run
+- Done: rule 18 amended to ARCHITECTURE.md section d (wording shared, drift test); name rule in rule 5 (both prompts); validate warns on a mapped placeholder header; step 4a open item recorded (conditional mapping, not built); tests 464; mutation check 26 mutations, 0 survivors; pass dev1e (Haiku) on seed 1; ARCHITECTURE 2.11 (414 lines, about 14 over the guideline: details to move into module docstrings at step 4).
+- this round $0.0888 of the $0.25 limit
+- dev1e: validated 7 / no business 2 / could not read 2; individual-ABN file validated again (7 fields); placeholder-header warning did not fire in any run (tested offline only).

@@ -1,0 +1,230 @@
+what_it_is: ASIC register of approved SMSF auditors, one row per condition or capacity attached to an auditor.
+one_row_is: one condition or capacity attached to a registered SMSF auditor
+reader:
+  format: csv
+  encoding: utf-8-sig
+  delimiter: "\t"
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: SMSF_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Auditor's name on the ASIC register of approved auditors; individual auditor, mapped as legal name per
+    rule 4.
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 0
+    ok: 303
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_PERSON_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Column name says person ABN; 11-digit values pass checksum.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 260
+    ok: 43
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_STATUS
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Registered: active
+      Suspended: suspended
+  group: main
+  mapping_confidence: 0.8
+  reason: Register status values seen in profile (Registered, Suspended).
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 0
+    ok: 303
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_REG_DT
+  canonical: entity.date_registered
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+  group: main
+  mapping_confidence: 0.85
+  reason: Column name says registration date.
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 0
+    ok: 303
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Locality column.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 2
+    ok: 301
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_POST_CODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode column.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 2
+    ok: 301
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: SMSF_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State column.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 303
+    blank: 2
+    ok: 301
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: SMSF_NUM
+  reason: ASIC auditor registration number; not an ACN or ABN.
+- source: REGISTER_NAME
+  reason: constant label 'SMSF Auditor'
+- source: SMSF_CAPACITY_FIRM_NAME
+  reason: audit firm the auditor is a member of; not the entity's own name
+- source: SMSF_ATTRIBUTE_TYPE
+  reason: row type discriminator (Condition/Capacity)
+- source: SMSF_CAPACITY
+  reason: capacity detail for the auditor
+- source: SMSF_CAPACITY_START_DT
+  reason: capacity start date
+- source: SMSF_CONDITION
+  reason: condition detail
+- source: SMSF_CONDITION_DTL
+  reason: condition long text
+- source: SMSF_CONDITION_NUMBER
+  reason: condition identifier
+- source: SMSF_CONDITION_START_DT
+  reason: condition start date
+- source: SMSF_SUSP_START_DT
+  reason: suspension start date; not mapped to keep claims conservative
+- source: SMSF_SUSP_END_DT
+  reason: suspension end date; not mapped
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.8
+  classification: 0.6
+  contact: 0.3
+source_reliability_basis: Official ASIC register; identity and registration status authoritative, ABN coverage partial
+  (about 16% of rows).
+meaning_check_responses: []
+source_id: bench_dev1e_01
+config_version: 1
+validation_summary:
+  held_out_rows: 303
+  observations_in_held_out: 2158
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-1dcb24df
+    field: entity.legal_name<-SMSF_NAME
+    problem: SMSF_NAME is not labelled as a registered, licensee or supplier name. Rule 5 maps a name to legal_name
+      only when the data says it is the registered name. The register does list these people as approved auditors,
+      so legal_name may be defensible under rule 4, but the mapping rests on an inference from the register's purpose
+      rather than a stated label.
+    severity: advisory
+    suggested_fix: Confirm against the ASIC register field definitions that SMSF_NAME is the registered auditor
+      name. If it is not clearly labelled that way, map it to entity.trading_name at confidence 0.6 or lower.
+  - id: c-74f934dc
+    field: entity.status<-SMSF_STATUS
+    problem: The map_values transform covers only 'Registered' and 'Suspended'. The profile may contain other status
+      values, which would be left unmapped without comment.
+    severity: advisory
+    suggested_fix: Check the full distinct-value profile of SMSF_STATUS and add mappings for any other values that
+      can be interpreted with confidence, leaving the rest unmapped.
+  - id: c-33c1043d
+    field: observation.valid_from
+    problem: The envelope sets valid_from equal to the SMSF_REG_DT registration date. Rule 10 allows valid_from
+      only where the source states when the licence or status started. A registration date is close to that, but
+      the envelope treats it as the start of the claim without the source saying so.
+    severity: advisory
+    suggested_fix: Either justify in the config that the registration date is the start of registration status,
+      or leave valid_from null and keep the registration date only in entity.date_registered.
+  - id: c-a9cc4e90
+    field: record_id
+    problem: Rows are one per auditor condition, so the same auditor appears on several rows with identical entity
+      observations. hash_row yields distinct IDs per condition row, so the same auditor's claims are duplicated.
+      SMSF_NUM is a stable auditor identifier but is not unique per row.
+    severity: advisory
+    suggested_fix: Document that each row is a condition-level copy of the same auditor claims, or deduplicate observations
+      per SMSF_NUM. Consider keeping SMSF_NUM as a traceable source key in the record ID.
+  - id: c-b76ee740
+    field: unmapped:SMSF_SUSP_START_DT, SMSF_SUSP_END_DT
+    problem: Suspension dates are left unmapped to stay conservative. The status is mapped to suspended, but when
+      the suspension began and ended is not recorded, so a suspended claim has no time bounds.
+    severity: advisory
+    suggested_fix: Keep the exclusion if preferred, but note that the suspended status observation has no validity
+      window. Alternatively map the suspension dates to valid_from and valid_to on the status observation if the
+      source states them.
+  - id: c-1aef1a95
+    field: unmapped:SMSF_CAPACITY_FIRM_NAME
+    problem: The audit firm the auditor belongs to is a real organisation that could be a related entity. It is
+      left unmapped with a reason that is accurate but loses a possible entity link.
+    severity: advisory
+    suggested_fix: Keep it unmapped for now, and consider a relationship or link mapping in a later iteration.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: ee55471aed56
+  generated_at: '2026-11-12T11:56:16+00:00'

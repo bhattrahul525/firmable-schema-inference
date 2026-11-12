@@ -17,6 +17,7 @@ import copy
 import hashlib
 import json
 import re
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from src.engine.config import (CONFIG_DIR, ENGINE_VERSION, approval_path, config
                                write_config)
 from src.engine.extract import make_record_id, run_rows
 from src.engine.readers import ReaderError, iter_table
+from src.part2_agent.agent_prompt import MAPPING_RULES
 from src.part2_agent.agent_table import NoTable, collect_held, get_table, load_metadata
 from src.part2_agent.guard import wrap_untrusted
 from src.part2_agent.llm_steps import ONTOLOGY_PATH
@@ -35,6 +37,10 @@ from src.part2_agent.validate import DUP_ID_LIMIT, validate
 AGENT_VERSION = "2.0.0"
 CRITIQUE_ROWS = 10
 UNVERIFIED_CAP = 0.5
+IDENT_FAIL_WARN = 0.02     # an ABN / ACN column whose 11- / 9-digit values fail the checksum more often than this is suspect
+IDENT_MIN_JUDGED = 20      # ... once at least this many values were judged on the held-out rows
+PLACEHOLDER_HEADER = re.compile(r"^(_blank_\d+(__\d+)?|unnamed([: _]+\d+)?)$", re.I)   # names the reader generates (or a spreadsheet library) for an empty header cell
+IDENT_CHECKS = {"entity.abn": ("abn_checksum_failed", 89), "entity.acn": ("acn_checksum_failed", 10)}   # reject reason, 1-in-N chance
 
 
 # ---- config shape --------------------------------------------------------------------------------------------------
@@ -189,6 +195,7 @@ def validate_config(cfg_in, source_id: str, work_dir: Path, check=None) -> dict:
     for key, default in (("observations", 0), ("rejects", 0), ("id_failure", False)):   # a structural failure returns early
         report.setdefault(key, default)
     report["held_rows"] = len(held)
+    report["warnings"] = list(report["warnings"]) + identifier_warnings(cfg, report["stats"]) + placeholder_header_warnings(cfg)
     if report["stats"]:   # not a structural failure: swap the held-out-only id check for the whole-file one
         report["hard_failure_count"] += int(scan["fail"]) - int(bool(report["id_failure"]))
         report["id_failure"] = scan["fail"]
@@ -201,6 +208,48 @@ def unanswered(report: dict, cfg: dict) -> list[dict]:
     """Meaning warnings the config has not answered (tolerant of a malformed meaning_check_responses)."""
     answered = {r.get("check_id") for r in (cfg.get("meaning_check_responses") or []) if isinstance(r, dict)}
     return [w for w in report["warnings"] if w["id"] not in answered]
+
+
+def identifier_warnings(cfg: dict, stats: dict) -> list[dict]:
+    """A meaning warning for an ABN / ACN field whose ID-SHAPED values fail the checksum more often than IDENT_FAIL_WARN. Skipped
+    values (not 11 / 9 digits) are not failures, so a column that mixes real ABNs with other identifiers of the same length can pass
+    the parse-rate floor while its look-alike values are read as ABNs. A random number passes the ABN checksum about 1 time in 89
+    (ACN: 1 in 10), so the look-alikes that PASS are mostly coincidences. The warning is answered, like any meaning warning, by
+    changing the mapping or by saying why it is kept (`meaning_check_responses`)."""
+    out = []
+    for f in cfg.get("fields", []):
+        spec = IDENT_CHECKS.get(f.get("canonical"))
+        s = stats.get(field_key(f)) if spec else None
+        if not s:
+            continue
+        reason, one_in = spec
+        fails = sum(c for r, c in (s.get("reject_reasons") or {}).items() if str(r).startswith(reason))
+        judged = (s.get("ok") or 0) + (s.get("reject") or 0)
+        if judged >= IDENT_MIN_JUDGED and fails / judged > IDENT_FAIL_WARN:
+            out.append({"id": f"identifier_checksum_{f['canonical'].split('.')[-1]}", "text": (
+                f"{fails} of {judged} judged values mapped to {f['canonical']} ({fails / judged:.0%}) fail the checksum. A genuine "
+                f"column rarely fails that often, so it may mix real identifiers with look-alikes (internal ids of the same length). "
+                f"About 1 in {one_in} look-alikes passes the checksum by chance, so some values read as valid may not be. Use a "
+                f"type column or a stricter pattern to keep only the real identifiers, or say why the column is kept as it is.")})
+    return out
+
+
+def placeholder_header_warnings(cfg: dict) -> list[dict]:
+    """A meaning warning when a MAPPED source column has a generated placeholder header (`_blank_N`, `Unnamed...`). It means the
+    header cell was empty, which usually means the header rows were misread: a title or label row sits where the header should be, or
+    the header is a row or two further down. Answered like any meaning warning (change the reader options, or say why it is kept)."""
+    cols = []
+    for f in cfg.get("fields", []):
+        for c in (f["source"] if isinstance(f["source"], list) else [f["source"]]):
+            if isinstance(c, str) and PLACEHOLDER_HEADER.match(c) and c not in cols:
+                cols.append(c)
+    if not cols:
+        return []
+    return [{"id": "placeholder_header", "text": (
+        f"{len(cols)} mapped column(s) have generated placeholder names ({', '.join(cols[:6])}): the header cell is empty, so the header "
+        f"rows may be misread. Check the reader options skip_rows and header_rows (and sheet, and the first rows of the table with "
+        f"read_table or sample): a title or label row above or below the real header is the usual cause. If the header really is blank, "
+        f"say so in a meaning_check_responses entry.")}]
 
 
 def failing_fields(report: dict) -> list[str]:
@@ -258,7 +307,13 @@ problem's `field` exactly as the config key given for it (canonical<-source), or
 Give each problem a severity. BLOCKING: the mapping states something the source does not support (a value in the wrong
 field, a column that does not mean what the field means, a value mapped to a meaning the source does not state). ADVISORY:
 everything else (a caveat, a nuance, incompleteness, something that could be richer or parsed further, a missing optional
-field, how the envelope looks). When unsure, choose advisory: a blocking issue removes the field.
+field, how the envelope looks). When unsure, choose advisory: a blocking issue removes the field. An issue is blocking only
+when the mapping states something the source does not support. A mapping that follows a written mapping rule below is NOT
+blocking because of a caveat about some of its values: report such a caveat as advisory.
+
+The agent was given the mapping rules below and must follow them. Review the mapping against the same rules.
+
+{MAPPING_RULES}
 
 ONTOLOGY:
 {ONTOLOGY_PATH.read_text()}"""

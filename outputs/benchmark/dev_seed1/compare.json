@@ -8,13 +8,28 @@
     "a": "validated_config",
     "b": "validated_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "no_business_entities",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "7",
     "b": "7",
     "c": "7",
-    "s": "7"
+    "d": "0",
+    "e": "7",
+    "s": "7",
+    "t": "7"
+   },
+   "flags": {
+    "a": "NI",
+    "b": "NI",
+    "c": "NI",
+    "d": "--",
+    "e": "NI",
+    "s": "NI",
+    "t": "NI"
    }
   },
   {
@@ -25,13 +40,28 @@
     "a": "partial_config",
     "b": "partial_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "2",
     "b": "2",
     "c": "2",
-    "s": "2"
+    "d": "2",
+    "e": "2",
+    "s": "2",
+    "t": "2"
+   },
+   "flags": {
+    "a": "NI",
+    "b": "NI",
+    "c": "NI",
+    "d": "NI",
+    "e": "NI",
+    "s": "NI",
+    "t": "NI"
    }
   },
   {
@@ -42,13 +72,28 @@
     "a": "partial_config",
     "b": "validated_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "1",
     "b": "1",
     "c": "2",
-    "s": "2"
+    "d": "2",
+    "e": "2",
+    "s": "2",
+    "t": "2"
+   },
+   "flags": {
+    "a": "N-",
+    "b": "-I",
+    "c": "NI",
+    "d": "NI",
+    "e": "NI",
+    "s": "NI",
+    "t": "NI"
    }
   },
   {
@@ -59,13 +104,28 @@
     "a": "validated_config",
     "b": "partial_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "3",
     "b": "2",
     "c": "2",
-    "s": "3"
+    "d": "3",
+    "e": "3",
+    "s": "3",
+    "t": "3"
+   },
+   "flags": {
+    "a": "-I",
+    "b": "-I",
+    "c": "-I",
+    "d": "NI",
+    "e": "NI",
+    "s": "NI",
+    "t": "NI"
    }
   },
   {
@@ -76,13 +136,28 @@
     "a": "validated_config",
     "b": "validated_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "3",
     "b": "2",
     "c": "2",
-    "s": "2"
+    "d": "3",
+    "e": "2",
+    "s": "2",
+    "t": "2"
+   },
+   "flags": {
+    "a": "NI",
+    "b": "NI",
+    "c": "NI",
+    "d": "NI",
+    "e": "NI",
+    "s": "NI",
+    "t": "NI"
    }
   },
   {
@@ -93,13 +168,28 @@
     "a": "partial_config",
     "b": "partial_config",
     "c": "validated_config",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "4",
     "b": "4",
     "c": "4",
-    "s": "5"
+    "d": "4",
+    "e": "4",
+    "s": "5",
+    "t": "4"
+   },
+   "flags": {
+    "a": "-I",
+    "b": "-I",
+    "c": "-I",
+    "d": "-I",
+    "e": "-I",
+    "s": "NI",
+    "t": "N-"
    }
   },
   {
@@ -110,13 +200,28 @@
     "a": "no_business_entities",
     "b": "no_business_entities",
     "c": "no_business_entities",
-    "s": "no_business_entities"
+    "d": "no_business_entities",
+    "e": "no_business_entities",
+    "s": "no_business_entities",
+    "t": "no_business_entities"
    },
    "mapped": {
     "a": "0",
     "b": "0",
     "c": "0",
-    "s": "0"
+    "d": "0",
+    "e": "0",
+    "s": "0",
+    "t": "0"
+   },
+   "flags": {
+    "a": "--",
+    "b": "--",
+    "c": "--",
+    "d": "--",
+    "e": "--",
+    "s": "--",
+    "t": "--"
    }
   },
   {
@@ -127,13 +232,28 @@
     "a": "could_not_read",
     "b": "could_not_read",
     "c": "could_not_read",
-    "s": "could_not_read"
+    "d": "could_not_read",
+    "e": "could_not_read",
+    "s": "could_not_read",
+    "t": "could_not_read"
    },
    "mapped": {
     "a": "0",
     "b": "0",
     "c": "0",
-    "s": "0"
+    "d": "0",
+    "e": "0",
+    "s": "0",
+    "t": "0"
+   },
+   "flags": {
+    "a": "--",
+    "b": "--",
+    "c": "--",
+    "d": "--",
+    "e": "--",
+    "s": "--",
+    "t": "--"
    }
   },
   {
@@ -144,13 +264,28 @@
     "a": "partial_config",
     "b": "validated_config",
     "c": "no_business_entities",
-    "s": "validated_config"
+    "d": "validated_config",
+    "e": "validated_config",
+    "s": "validated_config",
+    "t": "validated_config"
    },
    "mapped": {
     "a": "0",
     "b": "1",
     "c": "0",
-    "s": "1"
+    "d": "1",
+    "e": "1",
+    "s": "1",
+    "t": "1"
+   },
+   "flags": {
+    "a": "--",
+    "b": "N-",
+    "c": "--",
+    "d": "N-",
+    "e": "N-",
+    "s": "N-",
+    "t": "N-"
    }
   },
   {
@@ -161,13 +296,28 @@
     "a": "no_business_entities",
     "b": "no_business_entities",
     "c": "no_business_entities",
-    "s": "no_business_entities"
+    "d": "no_business_entities",
+    "e": "no_business_entities",
+    "s": "no_business_entities",
+    "t": "no_business_entities"
    },
    "mapped": {
     "a": "0",
     "b": "0",
     "c": "0",
-    "s": "0"
+    "d": "0",
+    "e": "0",
+    "s": "0",
+    "t": "0"
+   },
+   "flags": {
+    "a": "--",
+    "b": "--",
+    "c": "--",
+    "d": "--",
+    "e": "--",
+    "s": "--",
+    "t": "--"
    }
   },
   {
@@ -178,13 +328,28 @@
     "a": "could_not_read",
     "b": "could_not_read",
     "c": "could_not_read",
-    "s": "could_not_read"
+    "d": "could_not_read",
+    "e": "could_not_read",
+    "s": "could_not_read",
+    "t": "could_not_read"
    },
    "mapped": {
     "a": "0",
     "b": "0",
     "c": "0",
-    "s": "0"
+    "d": "0",
+    "e": "0",
+    "s": "0",
+    "t": "0"
+   },
+   "flags": {
+    "a": "--",
+    "b": "--",
+    "c": "--",
+    "d": "--",
+    "e": "--",
+    "s": "--",
+    "t": "--"
    }
   }
  ],
@@ -192,6 +357,13 @@
   "a": {
    "model": "claude-haiku-5-5",
    "runs": 11,
+   "coverage": {
+    "validated": 3,
+    "both": 2,
+    "name_only": 0,
+    "identifier_only": 1,
+    "neither": 0
+   },
    "outcomes": {
     "validated_config": 3,
     "partial_config": 4,
@@ -206,6 +378,13 @@
   "b": {
    "model": "claude-haiku-5-5",
    "runs": 11,
+   "coverage": {
+    "validated": 4,
+    "both": 2,
+    "name_only": 1,
+    "identifier_only": 1,
+    "neither": 0
+   },
    "outcomes": {
     "validated_config": 4,
     "partial_config": 3,
@@ -220,6 +399,13 @@
   "c": {
    "model": "claude-haiku-5-5",
    "runs": 11,
+   "coverage": {
+    "validated": 6,
+    "both": 4,
+    "name_only": 0,
+    "identifier_only": 2,
+    "neither": 0
+   },
    "outcomes": {
     "validated_config": 6,
     "no_business_entities": 3,
@@ -230,9 +416,56 @@
    "mean_agent_seconds": 38.2,
    "mean_turns": 8.9
   },
+  "d": {
+   "model": "claude-haiku-5-5",
+   "runs": 11,
+   "coverage": {
+    "validated": 6,
+    "both": 4,
+    "name_only": 1,
+    "identifier_only": 1,
+    "neither": 0
+   },
+   "outcomes": {
+    "no_business_entities": 3,
+    "validated_config": 6,
+    "could_not_read": 2
+   },
+   "cost_usd": 0.0695,
+   "mean_cost_usd": 0.0063,
+   "mean_agent_seconds": 37.0,
+   "mean_turns": 9.4
+  },
+  "e": {
+   "model": "claude-haiku-5-5",
+   "runs": 11,
+   "coverage": {
+    "validated": 7,
+    "both": 5,
+    "name_only": 1,
+    "identifier_only": 1,
+    "neither": 0
+   },
+   "outcomes": {
+    "validated_config": 7,
+    "no_business_entities": 2,
+    "could_not_read": 2
+   },
+   "cost_usd": 0.0738,
+   "mean_cost_usd": 0.0067,
+   "mean_agent_seconds": 40.2,
+   "mean_turns": 9.5
+  },
   "s": {
    "model": "claude-sonnet-5-5",
    "runs": 11,
+   "coverage": {
+    "validated": 7,
+    "both": 6,
+    "name_only": 1,
+    "identifier_only": 0,
+    "neither": 0
+   },
    "outcomes": {
     "validated_config": 7,
     "no_business_entities": 2,
@@ -242,6 +475,26 @@
    "mean_cost_usd": 0.097,
    "mean_agent_seconds": 36.9,
    "mean_turns": 7.7
+  },
+  "t": {
+   "model": "claude-sonnet-5-5",
+   "runs": 11,
+   "coverage": {
+    "validated": 7,
+    "both": 5,
+    "name_only": 2,
+    "identifier_only": 0,
+    "neither": 0
+   },
+   "outcomes": {
+    "validated_config": 7,
+    "no_business_entities": 2,
+    "could_not_read": 2
+   },
+   "cost_usd": 0.845,
+   "mean_cost_usd": 0.0768,
+   "mean_agent_seconds": 26.1,
+   "mean_turns": 6.6
   }
  },
  "by_model": {
@@ -249,29 +502,508 @@
    "passes": [
     "a",
     "b",
-    "c"
+    "c",
+    "d",
+    "e"
    ],
-   "runs": 33,
-   "cost_usd": 0.2436,
-   "mean_cost_usd": 0.0074,
-   "mean_agent_seconds": 44.2,
-   "mean_turns": 10.0
+   "runs": 55,
+   "cost_usd": 0.3869,
+   "mean_cost_usd": 0.007,
+   "mean_agent_seconds": 42.0,
+   "mean_turns": 9.8
   },
   "claude-sonnet-5-5": {
    "passes": [
-    "s"
+    "s",
+    "t"
    ],
-   "runs": 11,
-   "cost_usd": 1.067,
-   "mean_cost_usd": 0.097,
-   "mean_agent_seconds": 36.9,
-   "mean_turns": 7.7
+   "runs": 22,
+   "cost_usd": 1.912,
+   "mean_cost_usd": 0.0869,
+   "mean_agent_seconds": 31.5,
+   "mean_turns": 7.2
   }
  },
  "passes": [
   "a",
   "b",
   "c",
-  "s"
- ]
+  "d",
+  "e",
+  "s",
+  "t"
+ ],
+ "agreement": {
+  "c-d": [
+   {
+    "dataset_id": "datagovau:asic-smsf",
+    "outcome_a": "validated_config",
+    "outcome_b": "no_business_entities",
+    "same_outcome": false,
+    "same_fields": false,
+    "only_in_first": [
+     "address.locality<-SMSF_LOCALITY",
+     "address.postcode<-SMSF_POST_CODE",
+     "address.state<-SMSF_STATE",
+     "entity.abn<-SMSF_PERSON_ABN",
+     "entity.date_registered<-SMSF_REG_DT",
+     "entity.legal_name<-SMSF_NAME",
+     "entity.status<-SMSF_STATUS"
+    ],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-government-schools-abns",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "qld:chhhs-contracts-disclosure-register-2020-21",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "address.full<-Supplier address Parties/address not assessed",
+     "entity.abn<-Supplier ABN Parties/identifier/uri not assessed"
+    ],
+    "only_in_second": [
+     "address.full<-Supplier address",
+     "entity.abn<-Supplier ABN",
+     "entity.legal_name<-Supplier name"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:avib-prrz",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [],
+    "only_in_second": [
+     "entity.entity_type<-Licensee Name"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:intellectual-property-longitudinal-research-data-2020",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "sa:south-australian-signalised-intersections-and-crossings",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-state-schools-voluntary-parent-payments",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "validated_config",
+    "same_outcome": false,
+    "same_fields": false,
+    "only_in_first": [],
+    "only_in_second": [
+     "entity.legal_name<-School Name"
+    ]
+   },
+   {
+    "dataset_id": "sa:river-murray-protection-area",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   }
+  ],
+  "d-e": [
+   {
+    "dataset_id": "datagovau:asic-smsf",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "validated_config",
+    "same_outcome": false,
+    "same_fields": false,
+    "only_in_first": [],
+    "only_in_second": [
+     "address.locality<-SMSF_LOCALITY",
+     "address.postcode<-SMSF_POST_CODE",
+     "address.state<-SMSF_STATE",
+     "entity.abn<-SMSF_PERSON_ABN",
+     "entity.date_registered<-SMSF_REG_DT",
+     "entity.legal_name<-SMSF_NAME",
+     "entity.status<-SMSF_STATUS"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.legal_name<-Name"
+    ],
+    "only_in_second": [
+     "entity.trading_name<-Name"
+    ]
+   },
+   {
+    "dataset_id": "vic:victorian-government-schools-abns",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "qld:chhhs-contracts-disclosure-register-2020-21",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "address.full<-Supplier address",
+     "entity.abn<-Supplier ABN",
+     "entity.legal_name<-Supplier name"
+    ],
+    "only_in_second": [
+     "address.full<-Supplier address Parties/address not assessed",
+     "entity.abn<-Supplier ABN Parties/identifier/uri not assessed",
+     "entity.legal_name<-Supplier name Parties additionalidentifiers/id not assessed"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:avib-prrz",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.entity_type<-Licensee Name"
+    ],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:intellectual-property-longitudinal-research-data-2020",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "sa:south-australian-signalised-intersections-and-crossings",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-state-schools-voluntary-parent-payments",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.legal_name<-School Name"
+    ],
+    "only_in_second": [
+     "entity.trading_name<-School Name"
+    ]
+   },
+   {
+    "dataset_id": "sa:river-murray-protection-area",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   }
+  ],
+  "c-e": [
+   {
+    "dataset_id": "datagovau:asic-smsf",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.legal_name<-Name"
+    ],
+    "only_in_second": [
+     "entity.trading_name<-Name"
+    ]
+   },
+   {
+    "dataset_id": "vic:victorian-government-schools-abns",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "qld:chhhs-contracts-disclosure-register-2020-21",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [],
+    "only_in_second": [
+     "entity.legal_name<-Supplier name Parties additionalidentifiers/id not assessed"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:avib-prrz",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:intellectual-property-longitudinal-research-data-2020",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "sa:south-australian-signalised-intersections-and-crossings",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-state-schools-voluntary-parent-payments",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "validated_config",
+    "same_outcome": false,
+    "same_fields": false,
+    "only_in_first": [],
+    "only_in_second": [
+     "entity.trading_name<-School Name"
+    ]
+   },
+   {
+    "dataset_id": "sa:river-murray-protection-area",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   }
+  ],
+  "s-t": [
+   {
+    "dataset_id": "datagovau:asic-smsf",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:junior-minerals-exploration-incentive-credit-allocations",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-government-schools-abns",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "qld:chhhs-contracts-disclosure-register-2020-21",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "address.full<-Supplier address Parties/address",
+     "entity.abn<-Supplier ABN Parties/identifier/uri",
+     "entity.legal_name<-Supplier name Parties additionalidentifiers/id"
+    ],
+    "only_in_second": [
+     "address.full<-col_8",
+     "entity.abn<-col_22",
+     "entity.legal_name<-col_7"
+    ]
+   },
+   {
+    "dataset_id": "datagovau:avib-prrz",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:intellectual-property-longitudinal-research-data-2020",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.abn<-lord_party_id"
+    ],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "sa:south-australian-signalised-intersections-and-crossings",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:contract-expenditure-under-strategic-sourcing-management-2010-11-intra-government-mail",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "vic:victorian-state-schools-voluntary-parent-payments",
+    "outcome_a": "validated_config",
+    "outcome_b": "validated_config",
+    "same_outcome": true,
+    "same_fields": false,
+    "only_in_first": [
+     "entity.legal_name<-School Name"
+    ],
+    "only_in_second": [
+     "entity.legal_name<-_blank_1"
+    ]
+   },
+   {
+    "dataset_id": "sa:river-murray-protection-area",
+    "outcome_a": "no_business_entities",
+    "outcome_b": "no_business_entities",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   },
+   {
+    "dataset_id": "datagovau:vostronet-australia-pty-ltd-anticipatory-notice-augustine-heights-january-2025",
+    "outcome_a": "could_not_read",
+    "outcome_b": "could_not_read",
+    "same_outcome": true,
+    "same_fields": true,
+    "only_in_first": [],
+    "only_in_second": []
+   }
+  ]
+ }
 }

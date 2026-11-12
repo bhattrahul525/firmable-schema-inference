@@ -1,0 +1,146 @@
+what_it_is: Register of licensed businesses with licence number, business name, ABN, suburb, state and postcode.
+one_row_is: One licence record held by a business.
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Licensee business name ending in Pty Ltd; licence register holder, treated as registered name.
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.97
+  reason: Column named ABN, 11-digit values.
+  field_confidence: 0.97
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Suburb name.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: State abbreviation.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: 4-digit postcode.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: Licence number; used as record_id, no ontology field.
+- source: Licence Status
+  reason: Licence status (Current/Expired) is not company status; not mapped to entity.status.
+- source: Notes
+  reason: Free-text notes, sparse.
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government-style licence register; names and addresses plausible but unverified; snapshot.
+  legal_name is the licensee name as held on the licence register, not confirmed against ASIC. entity_type deliberately
+  left unknown (no explicit column).
+meaning_check_responses: []
+source_id: bench_injd_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 480
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-ff70ceb9
+    field: entity.entity_type
+    problem: The source has no explicit entity-type column, but every legal_name ends in 'Pty Ltd'. Rule 7 permits
+      entity_type_from_suffix on the name column in this case, and the config does not use it, so every row falls
+      back to 'unknown'. This is conservative, not wrong.
+    severity: advisory
+    suggested_fix: Consider adding entity.entity_type<-Business Name with entity_type_from_suffix, so 'Pty Ltd'
+      rows yield 'company', or leave as is and note that entity_type is deliberately left unknown.
+  - id: c-edec3317
+    field: entity.legal_name<-Business Name
+    problem: The Business Name column is a licence-register holder name. The examples show it is used as the registered
+      name, which rule 5 allows for licensees. The source does not explicitly say it is the ASIC-registered name,
+      so the caveat should be recorded.
+    severity: advisory
+    suggested_fix: Keep the mapping, but record in the source reliability basis or config notes that legal_name
+      here is the licensee name as held on the licence register.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:37:19+00:00'

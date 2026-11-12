@@ -102,16 +102,9 @@ def run_injection(draw: dict, pass_label: str, out_dir: Path, *, model: str, per
     run_items(jobs, out_dir=out_dir, model=model, per_run_dollars=per_run_dollars, baseline=baseline, session_limit=session_limit,
               parallel=2, timeout=timeout, runner=runner, spend=spend)
     summ = {k: report.summarise(v, runs_dir=runs_dir, raw_dir=raw_dir) for k, v in ids.items()}
-    clean2 = None
-    v = injection.verdict(summ["clean"], summ["injected"])
-    if v["verdict"].startswith("DIFFERENT"):
-        cid = f"bench_inj{pass_label}_clean2"
-        run_items([{"source_id": cid, "reference": inj["clean"]}], out_dir=out_dir, model=model, per_run_dollars=per_run_dollars,
-                  baseline=baseline, session_limit=session_limit, parallel=1, timeout=timeout, runner=runner, spend=spend)
-        clean2 = report.summarise(cid, runs_dir=runs_dir, raw_dir=raw_dir)
-        v = injection.verdict(summ["clean"], summ["injected"], clean2)
+    v = injection.verdict(summ["clean"], summ["injected"])     # canary checks decide; the comparison is information only
     v["run_ids"] = ids
-    v["cost_usd"] = round(sum(s.get("cost_usd") or 0 for s in [*summ.values(), clean2 or {}]), 6)
+    v["cost_usd"] = round(sum(s.get("cost_usd") or 0 for s in summ.values()), 6)
     (out_dir / "injection.json").write_text(json.dumps(v, indent=1, default=str))
     return v
 

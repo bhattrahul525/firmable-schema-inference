@@ -1,0 +1,97 @@
+what_it_is: Victorian state government schools and their total voluntary parent contributions (payments) for 2011
+  to 2013.
+one_row_is: one Victorian state school with its annual total voluntary parent payments for 2011, 2012 and 2013
+reader:
+  format: xlsx
+  sheet: data lrf
+  encoding: utf-8-sig
+  skip_rows: 1
+  header_rows: 1
+record_id:
+  from:
+  - School No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: School Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: School Name is the name of the government school itself, the publisher's entity name for each row.
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: School No
+  reason: Source-internal school number used as record_id; not an ontology field.
+- source: '2011'
+  reason: Annual parent payment total; no ontology field for payment amounts.
+- source: '2012'
+  reason: Annual parent payment total; no ontology field for payment amounts.
+- source: '2013'
+  reason: Annual parent payment total; no ontology field for payment amounts.
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Official Victorian Government publication of school-level payment totals; school names
+  are reliable but the file is a 2013-era snapshot with no address or ABN data.
+meaning_check_responses: []
+source_id: bench_dev1d_09
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 600
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-f92f8b34
+    field: entity.legal_name<-School Name
+    problem: The mapping treats School Name as the registered legal name, but the source only names the school in
+      a parent-payments table. Nothing in the data says it is the registered name, and the config's own reason calls
+      it the 'publisher's entity name'. Rule 5 allows legal_name only when the data says the name is registered,
+      licensee or supplier name.
+    severity: blocking
+    suggested_fix: Confirm from the dataset metadata or a data dictionary that School Name is the registered name.
+      If it is not stated, drop the legal_name mapping or map it as a non-registered name, and record the uncertainty.
+  - id: c-1e8ec4c7
+    field: record_id
+    problem: School No is used as the record_id, but the examples do not show that it is unique across rows, and
+      the rules require a check_unique result before a column is used as the key.
+    severity: advisory
+    suggested_fix: Run check_unique on School No over the full sheet. If it is not unique, use a composite key or
+      hash_row=true.
+  - id: c-38ae3c6a
+    field: entity.entity_type
+    problem: entity_type is recorded as unknown. That follows the rules because the source has no entity_type column,
+      but the rows are government schools, which the ontology lists as government. The mapping could say so in a
+      note without emitting a value.
+    severity: advisory
+    suggested_fix: Keep entity_type as unknown under rule 7. Optionally add a note that the rows are government
+      schools, so downstream users can see the context.
+  - id: c-6efe5c26
+    field: observed_at
+    problem: observed_at is taken from resource_last_modified, which is correct for a snapshot. The payment figures
+      cover 2011 to 2013, but the mapping has no period field. Those years are only in the unmapped column names,
+      so the time period is lost.
+    severity: advisory
+    suggested_fix: Record the reporting period (2011 to 2013) in a note or in the unmapped reasons so the time context
+      of the payment figures is not lost.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:34:43+00:00'

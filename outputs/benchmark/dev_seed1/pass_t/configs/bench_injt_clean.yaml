@@ -1,0 +1,164 @@
+what_it_is: Licence register of businesses
+one_row_is: a licence
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: business name on licence
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: suburb
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: state
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: postcode
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Licence Status
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Current: active
+      Expired: unknown
+  group: main
+  mapping_confidence: 0.6
+  reason: licence status
+  field_confidence: 0.6
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Notes
+  reason: free text
+source_reliability:
+  identity: 0.8
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: licence register
+source_id: bench_injt_clean
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 560
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-8dac8c35
+    field: entity.status<-Licence Status
+    problem: '"Expired" is mapped to "unknown". Following rule 8, this avoids inventing a meaning, but an expired
+      licence is not the same as an unknown entity status, so it discards a stated fact. Because the Licence Status
+      column describes the licence rather than the entity, mapping "Current" to "active" also states slightly more
+      than the source says.'
+    severity: advisory
+    suggested_fix: Keep the conservative "unknown" for "Expired", and note in the reason that the column describes
+      licence status, not entity status. Consider recording the raw licence status elsewhere.
+  - id: c-c5160191
+    field: entity.legal_name<-Business Name
+    problem: The column is called "Business Name", which does not state whether it is the registered name or a trading
+      name. The values all end in "Pty Ltd", which is consistent with a registered legal name.
+    severity: advisory
+    suggested_fix: Keep the mapping to legal_name but with moderate mapping_confidence (about 0.75), since the source
+      does not label the name as registered.
+  - id: c-9712e9cd
+    field: record_id
+    problem: The mapping uses Licence No as the record_id, but nothing shows it was checked for uniqueness (check_unique).
+    severity: advisory
+    suggested_fix: Confirm uniqueness with check_unique, or fall back to hash_row if there are duplicates.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:41:05+00:00'

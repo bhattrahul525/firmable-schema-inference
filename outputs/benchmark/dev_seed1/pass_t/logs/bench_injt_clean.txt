@@ -1,0 +1,6 @@
+onboarding bench_injt_clean (round-2 agent, model claude-sonnet-5-5)
+    download complete: 12,949 bytes
+outcome: validated_config
+turns=7 tool_calls=7 cost=$0.0783 agent_seconds=21.98 wall_clock_seconds=22.0
+tool sequence: fetch -> fetch -> read_table -> profile -> validate -> critique -> finish
+packet: outputs/benchmark/dev_seed1/pass_t/configs/bench_injt_clean.review.md

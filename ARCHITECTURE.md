@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.9
+Version: 2.11
 Last updated: 2026-11-12
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -64,8 +64,8 @@ spend never changes the round-1 figures quoted in the first submission.
 | `sample` / `search` | Rows by strategy (head, spread, random, by_column) or regex, from the training partition only | 30 / 10 rows |
 | `try_transform` | Real engine on up to 1,000 TRAINING rows (spread): parse rate and rejects. Level W only until build step 4 adds P | 5 examples |
 | `define_transform` | Level-G generated transform (section c) | 40 lines of code |
-| `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file: unaccounted columns and `record_id` uniqueness | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
-| `critique` | Separate model call, fresh context: raw rows beside their observations | 10 examples |
+| `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file (unaccounted columns, `record_id` uniqueness) and meaning warnings when an ABN / ACN field fails its checksum on more than 2% of judged values (a column mixing real identifiers with look-alikes of the same length) and when a MAPPED column has a generated placeholder header (`_blank_N`, `Unnamed`: the header rows may be misread; the text names `skip_rows` and `header_rows`) | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
+| `critique` | Separate model call, fresh context: raw rows beside their observations, reviewed against the SAME mapping rules text the agent has (`agent_prompt.MAPPING_RULES`) | 10 examples |
 | `ask_human` | Question goes into the packet. On a terminal the run waits for the answer (the wait is excluded from the time budget and traced as `human_wait_seconds`); without a human the model is told so. The answer is data in a `<data>` block, never approval: only `approve` approves | 1 per run |
 | `finish` | Declares an outcome | see below |
 
@@ -76,32 +76,35 @@ spend never changes the round-1 figures quoted in the first submission.
 - `finish` runs `validate` ITSELF (code) on the submitted config, so "validate has not run" is never a refusal reason; it
   refuses only if validation fails. It also needs a `critique`, with one exception, the NARROWING rule: a config that only
   removes fields, abstains fields or moves columns to `unmapped` compared with a critiqued config needs no new critique (it
-  cannot add an error). Adding a field, or changing any field's source, canonical field, transforms or group, or the reader,
-  `record_id`, `observed_at`, or adding / altering `valid_from` / `valid_to`, needs a critique on that config. Dropping
-  `valid_from` / `valid_to` is a narrowing. Confidence and reason text, and `source_reliability` (a judgement the critic is
-  never shown), may change freely. With no critique calls left, the refusal states the two options: revert that change,
+  cannot add an error). Adding a field, changing a field's source, canonical field, transforms or group, changing the reader,
+  `record_id` or `observed_at`, or adding / altering `valid_from` / `valid_to` needs a critique on that config; dropping
+  `valid_from` / `valid_to` is a narrowing. Reason text and `source_reliability` (never shown to the critic) may change freely,
+  and a field's `mapping_confidence` may go DOWN but not UP after the last critique. With no critique calls left, the refusal states the two options: revert that change,
   or abstain the field. Issues from every critique the finished config narrows accumulate; an issue about a field that is no
   longer in the config drops. The gate is "ran, and each issue fixed or answered", not "critic satisfied". Every refusal names
   the exact next call. Malformed `answers` or `abstentions` are refused with a sentence (and the shape), never an exception.
-- A config outcome must map at least one field: `finish` refuses a config with none (and a code abstention that would remove
-  every field), naming the next call (`no_business_entities` with evidence, or map a field).
-- The `critique` result tells the agent how many critique calls remain; after the last one it says that from here the agent
-  can only remove or abstain fields or answer the remaining issues in `finish` (text written by code).
+- A config outcome must map at least one field: `finish` refuses a config with none (or a code abstention that would remove every
+  field), naming the next call. The `critique` result says how many critique calls remain; after the last it says the agent can
+  only remove or abstain fields or answer the remaining issues (text written by code).
 - Each critique issue carries a SEVERITY from the critic: `blocking` (the mapping states something the source does not
-  support) or `advisory` (everything else; the critic is told to choose advisory when unsure). At a forced end only fields
+  support) or `advisory` (everything else; the critic is told to choose advisory when unsure, and that a mapping which follows a written mapping rule is not blocking because of a caveat about some values). At a forced end only fields
   with a blocking issue are abstained; fields that pass validate with only advisory issues stay and the issues go in the
   packet. An issue with no severity counts as blocking. The same rule holds at an ordinary `finish`: every BLOCKING issue must
   be fixed or answered in `answers` or its field is abstained by code (the finish is still accepted: `validated_config`); unanswered ADVISORY issues
-  leave the field in place and are listed in the packet and in the finish event's `open_advisory`.
+  leave the field in place and are listed in the packet and in the finish event's `open_advisory`. After code abstains fields the
+  harness re-validates (code) but does not re-critique: removing fields cannot add an error.
 - **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate (fields
   left out are in `unmapped` or `abstentions`, including fields code abstained for an unanswered blocking issue). `partial_config`
   = the HARNESS ended the run (turns, dollars, time, repeated refusals) and at least one field passed validate. `incomplete` =
   the harness ended it and no field did, or no config existed. The model can declare only `validated_config`,
   `no_business_entities` and `could_not_read`. How much a config covers is a separate measure (benchmark columns
   `mapped_count`, `abstained_count`, `unresolved_blocking`: blocking issues the run ended without fixing or answering), so a thin
-  `validated_config` is visible. Not settled by this: whether the agent chose well what to drop (that needs the human review).
-- Every critique issue must be fixed or answered; an issue that is neither gets its field abstained by code, after
-  which the harness re-validates (code) but does not re-critique: removing fields cannot add an error.
+  `validated_config` is visible. Business-entity rule 18 (both prompts, built on section d's people rule so they cannot
+  drift; a test compares the wording): `no_business_entities` is for rows that are neither organisations (any ontology
+  entity_type, schools, charities and government bodies included) nor individuals who count as entities (section d: a person-like
+  name WITH ITS OWN valid ABN may be an entity, `entity_type` stays `unknown` unless a source states otherwise); a name column the
+  data does not label registered, licensee or supplier maps to `entity.trading_name` at 0.6 or lower, never left unmapped for that.
+  Not settled by this: whether the agent chose well what to drop (that needs the human review).
 - Harness constants, not tool settings: `critique` at most 2 per run, `ask_human` at most 1, `validate` at most 6 (a tool
   spec may only tighten them). The harness's own critique inside a forced end is not one of the model's rounds.
 - Whole-file checks (one streamed pass per config, cached): a column may be ignored only if it is empty in the whole file (a column empty in the held-out rows but filled elsewhere must be mapped or listed in `unmapped`); a `record_id` made of columns FAILS validation on any repeated key, or on more than 1% blank keys; `hash_row` fails only if more than 1% of rows are exact repeats of another row. This is code: it holds whatever the model did or did not check. A failing id is a hard failure but not a field, so abstaining cannot fix it (a run that cannot fix it ends `incomplete`).
@@ -276,14 +279,13 @@ XLS-only = 1,192. Zip only: 87 (reachable if the members are readable). XML only
 The final draw runs once per model (Haiku and Sonnet) at a recorded commit.
 
 **Harness (step 3).** `src/benchmark/`: `draw.py` (seeded, written once and never adjusted; the six, `find_by_lia_band` and their
-siblings are flagged and excluded; seed 2 refused unless `--final`), `run.py` (one subprocess per run; per-run dollar limit,
-session spend limit checked before each launch, wall-clock kill; dev draw on Haiku or Sonnet), `report.py` (read from the trace,
-never the console; blank human columns; a review sheet; `compare` across passes) and `injection.py` (clean against injected copy
-with a canary; PASS = same outcome and mapped pairs and not followed; a difference runs one more clean copy and is reported as
-variance or failure, never a quiet pass). Output goes to `outputs/benchmark/`, not `configs/`. Frame counts match this section
-except no-tabular 875 (here 856) and no-resources 249 (268).
+siblings are excluded; seed 2 refused unless `--final`), `run.py` (a subprocess per run; per-run dollar limit, session spend limit
+checked before each launch, wall-clock kill; Haiku or Sonnet), `report.py` (read from the trace, never the console; blank human
+columns; review sheets; `compare` with coverage and self-agreement) and `injection.py` (verdict by canary checks alone; the
+comparison with the clean copy is information). Output goes to `outputs/benchmark/`. Frame counts match this section except
+no-tabular 875 (here 856) and no-resources 249 (268).
 
-**Per run:** outcome, tool calls, cost, wall-clock, download seconds and bytes, reader, W/P/G counts, fields
+**Per run:** outcome, `has_name` (a name field mapped), `has_identifier` (ABN or ACN mapped), tool calls, cost, wall-clock, download seconds and bytes, reader, W/P/G counts, fields
 mapped and abstained, open critique issues, sandbox capabilities (empty until step 4), model.
 
 **Verification.** One sheet, `handcheck/benchmark_review.csv`: for each business-bearing dataset one row per mapped
@@ -293,15 +295,16 @@ minutes per dataset. Non-business verdicts are spot-checked.
 **Published (final draw only, dev rate beside it):** validated; validated with 0 wrong fields on review; key field
 missed; non-business correctly declared; could not read by reason; injection pass or fail.
 
-**Known results (not tuned for).** On `nsw:find-by-lia-band` the agent never mapped `address.locality` (round 1 derived it with
-`regex_extract`). Run-to-run variance is real (the same code gave different outcomes on the same dataset). **Dev draw, seed 1,
-four passes** (`outputs/benchmark/dev_seed1/compare.md`): a, b = Haiku under the OLD outcome definition ($0.084 each); c =
-Haiku and s = Sonnet under the new one. Validated / partial / no business / could not read: a 3/4/2/2, b 4/3/2/2, c 6/0/3/2,
-s 7/0/2/2. Passes a, b and c, s are NOT comparable on "validated": the new definition counts every accepted finish. Cost and time
-(11 runs, injection excluded): Haiku $0.0068 per run, 38 s, 8.9 turns (pass c); Sonnet $0.097 per run (14x), 37 s, 7.7 turns.
-Sonnet mapped more fields on two datasets (3 v 2, 5 v 4) and validated the one dataset Haiku called non-business. Causes of the
-non-validated runs: a dead URL (404), a zipped MapInfo geodataset (now ended on verified evidence in one step), non-business
-files. The injection pair passed in c and s (c needed the extra clean run). Human sheet: `handcheck/benchmark_review_dev1c.csv`.
+**Known results (not tuned for).** `address.locality` is never mapped on find-by-lia-band (round 1 derived it with `regex_extract`).
+**Dev draw, seed 1, seven passes** (`outputs/benchmark/dev_seed1/compare.md`): a, b Haiku, old outcome definition; c Haiku, s Sonnet,
+new definition; d Haiku, t Sonnet, after the round-3 changes; e Haiku, after rule 18 was aligned with section d and the name rule
+and placeholder-header warning were added. Validated / no business entities / could not read (partial 0 from c on): a 3/2/2 (+4
+partial), b 4/2/2 (+3), c 6/3/2, d 6/3/2, e 7/2/2, s 7/2/2, t 7/2/2. Validated configs with name and identifier / name only /
+identifier only / neither: c 4/0/2/0, d 4/1/1/0, e 5/1/1/0, s 6/1/0/0, t 5/2/0/0. Self-agreement (outcome; outcome and fields):
+Haiku c-d 9 and 7 of 11, d-e 10 and 6, Sonnet s-t 11 and 8. The individual-ABN file (individual auditors, 16% with an ABN) was
+`no_business_entities` in d (rule 18 as first written) and validated in c, e, s and t. Cost per run: Haiku $0.006 to $0.008,
+Sonnet $0.077 to $0.097. The injection pair passes in every pass since the verdict became canary-only. Human sheets:
+`handcheck/benchmark_review_dev1{d,e,t}.csv`.
 
 ## f. Demo runbook
 
@@ -345,6 +348,11 @@ measurements; "to measure" is filled in during the build.
 2. Tools and parametric readers (incl. xls).
 3. Benchmark harness, injection case, dev draw and fixes.
 4. Primitives, sandbox, custom execution, tests.
+   4a. OPEN ITEM, not built: a CONDITIONAL mapping, "apply this mapping only where another column equals a value" (and its
+   `try_transform` / `validate` support). The dev draw found a mixed identifier column: real ABNs for the rows a second column
+   labels as ABN, look-alike internal ids of the same length for the rest. Without a condition the look-alikes that fail the
+   checksum are rejects and about 1 in 89 of them passes by chance as a false ABN (about 0.05% of that file's ABN observations);
+   today validate only warns (round-3 identifier-checksum warning).
 5. Re-onboard the six, your approvals, extract.
 6. Registers (streaming, row filter, two approvals), bridging; time the 401 MB filter pass.
 7. IDF, m2.0, graph, rescore gate, profiles (both types).
@@ -402,3 +410,5 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.7 | Finish-rule fixes after three live rounds on find-by-lia-band: removing `valid_from` / `valid_to` is a narrowing and `source_reliability` is not a mapping (the refusal text now says how to undo a key change, not to remove it from `fields`); unanswered ADVISORY issues no longer abstain a field at an ordinary finish (only blocking ones do), matching the forced end; generic outcome wording in the prompt and the `finish` description | Round 0: 1 of 3 runs validated (a narrowing-rule defect and an ambiguous partial/validated definition). Retry 1: 0 of 3 (agents answered no advisory issues and lost fields). Retry 2: 2 of 3 validated with both target fields mapped, no refusals |
 | 2026-11-12 | 2.8 | Build step 3 (benchmark harness, injection case, dev draw, two passes) and one harness fix: a config outcome must map at least one field (finish refuses a config with none, and a code abstention that would remove every field); known results recorded | Dev-draw pass A: a `partial_config` with no mapped field was accepted |
 | 2026-11-12 | 2.9 | Review decisions: outcomes are defined by who ended the run (`validated_config` = the agent's own finish accepted; `partial_config` = harness-ended with a passing field; the model cannot declare `partial_config`), coverage columns added (`mapped_count`, `abstained_count`, `unresolved_blocking`, `resource_switches`); `could_not_read` needs evidence code has (two failed reads, a failed download, or a fixed reason code from `sniff` / `list_members`); the resource listing shows description and last-modified (untrusted data), one switch of resource per run (reason traced, at most two downloads, final hash pinned), `onboard --resource-index` pins a resource; the dev draw may run on Haiku or Sonnet; `compare` across passes | Owner review of the dev draw: partial vs validated was ambiguous, a run made two reads fail on purpose, a run picked the wrong resource |
+| 2026-11-12 | 2.10 | Round-3 review changes: after the last critique `mapping_confidence` may go down but not up (a raise needs a critique); the critic reviews against the same mapping rules text as the agent (`MAPPING_RULES`) and is told a mapping that follows a written rule is not blocking for a caveat; business-entity rule 18 (organisations of any entity_type, including schools, charities and government bodies; `no_business_entities` is for people, places, assets, events, measurements); benchmark `has_name` / `has_identifier`, coverage counts and self-agreement; injection verdict by canary checks only (comparison is information); validate warns when an ABN / ACN field fails its checksum on more than 2% of judged values | Review of dev draw c and s: a name column kept as legal_name, a mixed-identifier column read as ABN, two clean runs of one file differing |
+| 2026-11-12 | 2.11 | Rule 18 amended to section d (a person-like name WITH ITS OWN valid ABN may be an entity; `no_business_entities` is for rows that are neither organisations nor such individuals), wording shared with this document and guarded by a test; name rule next to rule 5 (an unlabelled name column maps to `trading_name` at 0.6 or lower, never left unmapped for that); validate warns on a mapped placeholder header (`_blank_N`, `Unnamed`); step 4a open item recorded (conditional mapping for a mixed identifier column) | Dev draw d: the first wording of rule 18 sent a file of individual sole traders to `no_business_entities` |

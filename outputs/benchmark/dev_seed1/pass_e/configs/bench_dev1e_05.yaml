@@ -1,0 +1,143 @@
+what_it_is: 'Victorian-style construction occupations licensing action register: disciplinary and automatic suspension
+  actions against licensees (builders, electricians, etc.).'
+one_row_is: one licensing action (suspension, condition, reprimand, rectification order) taken against a licensee
+  on a given date
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Licensee Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Licensee Name is the licensee's name on the register; treated as the registered/licensee name per rule
+    5
+  field_confidence: 0.85
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 0
+    ok: 197
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: A.C.N
+  canonical: entity.acn
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: A.C.N column, 9-digit ACNs with spaces, checksum validated; N/A values skipped
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 197
+    blank: 1
+    ok: 141
+    skipped_not_applicable: 55
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence Number
+  reason: licence identifier of the state regulator, not an ABN/ACN/NZBN
+- source: Occupation
+  reason: trade licence category, not an ANZSIC industry classification
+- source: Occupation Class
+  reason: licence class, not an industry code
+- source: Licence Conditions/Endorsement
+  reason: licence conditions, not mapped to ontology
+- source: Action Type
+  reason: regulatory action type; not mapped to entity status because the suspension applies to the licence, not
+    necessarily the company
+- source: Action Date
+  reason: date of regulatory action; does not state when the name or ACN became true, so not used as valid_from
+- source: Action End Date
+  reason: date regulatory action ends; not used as valid_to for name/ACN claims
+- source: Circumstances/Reasons
+  reason: free-text reasons for action
+- source: Action under review by the ACAT
+  reason: regulatory review detail
+- source: Period licensee can apply to ACAT for review expired
+  reason: regulatory review detail
+- source: Applicant has applied to ACAT for review and the review is incomplete
+  reason: regulatory review detail
+- source: Partnership details (Partnerships only)
+  reason: partnership flag, not mapped
+- source: Compliance with Rectification Order
+  reason: regulatory compliance detail
+- source: Related licensees
+  reason: related licensee detail, not mapped
+- source: Licence Expiry Date
+  reason: licence expiry, not the entity's registration date
+- source: Date stop work notice lifted
+  reason: regulatory detail
+- source: Reason stop work notice lifted
+  reason: regulatory detail
+needs_transform: []
+source_reliability:
+  identity: 0.85
+  address: 0.3
+  classification: 0.7
+  contact: 0.3
+source_reliability_basis: Official regulator enforcement register; names and ACNs as reported by the regulator,
+  but ACN values were not verified against ASIC and some licensees are individuals.
+meaning_check_responses: []
+source_id: bench_dev1e_05
+config_version: 1
+validation_summary:
+  held_out_rows: 197
+  observations_in_held_out: 535
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-904e34fb
+    field: observation.valid_from
+    problem: The envelope sets valid_from from Action Date and valid_to from Action End Date on every observation,
+      including entity.legal_name and entity.acn. A regulatory action date says when a suspension, condition or
+      disqualification started or ended. It does not say when the registered name or ACN became true, so these dates
+      are attached to claims the source does not date that way. The unmapped entries also say Action Date and Action
+      End Date are 'used as valid_from/valid_to', but no transform or config key for valid_from or valid_to appears
+      in the fields list.
+    severity: blocking
+    suggested_fix: Do not apply the action dates as valid_from/valid_to on the name and ACN observations. Either
+      drop them, or model the action as its own observation with its own validity, and record the date format (dd/mm/yyyy)
+      in an explicit parse_date transform with a try_transform check.
+  - id: c-841438c2
+    field: Action Type
+    problem: Action Type values such as 'Suspension' and 'Automatic Suspension' are listed as unmapped on the grounds
+      that they are not entity status. The ontology has a 'suspended' status, and these values may describe the
+      entity's status more directly than the reason given. Disqualification and Condition are not statuses, so the
+      exclusion is reasonable for those.
+    severity: advisory
+    suggested_fix: Consider whether a licence action of type suspension should be mapped to entity.status via map_values,
+      with only the suspension values, and keep Condition and Disqualification unmapped. Record the caveat that
+      the suspension applies to the licence, not necessarily to the company.
+  - id: c-758598be
+    field: Occupation / Occupation Class
+    problem: Occupation and Occupation Class are left unmapped with the reason that they are not ANZSIC codes. Rule
+      9 allows the source's own code or description to be mapped to industry_code as it is, and these values (e.g.
+      Electrician, Builder, Plumber) are descriptive trade categories. The exclusion is defensible, but the reason
+      given does not show that these are not the source's own industry description.
+    severity: advisory
+    suggested_fix: Either keep them unmapped with a clearer reason (trade licence category, not an industry classification),
+      or map Occupation to entity.industry_code at a lower mapping_confidence after checking its values against
+      the rule.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: ee55471aed56
+  generated_at: '2026-11-12T11:56:57+00:00'

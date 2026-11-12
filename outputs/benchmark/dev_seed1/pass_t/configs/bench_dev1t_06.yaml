@@ -1,0 +1,268 @@
+what_it_is: 'IP Australia longitudinal research data: IP rights activity per party per financial year (2001-2005
+  slice)'
+one_row_is: a party in a financial year
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - lord_party_id
+  - financial_year
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: party_name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: party name of IP rights holder/applicant
+  field_confidence: 0.6
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: state_code
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: state
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 102
+    ok: 183
+    skipped_not_applicable: 0
+    rejected: 15
+    parse_rate: 0.9242
+- source: post_code
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: postcode
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 103
+    ok: 182
+    skipped_not_applicable: 0
+    rejected: 15
+    parse_rate: 0.9239
+- source: country_code
+  canonical: address.country
+  transforms:
+  - name: upper
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: ISO country
+  field_confidence: 0.8
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 7
+    ok: 293
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: lord_party_id
+  reason: party id or ABN depending on type
+- source: lord_party_id_type
+  reason: id type
+- source: financial_year
+  reason: period
+- source: d_first_earliest_filed_financial_year
+  reason: IP metric
+- source: pbr_first_earliest_filed_financial_year
+  reason: IP metric
+- source: tm_first_earliest_filed_financial_year
+  reason: IP metric
+- source: d_first_gained_enforceable_status_financial_year
+  reason: IP metric
+- source: pbr_first_gained_enforceable_status_financial_year
+  reason: IP metric
+- source: tm_first_gained_enforceable_status_financial_year
+  reason: IP metric
+- source: d_filed_count
+  reason: IP metric
+- source: pbr_filed_count
+  reason: IP metric
+- source: tm_filed_count
+  reason: IP metric
+- source: d_granted_count
+  reason: IP metric
+- source: pbr_granted_count
+  reason: IP metric
+- source: tm_granted_count
+  reason: IP metric
+- source: d_retired_count
+  reason: IP metric
+- source: pbr_retired_count
+  reason: IP metric
+- source: tm_retired_count
+  reason: IP metric
+- source: d_enforceable_count
+  reason: IP metric
+- source: pbr_enforceable_count
+  reason: IP metric
+- source: tm_enforceable_count
+  reason: IP metric
+- source: tm_services_filed_count
+  reason: IP metric
+- source: tm_services_granted_count
+  reason: IP metric
+- source: tm_services_retired_count
+  reason: IP metric
+- source: tm_services_enforceable_count
+  reason: IP metric
+- source: d_filed_weighted_count
+  reason: IP metric
+- source: pbr_filed_weighted_count
+  reason: IP metric
+- source: tm_filed_weighted_count
+  reason: IP metric
+- source: d_granted_weighted_count
+  reason: IP metric
+- source: pbr_granted_weighted_count
+  reason: IP metric
+- source: tm_granted_weighted_count
+  reason: IP metric
+- source: d_retired_weighted_count
+  reason: IP metric
+- source: pbr_retired_weighted_count
+  reason: IP metric
+- source: tm_retired_weighted_count
+  reason: IP metric
+- source: d_enforceable_weighted_count
+  reason: IP metric
+- source: pbr_enforceable_weighted_count
+  reason: IP metric
+- source: tm_enforceable_weighted_count
+  reason: IP metric
+- source: d_filed_class_scope
+  reason: IP metric
+- source: d_filed_modal_class
+  reason: IP metric
+- source: d_granted_class_scope
+  reason: IP metric
+- source: d_granted_modal_class
+  reason: IP metric
+- source: d_retired_class_scope
+  reason: IP metric
+- source: d_retired_modal_class
+  reason: IP metric
+- source: d_enforceable_class_scope
+  reason: IP metric
+- source: d_enforceable_modal_class
+  reason: IP metric
+- source: pbr_filed_class_scope
+  reason: IP metric
+- source: pbr_filed_modal_class
+  reason: IP metric
+- source: pbr_granted_class_scope
+  reason: IP metric
+- source: pbr_granted_modal_class
+  reason: IP metric
+- source: pbr_retired_class_scope
+  reason: IP metric
+- source: pbr_retired_modal_class
+  reason: IP metric
+- source: pbr_enforceable_class_scope
+  reason: IP metric
+- source: pbr_enforceable_modal_class
+  reason: IP metric
+- source: tm_filed_class_scope
+  reason: IP metric
+- source: tm_filed_modal_class
+  reason: IP metric
+- source: tm_granted_class_scope
+  reason: IP metric
+- source: tm_granted_modal_class
+  reason: IP metric
+- source: tm_retired_class_scope
+  reason: IP metric
+- source: tm_retired_modal_class
+  reason: IP metric
+- source: tm_enforceable_class_scope
+  reason: IP metric
+- source: tm_enforceable_modal_class
+  reason: IP metric
+- source: tm_services_enforceable_class_scope
+  reason: IP metric
+- source: tm_services_enforceable_weighted_count
+  reason: IP metric
+- source: tm_services_filed_class_scope
+  reason: IP metric
+- source: tm_services_filed_weighted_count
+  reason: IP metric
+- source: tm_services_granted_class_scope
+  reason: IP metric
+- source: tm_services_granted_weighted_count
+  reason: IP metric
+- source: tm_services_retired_class_scope
+  reason: IP metric
+- source: tm_services_retired_weighted_count
+  reason: IP metric
+source_reliability:
+  identity: 0.7
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government research dataset
+source_id: bench_dev1t_06
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1258
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-be3eb6df
+    field: entity.legal_name<-party_name
+    problem: Some party_name values are hashed placeholders (e.g. 'ta57f5531260dc9c620e39d8186866334', 't9a96fb196ce01c7bdadcdb947ea2fb45')
+      rather than real names, so they are emitted as legal_name claims that carry no usable name. Names are also
+      lowercased in the source.
+    severity: advisory
+    suggested_fix: Keep the mapping but note that anonymised hash-like names exist in the source. Downstream, treat
+      such values as low-quality and lower field confidence or filter them out.
+  - id: c-3bb6d0f3
+    field: lord_party_id
+    problem: lord_party_id is unmapped, yet when lord_party_id_type is 'abn' (e.g. 39010587498.0) it holds an 11-digit
+      ABN. The rules say to use the abn transform for ABNs, so a usable identifier is being dropped. The column
+      mixes ABNs with internal party_ids, and the values carry a '.0' float suffix.
+    severity: advisory
+    suggested_fix: If the engine supports conditional mapping on lord_party_id_type, map ABN rows with the abn transform.
+      Otherwise list it under needs_transform, with the reason that the identifier type depends on another column.
+  - id: c-4d532d94
+    field: address.state<-state_code
+    problem: Non-Australian state values such as 'tortola' (country VG) and 'oh' (country US) are not valid values
+      in the AU state enum, so they are dropped with no observation. Foreign state information is lost.
+    severity: advisory
+    suggested_fix: Accept the dropping as expected, but note that the state enum covers only Australia and NZ. Optionally
+      keep the foreign state value in a free-text field.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:40:36+00:00'

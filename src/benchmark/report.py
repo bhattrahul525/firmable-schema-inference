@@ -17,9 +17,11 @@ from pathlib import Path
 RUNS_DIR = Path("logs/agent_runs")
 RAW_DIR = Path("data/raw/sources")
 HUMAN_COLUMNS = ("outcome_correct", "key_field_missed", "reviewer_notes")
+NAME_FIELDS = ("entity.legal_name", "entity.trading_name")      # "has a name": any of these is mapped
+IDENTIFIER_FIELDS = ("entity.abn", "entity.acn")                # "has an identifier": ABN or ACN is mapped
 COLUMNS = ["source_id", "slot", "stratum", "dataset_id", "title", "format_class", "outcome", "forced_by", "turns", "tool_calls",
            "cost_usd", "agent_seconds", "download_seconds", "download_bytes", "file_format", "reader", "levels_W_P_G",
-           "mapped_count", "mapped_fields", "abstained_count", "abstained_fields", "unresolved_blocking", "unmapped_columns",
+           "mapped_count", "has_name", "has_identifier", "mapped_fields", "abstained_count", "abstained_fields", "unresolved_blocking", "unmapped_columns",
            "critique_blocking", "critique_advisory", "open_advisory", "resource_switches", "refusals", "licence", "licence_flag", "model", "tool_sequence", "cause", "fix", *HUMAN_COLUMNS]
 
 
@@ -63,7 +65,8 @@ def summarise(source_id: str, *, runs_dir: Path = RUNS_DIR, raw_dir: Path = RAW_
         "abstained_fields": [a.get("field") for a in result.get("abstentions") or []],
         "unmapped_columns": len(cfg.get("unmapped") or []),
         # coverage, separate from the outcome (who ended the run): a thin validated config shows up here
-        "mapped_count": len(fields), "abstained_count": len(result.get("abstentions") or []),
+        "mapped_count": len(fields), "has_name": any(f["canonical"] in NAME_FIELDS for f in fields),
+        "has_identifier": any(f["canonical"] in IDENTIFIER_FIELDS for f in fields), "abstained_count": len(result.get("abstentions") or []),
         "unresolved_blocking": sum(1 for a in result.get("abstentions") or []
                                    if str(a.get("reason", "")).startswith("blocking critique issue unanswered")),
         "resource_switches": sum(1 for e in ev if e["type"] == "input_switched"),
@@ -156,7 +159,44 @@ def _read_pass(path: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
-def compare(pass_dirs: dict[str, Path]) -> dict:
+def _fields_of(row: dict) -> set[str]:
+    return {x.strip() for x in (row.get("mapped_fields") or "").split(";") if x.strip()}
+
+
+def coverage_flags(row: dict) -> tuple[bool, bool]:
+    """(has_name, has_identifier) from a results row, computed from its mapped_fields text so older tables work too."""
+    text = row.get("mapped_fields") or ""
+    return any(f + "<-" in text for f in NAME_FIELDS), any(f + "<-" in text for f in IDENTIFIER_FIELDS)
+
+
+def coverage_counts(rows: list[dict]) -> dict:
+    """Among VALIDATED configs: how many have a name and an identifier, only one of them, or neither (a thin config)."""
+    out = {"validated": 0, "both": 0, "name_only": 0, "identifier_only": 0, "neither": 0}
+    for r in rows:
+        if r["outcome"] != "validated_config":
+            continue
+        n, i = coverage_flags(r)
+        out["validated"] += 1
+        out["both" if n and i else "name_only" if n else "identifier_only" if i else "neither"] += 1
+    return out
+
+
+def agreement(passes: dict[str, list[dict]], pair: tuple[str, str]) -> list[dict]:
+    """Did one model agree with itself across two passes? Per dataset: same outcome, same mapped fields (canonical<-source)."""
+    a, b = pair
+    rows = []
+    for ra in passes[a]:
+        rb = next((r for r in passes[b] if r["dataset_id"] == ra["dataset_id"]), None)
+        if rb is None:
+            continue
+        fa, fb = _fields_of(ra), _fields_of(rb)
+        rows.append({"dataset_id": ra["dataset_id"], "outcome_a": ra["outcome"], "outcome_b": rb["outcome"],
+                     "same_outcome": ra["outcome"] == rb["outcome"], "same_fields": fa == fb,
+                     "only_in_first": sorted(fa - fb), "only_in_second": sorted(fb - fa)})
+    return rows
+
+
+def compare(pass_dirs: dict[str, Path], agree_pairs: list[tuple[str, str]] | None = None) -> dict:
     """Side by side: each dataset's outcome in every pass, plus per pass and per model totals (runs, outcomes, cost, time).
     Rows are matched by dataset_id; a pass that lacks a dataset shows `-`."""
     passes = {label: _read_pass(d) for label, d in pass_dirs.items()}
@@ -168,18 +208,21 @@ def compare(pass_dirs: dict[str, Path]) -> dict:
                 titles[r["dataset_id"]] = (r["title"], r["format_class"])
     datasets = []
     for did in order:
-        outcomes, mapped = {}, {}
+        outcomes, mapped, flags = {}, {}, {}
         for label, rows in passes.items():
             hit = next((r for r in rows if r["dataset_id"] == did), None)
             outcomes[label] = hit["outcome"] if hit else "-"
             mapped[label] = (hit.get("mapped_count") or "n/a") if hit else "-"
-        datasets.append({"dataset_id": did, "title": titles[did][0], "format_class": titles[did][1], "outcomes": outcomes, "mapped": mapped})
+            flags[label] = ("N" if coverage_flags(hit)[0] else "-") + ("I" if coverage_flags(hit)[1] else "-") if hit else "--"
+        datasets.append({"dataset_id": did, "title": titles[did][0], "format_class": titles[did][1], "outcomes": outcomes,
+                         "mapped": mapped, "flags": flags})
     totals = {}
     for label, rows in passes.items():
         costs = [float(r["cost_usd"] or 0) for r in rows]
         secs = [float(r["agent_seconds"] or 0) for r in rows if r["agent_seconds"] not in ("", None)]
         turns = [int(float(r["turns"])) for r in rows if r["turns"] not in ("", None)]
         totals[label] = {"model": next((r["model"] for r in rows if r["model"]), ""), "runs": len(rows),
+                         "coverage": coverage_counts(rows),
                          "outcomes": dict(Counter(r["outcome"] for r in rows)), "cost_usd": round(sum(costs), 4),
                          "mean_cost_usd": round(sum(costs) / len(costs), 4) if costs else 0,
                          "mean_agent_seconds": round(sum(secs) / len(secs), 1) if secs else 0,
@@ -198,17 +241,33 @@ def compare(pass_dirs: dict[str, Path]) -> dict:
         m["mean_agent_seconds"] = round(m["seconds"] / m["runs"], 1) if m["runs"] else 0
         m["mean_turns"] = round(m["turns"] / m["runs"], 1) if m["runs"] else 0
         del m["seconds"], m["turns"]
-    return {"datasets": datasets, "totals": totals, "by_model": by_model, "passes": list(pass_dirs)}
+    agree = {f"{a}-{b}": agreement(passes, (a, b)) for a, b in (agree_pairs or []) if a in passes and b in passes}
+    return {"datasets": datasets, "totals": totals, "by_model": by_model, "passes": list(pass_dirs), "agreement": agree}
 
 
 def write_compare(cmp: dict, out_dir: Path, notes: str = "") -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     labels = cmp["passes"]
-    md = [notes, "", "## Outcome per dataset (and mapped-field count) across passes", "",
+    md = [notes, "", "## Outcome per dataset across passes: outcome (mapped fields) N=has a name, I=has an identifier", "",
           "| dataset | fmt | " + " | ".join(labels) + " |", "|---|---|" + "---|" * len(labels)]
     for d in cmp["datasets"]:
         md.append(f"| {d['dataset_id'][:60]} | {d['format_class']} | " + " | ".join(
-            f"{d['outcomes'][l]} ({d['mapped'][l]})" for l in labels) + " |")
+            f"{d['outcomes'][l]} ({d['mapped'][l]}) {d['flags'][l]}" for l in labels) + " |")
+    md += ["", "## Validated configs: name and identifier coverage", "",
+           "| pass | validated | name + identifier | name only | identifier only | neither |", "|---|---|---|---|---|---|"]
+    for l, t in cmp["totals"].items():
+        c = t["coverage"]
+        md.append(f"| {l} | {c['validated']} | {c['both']} | {c['name_only']} | {c['identifier_only']} | {c['neither']} |")
+    for pair, rows in cmp.get("agreement", {}).items():
+        md += ["", f"## Did the model agree with itself? passes {pair} (outcome, then mapped fields)", "",
+               "| dataset | outcome | same outcome | same fields | differences |", "|---|---|---|---|---|"]
+        for r in rows:
+            diff = ("only in first: " + ", ".join(r["only_in_first"]) if r["only_in_first"] else "") + (
+                "; only in second: " + ", ".join(r["only_in_second"]) if r["only_in_second"] else "")
+            md.append(f"| {r['dataset_id'][:60]} | {r['outcome_a']} / {r['outcome_b']} | {'yes' if r['same_outcome'] else 'NO'} | "
+                      f"{'yes' if r['same_fields'] else 'NO'} | {diff[:200]} |")
+        md.append(f"\nSame outcome on {sum(r['same_outcome'] for r in rows)} of {len(rows)}; same outcome AND same fields on "
+                  f"{sum(r['same_outcome'] and r['same_fields'] for r in rows)} of {len(rows)}.")
     md += ["", "## Per pass", "", "| pass | model | runs | outcomes | cost | mean cost | mean agent s | mean turns |", "|---|---|---|---|---|---|---|---|"]
     for l, t in cmp["totals"].items():
         md.append(f"| {l} | {t['model']} | {t['runs']} | {t['outcomes']} | ${t['cost_usd']} | ${t['mean_cost_usd']} | {t['mean_agent_seconds']} | {t['mean_turns']} |")
@@ -230,9 +289,10 @@ def main() -> None:
     ap.add_argument("--dir", required=True, help="e.g. outputs/benchmark/dev_seed1")
     ap.add_argument("--passes", nargs="+", required=True, help="pass labels, e.g. a b c s")
     ap.add_argument("--notes", default="")
+    ap.add_argument("--agree", nargs="*", default=[], help="pairs of passes to test for self-agreement, e.g. c:d s:t")
     a = ap.parse_args()
     base = Path(a.dir)
-    cmp = compare({l: base / f"pass_{l}" for l in a.passes})
+    cmp = compare({l: base / f"pass_{l}" for l in a.passes}, [tuple(x.split(":")) for x in a.agree])
     write_compare(cmp, base, a.notes)
     print((base / "compare.md").read_text())
 

@@ -1,0 +1,94 @@
+what_it_is: Junior Minerals Exploration Incentive (JMEI) Commissioner's exploration credit allocations to successful
+  applicants, FY2024-25 sheet of a multi-year workbook.
+one_row_is: one company allocated a Commissioner's exploration credit in the 2024-25 round
+reader:
+  format: xlsx
+  sheet: 2024-25
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - ABN
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Column is labelled ABN; values are 11-digit and pass checksum.
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Company name of the allocation recipient. Values carry suffixes such as Limited/Ltd and look like registered
+    names, but the column is not labelled as registered name, so mapped to trading_name per rule 5 at 0.6; downstream
+    reconciliation may treat it as possibly legal name.
+  field_confidence: 0.6
+  transform_level: W
+  validation:
+    held_out_rows: 15
+    blank: 0
+    ok: 15
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Commissioners allocation $
+  reason: Credit amount allocated; no ontology field for grant or allocation amounts.
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Official Australian government publication of named ABN holders; identity claims are reliable,
+  but no address or classification is given.
+meaning_check_responses: []
+source_id: bench_dev1e_02
+config_version: 1
+validation_summary:
+  held_out_rows: 15
+  observations_in_held_out: 45
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-21000c1a
+    field: entity.trading_name<-Name
+    problem: The Name values carry company suffixes such as 'Limited' and 'Ltd' and read like registered names.
+      The config follows rule 5 correctly, since the column is not labelled as a registered name, but the caveat
+      that it may be the legal name is not recorded anywhere.
+    severity: advisory
+    suggested_fix: Keep the trading_name mapping. Record mapping_confidence at 0.6 or lower and note in the config
+      that the values look like registered names, so downstream reconciliation can weigh them.
+  - id: c-765c3b25
+    field: entity.trading_name<-Name
+    problem: The config has no mapping_confidence and no source_reliability for this claim, though rule 14 and rule
+      16 call for both.
+    severity: advisory
+    suggested_fix: Add mapping_confidence (about 0.5 to 0.6, since the column meaning is inferred) and a source_reliability
+      with a short basis, such as a government allocation register being reliable on who was allocated funds but
+      not on how names are registered.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: ee55471aed56
+  generated_at: '2026-11-12T11:55:54+00:00'

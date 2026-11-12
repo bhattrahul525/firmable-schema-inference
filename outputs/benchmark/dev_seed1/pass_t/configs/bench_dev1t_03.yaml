@@ -1,0 +1,89 @@
+what_it_is: Victorian government schools with ABNs
+one_row_is: a school
+reader:
+  format: xlsx
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - SchoolNumber
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: SchoolName
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: school name
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN
+  field_confidence: 0.95
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 299
+    skipped_not_applicable: 1
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Fin_Period
+  reason: financial period
+- source: LoadDate
+  reason: load timestamp
+source_reliability:
+  identity: 0.9
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government publisher
+source_id: bench_dev1t_03
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 899
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-5bb5f79a
+    field: entity.entity_type
+    problem: Every row is a school, and schools are organisations (in Victoria, government schools). The source
+      has no explicit entity type column, and the names carry no company suffix, so the engine records 'unknown'.
+      This follows rules 7 and 18, but the type stays unknown.
+    severity: advisory
+    suggested_fix: Leave it unmapped, as the rules require. Optionally note in the reason that the dataset appears
+      to hold only government schools, but do not guess the type.
+  - id: c-ee56ed27
+    field: Fin_Period
+    problem: Fin_Period (e.g. 201506) states the financial period the data covers. It could inform observed_at or
+      valid_from/valid_to, but it is listed as unmapped. That is acceptable under the rules.
+    severity: advisory
+    suggested_fix: Keep it unmapped. Optionally use LoadDate as a per-row statement date for observed_at, if the
+      metadata timestamp is judged less reliable.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: cf1631475b1e
+  generated_at: '2026-11-12T11:38:07+00:00'

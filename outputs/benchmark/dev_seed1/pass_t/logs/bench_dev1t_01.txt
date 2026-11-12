@@ -1,0 +1,7 @@
+onboarding bench_dev1t_01 (round-2 agent, model claude-sonnet-5-5)
+    downloaded 10 MB
+    download complete: 11,052,085 bytes
+outcome: validated_config
+turns=8 tool_calls=8 cost=$0.1279 agent_seconds=36.85 wall_clock_seconds=38.2
+tool sequence: fetch -> fetch -> read_table -> read_table -> profile -> validate -> critique -> finish
+packet: outputs/benchmark/dev_seed1/pass_t/configs/bench_dev1t_01.review.md
