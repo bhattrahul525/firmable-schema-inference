@@ -18,9 +18,15 @@ and wrapped in a <data> block before the model sees it.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
+
+
+class ToolTimeout(BaseException):
+    """A tool ran past its time limit. A BaseException on purpose (like KeyboardInterrupt): a broad `except Exception`
+    inside a tool or a library must not be able to swallow it. The loop catches it and returns an error result."""
 
 
 @dataclass
@@ -32,6 +38,15 @@ class ToolContext:
     state: dict = field(default_factory=dict)  # tool-to-tool memory (e.g. the held-out row partition, step 2)
     fetcher: Any = None   # the harness's FetchGuard: the fetch tool lists and resolves resources through it, and sets
                           # state["input_sha256"] once the input file is on disk (the loop pins it in the trace)
+    log: Callable[[str], None] = lambda message: None   # a progress line for the trace (the loop sets it)
+    ask: Callable[[str], "str | None"] | None = None     # ask_human: question -> the human's answer, or None
+    uses: Any = None      # Counter of the tools used so far in this run (replayed calls included); set by the loop
+    deadline: float | None = None   # time.monotonic() limit of the running tool call; set by the loop
+
+    def check_deadline(self) -> None:
+        """Cooperative half of the per-tool timeout (the other half is a signal on POSIX): long row loops call this."""
+        if self.deadline is not None and time.monotonic() > self.deadline:
+            raise ToolTimeout("tool deadline passed")
 
 
 @dataclass
@@ -41,7 +56,8 @@ class ToolResult:
     status: dict = field(default_factory=dict)  # machine-readable facts for the guard (see module docstring)
     is_error: bool = False
     cost_usd: float = 0.0             # a tool that calls a model (critique) reports its cost so the budget counts it
-    download_seconds: float = 0.0     # excluded from the wall-clock budget (the trace shows download progress)
+    download_seconds: float = 0.0     # excluded from the wall-clock budget (downloads; ask_human reuses it for the human's
+                                      # wait and the trace labels that one human_wait_seconds)
 
 
 @dataclass(frozen=True)
@@ -56,6 +72,7 @@ class ToolSpec:
     max_cell_chars: int = 100
     max_chars: int = 6000             # hard ceiling on everything the model sees from one call
     max_uses: int | None = None       # e.g. critique 2, ask_human 1 (section b)
+    timeout_seconds: float | None = 60.0   # per call; None only for a download (fetch) or a human wait (ask_human)
 
     def api_schema(self) -> dict:
         """The tool definition sent to the API. Same for the whole run (changing tools breaks the prompt cache)."""

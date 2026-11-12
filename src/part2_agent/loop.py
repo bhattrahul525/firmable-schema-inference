@@ -39,15 +39,17 @@ from typing import Callable
 
 from src import llm
 from src.part2_agent.guard import (ALL_OUTCOMES, CONFIG_OUTCOMES, HARNESS_MAX_USES, HARNESS_PROMPT, INCOMPLETE,
-                                   OUTCOMES, Budget, FetchGuard, FinishGate, Limits, render_result, validate_args)
-from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec
+                                   OUTCOMES, Budget, FetchGuard, FinishGate, Limits, render_result, tool_deadline,
+                                   validate_args)
+from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec, ToolTimeout
 
 RUNS_DIR = Path("logs/agent_runs")
 FINISH_REFUSALS_ALLOWED = 2   # a second consecutive refusal ends the run (partial config, or incomplete)
+FORMAT_REFUSALS_ALLOWED = 3   # refusals only for a malformed `answers` / `abstentions` list: counted apart, 3 per run
 TEXT_ONLY_ALLOWED = 2         # two replies without a tool call in a row end the run the same way
 RETRY_ATTEMPTS = 3            # transient API errors: at most 3 attempts in all
 RETRY_BACKOFF_SECONDS = 2.0   # waits 2 s, then 4 s
-_SKIP_ON_REPLAY = ("resume", "api_retry")   # bookkeeping events: replay steps over them
+_SKIP_ON_REPLAY = ("resume", "api_retry", "progress")   # bookkeeping events: replay steps over them
 
 
 def core_files() -> list[Path]:
@@ -103,7 +105,9 @@ FINISH_SPEC = ToolSpec(
     name="finish",
     description=("Declare the outcome and end the run. Outcomes: validated_config, partial_config, no_business_entities, "
                  "could_not_read. For a config outcome pass the exact `config` you validated and critiqued, and in "
-                 "`answers` answer every critique issue still open on it."),
+                 "`answers` answer every critique issue still open on it. Shapes: answers = [{\"issue_id\": \"c-1a2b3c4d\", "
+                 "\"action\": \"answered\", \"note\": \"why this is intended\"}]; abstentions = [{\"field\": "
+                 "\"entity.abn<-SomeColumn\", \"reason\": \"why it is left out\"}]."),
     input_schema={
         "type": "object", "additionalProperties": False, "required": ["outcome"],
         "properties": {
@@ -199,7 +203,7 @@ class AgentRun:
                  sleep: Callable[[float], None] = time.sleep, say: Callable[[str], None] = print,
                  limits: Limits = Limits(), trace_root: Path = RUNS_DIR, model: str | None = None,
                  max_tokens: int = 4096, input_path: Path | None = None, fetcher: FetchGuard | None = None,
-                 code_version: str | None = None):
+                 code_version: str | None = None, ask: Callable[[str], str | None] | None = None):
         for key, spec in tools.items():
             if key == "finish" or spec.name == "finish":
                 raise ValueError("`finish` is owned by the harness; do not register a tool with that name")
@@ -215,10 +219,12 @@ class AgentRun:
         self.fetch_guard = fetcher or FetchGuard(reference)
         self.trace = Trace(trace_root / source_id / "trace.jsonl")
         self.ctx = ToolContext(source_id=source_id, reference=reference, work_dir=trace_root / source_id,
-                               fetcher=self.fetch_guard)
+                               fetcher=self.fetch_guard, log=self._progress, ask=ask)
         self.uses: Counter = Counter()
+        self.ctx.uses = self.uses
         self.executed = 0
         self.refused_finishes = 0
+        self.format_refusals = 0
         self.text_only = 0
         self.replayed_events = 0
         self.replayed_turns = 0
@@ -329,6 +335,11 @@ class AgentRun:
             self.say("=== REPLAY ended: continuing live ===")
         self.trace.append(kind, **data)
 
+    def _progress(self, message: str) -> None:
+        """A progress line from a running tool (a download). Live only: tools do not run during a replay."""
+        self._live("progress", message=str(message)[:200])
+        self.say(f"    {message}")
+
     def _mismatch(self, expected: str) -> TraceMismatch:
         return TraceMismatch(f"the trace and this run disagree at event {self.trace.cursor}: the run needs {expected} "
                              f"but the trace has {self.trace.next_type()!r} (or different content). Refusing to "
@@ -401,6 +412,8 @@ class AgentRun:
             result.download_seconds = min(result.download_seconds, measured)
             seconds = measured - result.download_seconds
             extra = {"final_url": self.fetch_guard.final_url} if name == "fetch" else {}
+            if name == "ask_human":   # the human's wait reuses the download exclusion; the trace says what it really is
+                extra["human_wait_seconds"] = result.download_seconds
             self._live("tool_call", tool_use_id=tu["id"], name=name, args=args, is_error=result.is_error,
                        status=result.status, rendered=rendered, cost_usd=result.cost_usd,
                        download_seconds=result.download_seconds, seconds=seconds, refused=refused, **extra)
@@ -453,17 +466,25 @@ class AgentRun:
             except Exception as e:   # the gate is our code, but its input is the model's: refuse, never crash
                 return self._refuse(f"finish refused: could not read the arguments ({type(e).__name__})")
             if not decision.ok:
-                return self._refuse(decision.reason)
+                result, text, why = self._refuse(decision.reason)
+                if decision.format:
+                    result.status = {"format_refusal": True}
+                return result, text, why
             return ToolResult(status={"accepted": True, "outcome": decision.outcome,
                                       "abstentions": decision.abstentions}), "accepted", None
         logged_before = llm.logged_cost_total()
         try:
             # the tool gets a COPY: the model's original input stays exactly as it was for the gate's hash, the trace
             # and the replay comparison, even if a tool normalises its config in place
-            result = spec.run(copy.deepcopy(args), self.ctx)
+            with tool_deadline(spec.timeout_seconds, self.ctx):
+                result = spec.run(copy.deepcopy(args), self.ctx)
             problem = self._result_problem(name, result)
             if problem:
                 raise _BadToolResult(problem)
+            rendered = render_result(spec, result)
+        except ToolTimeout:
+            result = ToolResult(text=f"tool {name} timed out after {spec.timeout_seconds:g}s and was stopped; "
+                                     f"try a narrower request", is_error=True)
             rendered = render_result(spec, result)
         except _BadToolResult as e:
             result = ToolResult(text=f"tool {name} returned an unusable result: {e}", is_error=True)
@@ -537,6 +558,11 @@ class AgentRun:
 
     def _after_finish(self, args: dict, result: ToolResult, rendered: str) -> tuple[str, bool, RunResult | None]:
         if result.is_error:
+            if result.status.get("format_refusal") and self.format_refusals < FORMAT_REFUSALS_ALLOWED:
+                # a formatting slip is not a refusal of the finish itself: fix the shape and call again
+                self.format_refusals += 1
+                return (rendered + f" (format refusal {self.format_refusals} of {FORMAT_REFUSALS_ALLOWED}: it does not "
+                        f"count toward ending the run)"), True, None
             return self._refused_finish(rendered)
         decision = result.status
         config, outcome = args.get("config"), decision["outcome"]

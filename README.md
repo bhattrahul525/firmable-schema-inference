@@ -47,6 +47,16 @@ python -m src.part2_agent.approve find_by_lia_band          # the human gate; re
 python -m src.engine.extract find_by_lia_band               # only works once approved
 ```
 
+Round 2 (tool-using agent, built step by step; design in [ARCHITECTURE.md](ARCHITECTURE.md)): the same command with
+`--mode agent` runs the agent that chooses its own tools instead of the fixed pipeline. `pipeline` stays the default.
+
+```bash
+python -m src.part2_agent.onboard --mode agent nsw:find-by-lia-band --source-id find_by_lia_band_agent --max-dollars 0.5
+python -m src.part2_agent.onboard --mode agent path/to/any.csv       # a URL or a path works too; xls, zip, gz, ndjson, json too
+```
+
+The trace of each run is `logs/agent_runs/<source_id>/trace.jsonl`; running the same command again replays it.
+
 **Warning:** `onboard` on an already-approved source overwrites its config and resets its approval. Do not re-run it on
 the six unless you intend to re-review them. The model is set in `src/llm.py` (`LLM_MODEL` env var, default Haiku).
 

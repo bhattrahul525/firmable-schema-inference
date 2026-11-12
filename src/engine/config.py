@@ -6,7 +6,7 @@ particular source.
 Config shape (written by the agent, never by hand):
 
   source_id, config_version
-  reader:      {format, encoding?, delimiter?, sheet?, header_row?, records_path?}
+  reader:      {format, encoding?, delimiter?, sheet?, header_row?, records_path?, ...}  (all options: engine/readers.py)
   record_id:   {from: [columns]}  or  {hash_row: true}
   observed_at: {from_metadata: <key of metadata.json>}  or  {source, transforms}
   valid_from / valid_to: optional {source, transforms} (per-record dates)
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import yaml
 
-from src.engine.readers import FORMATS
+from src.engine.readers import ALL_FORMATS
 from src.engine.transforms import CATALOGUE
 
 CONFIG_DIR = Path("configs")
@@ -91,8 +91,8 @@ def structural_errors(cfg: dict, ontology: dict, headers: list[str] | None, meta
     straight back to the model."""
     errs: list[str] = []
     r = cfg.get("reader") or {}
-    if r.get("format") not in FORMATS:
-        errs.append(f"reader.format must be one of {FORMATS}")
+    if r.get("format") not in ALL_FORMATS:
+        errs.append(f"reader.format must be one of {ALL_FORMATS}")
 
     rid = cfg.get("record_id") or {}
     if not (rid.get("from") or rid.get("hash_row")):
