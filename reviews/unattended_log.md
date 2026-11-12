@@ -120,7 +120,7 @@ Injection: pass A "PASS (within clean-run variance)" (clean copy omitted legal_n
 Finish gate rules (2.6, 2.7), severity at finish (2.7), zero-field rule and harness description (2.8), `--config-dir` for benchmark runs. No deviation left undocumented that I know of. ARCHITECTURE.md is 398 lines.
 
 ### Spend
-round2_total=0.3547 session_spend=0.3094 remaining=2.6906 (limit \$3.00). Phase A live: 12 runs (~\$0.16). Phase B: 2 dev passes (11 runs + 2-3 injection runs each, ~\$0.09 each).
+round2_total=0.3547 session_spend=0.3094 remaining=2.6906 (limit $3.00). Phase A live: 12 runs (~$0.16). Phase B: 2 dev passes (11 runs + 2-3 injection runs each, ~$0.09 each).
 
 ### What I need from you
 1. Review the benchmark sheets (handcheck/benchmark_review_dev1a.csv and dev1b.csv) or tell me they are not needed for the dev draw.
