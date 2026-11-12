@@ -121,23 +121,24 @@ class TestMalformedFinishArguments(Base):
         self.assertIn("abstentions", self._all_results()[2])
         self.assertEqual(res.outcome, "validated_config")
 
-    def test_partial_config_abstention_entries_need_field_and_reason(self):
+    def test_validated_config_abstention_entries_need_field_and_reason(self):
         script = good_run()[:2]
         for i, bad in enumerate(([{}], [{"field": "b"}], [{"reason": "r"}], [{"field": "b", "reason": "  "}], ["b"])):
-            script += [tool_turn("finish", {"outcome": "partial_config", "config": CFG, "abstentions": bad}, id=f"f{i}"),
+            script += [tool_turn("finish", {"outcome": "validated_config", "config": CFG, "abstentions": bad}, id=f"f{i}"),
                        tool_turn("profile", {}, id=f"p{i}")]
         ok = [{"field": "b", "reason": "unclear in the source"}]
-        script.append(tool_turn("finish", {"outcome": "partial_config", "config": CFG, "abstentions": ok}, id="ok"))
+        script.append(tool_turn("finish", {"outcome": "validated_config", "config": CFG, "abstentions": ok}, id="ok"))
         res = self.run_loop(script)
-        self.assertEqual((res.outcome, res.abstentions), ("partial_config", ok))
+        self.assertEqual((res.outcome, res.abstentions), ("validated_config", ok))
         self.assertEqual(sum("non-empty `field` and `reason`" in c for c in self._all_results()), 5)
 
-    def test_partial_config_must_list_abstentions_at_all(self):          # rule 5 of the 14
+    def test_partial_config_is_the_harnesss_outcome_the_model_cannot_declare_it(self):
         res = self.run_loop(good_run()[:2] + [
             tool_turn("finish", {"outcome": "partial_config", "config": CFG}, id="f1"), tool_turn("profile", {}, id="p"),
-            tool_turn("finish", {"outcome": "partial_config", "config": CFG, "abstentions": [{"field": "b", "reason": "r"}]}, id="f2")])
-        self.assertIn("must list its abstentions", self._all_results()[2])
-        self.assertEqual(res.outcome, "partial_config")
+            tool_turn("finish", {"outcome": "validated_config", "config": CFG}, id="f2")])
+        self.assertIn("must be one of", self._all_results()[2])
+        self.assertNotIn("partial_config", self._all_results()[2].split("must be one of")[1])
+        self.assertEqual(res.outcome, "validated_config")
 
 
 # ---- 2, 19: redaction ----------------------------------------------------------------------------------------------
@@ -368,7 +369,7 @@ class TestCouldNotRead(Base):
                              tool_turn("finish", self.EV, id="f1"), tool_turn("profile", {}, id="p"),
                              tool_turn("read_table", {"fail": True}, id="r3"), tool_turn("finish", self.EV, id="f2"),
                              tool_turn("read_table", {"fail": True}, id="r4"), tool_turn("finish", self.EV, id="f3")])
-        self.assertIn("two reader attempts that FAILED", self.tool_results(3)[0]["content"])
+        self.assertIn("two FAILED `read_table` calls", self.tool_results(3)[0]["content"])
         self.assertTrue(self.tool_results(6)[0]["is_error"])               # one failed read is still not enough
         self.assertEqual((res.outcome, res.forced_by), ("could_not_read", None))
 
@@ -380,7 +381,7 @@ class TestCouldNotRead(Base):
         res = self.run_loop([tool_turn("fetch", {"resource_index": 99}, id="x"),
                              tool_turn("finish", self.EV, id="f1"), tool_turn("profile", {}, id="p"),
                              tool_turn("finish", self.EV, id="f2"), text_turn(), text_turn()], tools=tools)
-        self.assertIn("two reader attempts", self.tool_results(2)[0]["content"])     # refused
+        self.assertIn("two FAILED `read_table` calls", self.tool_results(2)[0]["content"])     # refused
         self.assertEqual(res.outcome, "incomplete")
 
     def test_an_error_without_the_download_marker_is_not_a_download_failure(self):
@@ -409,7 +410,7 @@ class TestCritiqueMerge(Base):
                              tool_turn("critique", {"config": CFG}, id="c2"),
                              tool_turn("finish", {"outcome": "validated_config", "config": CFG, "answers": answers}, id="f")],
                             tools=tools)
-        self.assertEqual(res.outcome, "partial_config")                    # i1 (round 1) is still open -> its field goes
+        self.assertEqual(res.outcome, "validated_config")                  # accepted; i1 (round 1) is still open -> its field goes
         self.assertEqual([a["field"] for a in res.abstentions], ["b"])
 
 

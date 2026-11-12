@@ -1,0 +1,10 @@
+{
+ "bench_dev1a_02": {"cause": "design: one table per run", "fix": "none. A 9-sheet workbook, one sheet per year; the agent mapped one sheet and declared partial_config. Cross-table is out of scope (ARCHITECTURE.md section c)."},
+ "bench_dev1a_03": {"cause": "model_judgement", "fix": "none. Dropped ABN and legal_name after blocking critique issues and declared partial_config. Same partial-vs-validated ambiguity seen in phase A; a legitimate, conservative outcome."},
+ "bench_dev1a_06": {"cause": "model_judgement (+ download cap on the first resource tried)", "fix": "none. The 230 MB resource was refused by the cap and the agent fell back to another resource; it abstained the name fields."},
+ "bench_dev1a_07": {"cause": "non_business (plausibly correct); resource choice", "fix": "none. One early finish refused with the next call named, then fixed by the agent."},
+ "bench_dev1a_08": {"cause": "download: the publisher URL returns 404", "fix": "none. could_not_read with the reason is the honest outcome."},
+ "bench_dev1a_09": {"cause": "harness_defect: a partial_config with ZERO mapped fields was accepted", "fix": "finish refuses any config outcome that maps no field and names the next call (no_business_entities with evidence, or map one field); a code abstention that would remove every field is refused, not accepted. Tests in tests/test_finish_rules.py::TestNoConfigWithoutFields."},
+ "bench_dev1a_10": {"cause": "non_business (plausibly correct)", "fix": "none. One early finish refused with the next call named, then fixed by the agent."},
+ "bench_dev1a_11": {"cause": "reader_gap: a zip of a MapInfo TAB geodataset (not tabular)", "fix": "none. could_not_read needs two FAILED reads; the agent made two reads fail on purpose to satisfy the gate. Noted for the write-up, not changed."}
+}

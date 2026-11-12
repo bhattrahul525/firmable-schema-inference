@@ -1,0 +1,198 @@
+what_it_is: NSW Liquor & Gaming register of hotels and clubs with gaming machine entitlements (Find my LIA Band),
+  snapshot 1 Dec 2020.
+one_row_is: one gaming-licensed venue (hotel or club) with its licence number and entitlement counts
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Start Date
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields:
+- source: Venue Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Venue street address
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence Name
+  reason: Venue/premises name; the source does not say whether it is the registered legal name or a trading name,
+    so neither entity.legal_name nor entity.trading_name is asserted
+- source: Data as of
+  reason: snapshot date; observed_at uses resource_last_modified
+- source: Licence No
+  reason: licence number; not unique across the file (one duplicate), so record_id is hashed
+- source: Type
+  reason: venue type (hotel/club) is not an entity type; not mapped
+- source: Trading Status
+  reason: liquor licence operating state, not registration status; no safe enum mapping
+- source: Latitude
+  reason: no ontology field
+- source: Longitude
+  reason: no ontology field
+- source: Filter Category
+  reason: gaming category, no ontology field
+- source: SA2 Name
+  reason: statistical area, no ontology field
+- source: SA2 Band
+  reason: gaming policy band
+- source: Subject to Cap
+  reason: gaming policy flag
+- source: LGA
+  reason: no ontology field
+- source: Region
+  reason: no ontology field
+- source: GME
+  reason: entitlement count
+- source: PMP
+  reason: entitlement count
+- source: Auth Total
+  reason: entitlement count
+- source: Unfulfilled Quota
+  reason: entitlement count
+- source: GMT
+  reason: entitlement count
+- source: EGMs
+  reason: entitlement count
+needs_transform:
+- source: Trading Status
+  why: needs a licence-operating-state field; no ontology field fits
+source_reliability:
+  identity: 0.5
+  address: 0.8
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government regulator snapshot register; addresses as published. Name semantics unclear,
+  so identity reliability kept at 0.5.
+meaning_check_responses: []
+source_id: find_by_lia_band_agent_r1_2
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 600
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name / entity.trading_name <- Licence Name
+    reason: Column holds venue/premises names, some with company suffixes; source does not state whether it is the
+      registered name, so no name mapping is asserted.
+  - field: entity.status <- Trading Status
+    reason: Liquor-licence operating state ('Trading', 'Temporarily ceased trading') does not map safely to the
+      registration status enum.
+  - field: observation.valid_from
+    reason: 'critique issue unanswered: The envelope sets valid_from from ''Start Date'', but the config neither
+      maps nor lists Start Date (it appears in neither fields nor unmapped). The date is the licence start date,
+      not a date on which the name or the active status became true, so using it as valid_from for these claims
+      overstates what the source says. It may be closer to date_registered.'
+  critique_issues:
+  - id: c-b5a831ff
+    field: entity.legal_name<-Licence Name
+    problem: The source column holds the venue or premises name (e.g. 'Glenmore Hotel', 'Garden Hotel', 'Public
+      House Albury', 'Cassilis Bowling Club'), not a registered legal name. The config's own reason calls it the
+      'licensed venue/operator' name. The ontology defines legal_name as the name as registered, not the trading
+      name, and nothing in the source says these are registered names. Several rows are clearly trading-style names,
+      so mapping them to legal_name asserts something the source does not support.
+    severity: blocking
+    suggested_fix: Map 'Licence Name' to entity.trading_name (one observation per row), and do not emit entity.legal_name
+      from this column. Only emit legal_name from a source that states a registered name, such as a company register.
+  - id: c-509dc564
+    field: entity.status<-Trading Status
+    problem: '''Trading'' is a liquor-licence operating state for a venue, not the registration status the ontology''s
+      status enum describes. Only ''Trading'' is mapped, so any other value in the Trading Status column will fall
+      through without a documented result. The config does not say what happens to unmapped values.'
+    severity: advisory
+    suggested_fix: Document the mapping as a licence trading state, consider a field that records that meaning,
+      and state explicitly how other Trading Status values are handled (for example, unknown with a note) rather
+      than leaving them implicit.
+  - id: c-40d68f8d
+    field: observation.valid_from
+    problem: The envelope sets valid_from from 'Start Date', but the config neither maps nor lists Start Date (it
+      appears in neither fields nor unmapped). The date is the licence start date, not a date on which the name
+      or the active status became true, so using it as valid_from for these claims overstates what the source says.
+      It may be closer to date_registered.
+    severity: advisory
+    suggested_fix: Add Start Date to the config explicitly. Either map it to date_registered (if licence start is
+      accepted as the venue's registration date) or document why it is used as valid_from and what it does and does
+      not mean. Also list it in unmapped if it is not used.
+  - id: c-ed423d67
+    field: observation.observed_at
+    problem: observed_at is 2020-12-10, taken from resource_last_modified, while the file's 'Data as of' column
+      says 01-Dec-20. The ontology says observed_at is when the source stated the claim, and the snapshot date is
+      the better match for that.
+    severity: advisory
+    suggested_fix: Derive observed_at from the 'Data as of' value (2020-12-01) or document why the metadata timestamp
+      is used and that it may be later than the snapshot date.
+  - id: c-4fcaddc5
+    field: observation.source_id, observation.licence, observation.source_record_id
+    problem: The config does not show the required envelope values for source_id or licence. Licence has to come
+      from the dataset metadata and is required; it is not visible here, so it may be missing or unknown without
+      a flag.
+    severity: advisory
+    suggested_fix: Confirm source_id is set, pull the licence from the CKAN metadata (record 'unknown' and flag
+      it if none), and document the hashed record_id construction for source_record_id.
+  - id: c-36f11bb8
+    field: address.state
+    problem: The address observation has only the street-style venue address. Locality, postcode and state are not
+      mapped, although the dataset is NSW-only and the LGA and SA2 columns could support parsing.
+    severity: advisory
+    suggested_fix: Consider deriving address.state as NSW from the dataset context and recording it at a lower derivation
+      level, and parse locality and postcode from the address text where the source supports it.
+  - id: c-45362a21
+    field: entity.trading_name<-Licence Name
+    problem: The config maps 'Licence Name' to entity.trading_name and says it is a premises name, not a registered
+      legal name. The source does not state that. Several values look like registered company names, e.g. 'Kurnell
+      Community Sports and Recreation Club Limited' and 'Sussex Inlet Golf Club Limited' (the 'Limited' suffix).
+      Those may be legal names, so the claim that this is a trading name is not supported by the source.
+    severity: blocking
+    suggested_fix: Keep the observation but do not assert its meaning as trading_name without support. Either map
+      it to a neutral licence-name field if one exists, or record it with lower field_confidence and a note that
+      it may be the registered legal name. Flag the 'Limited' suffix cases for review.
+  - id: c-2b01339b
+    field: valid_from
+    problem: valid_from is set from 'Start Date', which is the liquor licence start date. That is when the licence
+      began, not necessarily when the entity or its trading name became true.
+    severity: advisory
+    suggested_fix: Document that valid_from here means licence start, or move the licence-level date into a note
+      on the observation so it is not read as entity registration.
+  - id: c-aba8e96c
+    field: address.full<-Venue Address
+    problem: Venue Address is mapped in full with only whitespace cleaning. The source contains a locality in uppercase
+      (e.g. 'KURNELL', 'THE ROCKS') that is not split out. Every row is in NSW, but address.state and address.country
+      are not set, and no postcode is available.
+    severity: advisory
+    suggested_fix: Optionally parse the trailing locality into address.locality and set address.country to AU. Consider
+      address.state = NSW only if the source is documented as NSW-only. Keep address.full as the raw address.
+  - id: c-7b229b89
+    field: entity.entity_type
+    problem: Each example emits entity_type 'unknown' with no source field. This is consistent with the default-to-unknown
+      rule, but the 'Type' column (club/hotel) is the venue type, not an entity type, so the 'unknown' is the correct
+      outcome and not a finding in itself.
+    severity: advisory
+    suggested_fix: No change needed. Consider noting in the config that venue Type was deliberately not used for
+      entity_type, so the reason is visible to later reviewers.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2ffacc2f0ff3
+  generated_at: '2026-11-12T08:51:45+00:00'

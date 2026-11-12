@@ -1,0 +1,228 @@
+what_it_is: NSW gaming-machine venue licences (hotels and clubs) with licence details, venue address, and authorised
+  electronic gaming machine (EGM) counts as at 1 Dec 2020, from the NSW Liquor & Gaming 'Find my LIA Band' register.
+one_row_is: one gaming-machine venue licence held by a hotel or club at a venue address
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+  - Venue Address
+  - Licence Name
+observed_at:
+  source: Data as of
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: parse_date
+    arg: '%d-%b-%y'
+fields:
+- source: Licence Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Licence Name holds the venue or licensee-given hotel/club name (e.g. 'Royal Hotel', 'Forbes Inn'); the
+    source does not state it is the registered name, so it is mapped as a trading name, not legal_name.
+  field_confidence: 0.7
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+- source: Venue Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Venue street address of the licensed premises.
+  field_confidence: 0.9
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+unmapped:
+- source: Licence No
+  reason: Gaming licence number, not an ABN/ACN; no ontology field.
+- source: Start Date
+  reason: Gaming licence commencement date; not a registration date of the entity and not a clear valid_from for
+    the entity claim; left out.
+- source: Trading Status
+  reason: Venue operating status (Trading / Temporarily ceased trading), not the legal entity's registration status;
+    left out.
+- source: Latitude
+  reason: No ontology field for coordinates.
+- source: Longitude
+  reason: No ontology field for coordinates.
+- source: Type
+  reason: Hotel/club venue type; not an entity_type value (no explicit entity-type column).
+- source: Filter Category
+  reason: Licence size/category label; not an ANZSIC code.
+- source: SA2 Name
+  reason: Statistical area name; no ontology field.
+- source: SA2 Band
+  reason: Regulatory band; no ontology field.
+- source: Subject to Cap
+  reason: Regulatory flag; no ontology field.
+- source: LGA
+  reason: Local government area; no address.locality equivalent.
+- source: Region
+  reason: Metropolitan/Country; no ontology field.
+- source: GME
+  reason: Gaming machine entitlement count; no ontology field.
+- source: PMP
+  reason: Poker machine permit count; no ontology field.
+- source: Auth Total
+  reason: Authorised total EGM count; no ontology field.
+- source: Unfulfilled Quota
+  reason: Quota count; no ontology field.
+- source: GMT
+  reason: Gaming machine threshold count; no ontology field.
+- source: EGMs
+  reason: Installed EGM count; no ontology field.
+- source: Data as of
+  reason: Used for observed_at.
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.8
+  classification: 0.6
+  contact: 0.5
+source_reliability_basis: Official NSW government regulator register, snapshot as of 1 Dec 2020; names and addresses
+  are as lodged by licensees.
+meaning_check_responses: []
+source_id: find_by_lia_band_agent_1
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 900
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-cb960828
+    field: entity.legal_name<-Licence Name
+    problem: The config reason says Licence Name is the registered licensee name, but the source does not say that.
+      Examples such as "Matraville Hotel", "Forbes Inn" and "Riverview Hotel" read as venue or trading names, and
+      the ontology requires legal_name to be as registered, not the trading name.
+    severity: blocking
+    suggested_fix: Do not map Licence Name to legal_name on the basis of this source. Map it to trading_name, or
+      hold it as an unverified name observation, and correct the reason text so it no longer claims the source states
+      registration.
+  - id: c-2a114e2a
+    field: entity.status<-Trading Status
+    problem: Trading Status describes whether a licensed venue is operating, not the registration status of the
+      legal entity. Mapping "Trading" to entity.status 'active' is a stretch, and the source does not say that the
+      entity itself is active.
+    severity: advisory
+    suggested_fix: Keep the mapping only as a venue-operating-status observation, state that scope in the reason,
+      or drop the entity.status mapping and record the raw value elsewhere.
+  - id: c-44bc2503
+    field: observation.valid_from
+    problem: The examples show valid_from taken from Start Date (for example 9/12/1983 becomes 1983-12-09), but
+      the config has no Start Date mapping. The date is a gaming licence start date, not the date the legal name
+      became true in the world, so the claim is also overstated.
+    severity: advisory
+    suggested_fix: Add an explicit, documented envelope rule for Start Date, or remove valid_from. Describe it as
+      licence commencement if it is kept.
+  - id: c-f45fe00f
+    field: observation envelope
+    problem: The example observations show only observed_at, valid_from and valid_to. Required envelope fields (licence,
+      source_id, source_record_id, ingested_at, extractor_version) are not visible or configured. The config also
+      has no licence entry, although the ontology says the licence comes from CKAN metadata and 'unknown' must be
+      recorded if it is missing.
+    severity: advisory
+    suggested_fix: Emit all required envelope fields on every observation. Take licence from the CKAN dataset metadata,
+      or record 'unknown' and flag it.
+  - id: c-65884260
+    field: entity.entity_type
+    problem: 'Every example emits an entity_type observation of ''unknown'' with from: null. This is a default with
+      no source claim behind it, so it adds an observation the source does not make.'
+    severity: advisory
+    suggested_fix: Do not emit observations for defaults with no source field. Leave entity_type absent, or keep
+      it only as a documented default outside the observation set.
+  - id: c-8069aa1f
+    field: observation.observed_at
+    problem: observed_at is set from resource_last_modified (2020-12-10), but the data itself states 'Data as of'
+      01-Dec-20. The ontology says observed_at is when the source stated the claim, so the snapshot date in the
+      data is the closer match.
+    severity: advisory
+    suggested_fix: Use the 'Data as of' value for observed_at, or record both and explain which one is used.
+  - id: c-27dd28b4
+    field: address.full<-Venue Address
+    problem: The venue address carries a locality and sometimes a state-level context (for example '479 Coast Rd
+      POTTSVILLE'), but address.locality, address.state (NSW) and address.postcode are not produced. Other fields
+      in the set are unused, so the address is less complete than it could be.
+    severity: advisory
+    suggested_fix: Parse the trailing locality token into address.locality and consider state NSW with country AU,
+      marking the derivation and its field_confidence. Keep address.full as the raw street string.
+  - id: c-826d483e
+    field: entity.trading_name<-Licence Name
+    problem: Several Licence Name values carry legal-form suffixes ('Pottsville District Bowls & Sports Club Limited',
+      'Singleton Rugby Club Limited', 'Canowindra Golf Club Ltd'). These look more like registered names than trading
+      names, and the config's own reason says the source does not state either way. Mapping them to trading_name
+      is defensible for a venue name but is a judgement, not something the source says.
+    severity: advisory
+    suggested_fix: Keep the mapping but record in the reason that the field is a licensee/venue-given name of uncertain
+      legal status, and lower field_confidence for names with Limited/Ltd/Pty suffixes. Do not present it as a verified
+      trading name.
+  - id: c-6597d366
+    field: entity.entity_type
+    problem: 'Every example emits an entity.entity_type ''unknown'' observation with from: null. No config key produces
+      it, and no source column supports it. It is a synthetic default, not a claim the source made, so it sits oddly
+      with the rule that every observation traces to a source.'
+    severity: advisory
+    suggested_fix: Either drop the default observation entirely or emit it explicitly as a derived default (derivation_level
+      L1, source column null) and document that in the config. Do not present it as a source claim.
+  - id: c-56197a78
+    field: address.full<-Venue Address
+    problem: The value is the address of the licensed premises (the venue), not the entity's registered or head-office
+      address. The observation's meaning is narrower than address.full implies. The suburb is also left inside the
+      free-text string, and state and postcode are not parsed out.
+    severity: advisory
+    suggested_fix: Document that this is the premises address. Consider parsing the trailing suburb into address.locality
+      and noting that the state is implied by the dataset context (NSW) rather than stated in each row, with a lower
+      field_confidence on any parsed parts.
+  - id: c-65b62ee8
+    field: observation envelope (source_id, source_record_id, ingested_at, licence, extractor_version)
+    problem: The example envelopes show only observed_at, valid_from and valid_to. The ontology marks source_id,
+      source_record_id, ingested_at, licence and extractor_version as required with no exceptions. The licence in
+      particular is not in the config and should come from the CKAN metadata, or be recorded as 'unknown' and flagged.
+    severity: advisory
+    suggested_fix: Show the full envelope in the examples. Add the licence source (CKAN metadata, or 'unknown' with
+      a finding), the ingested_at timestamp and the extractor_version.
+  - id: c-2c1681d0
+    field: record_id
+    problem: record_id is built from three fields, including Venue Address and Licence Name, which can change between
+      releases. Licence No is the stable key for a licence but is not used alone. The config does not say how the
+      three values are combined into the deterministic source_record_id.
+    severity: advisory
+    suggested_fix: Use Licence No as the primary key, and document the exact concatenation and normalisation if
+      a composite is kept as a fallback.
+  - id: c-c22d0c75
+    field: observation.valid_from
+    problem: Start Date is left unmapped on the grounds that it is not a clear valid_from for the entity. It is,
+      however, the date the gaming licence was granted, which may be the closest the source offers to when a claim
+      became true. The examples also show valid_from null throughout.
+    severity: advisory
+    suggested_fix: Consider mapping Start Date to a licence-level validity claim with a note that it applies to
+      the licence and not the entity, or record in the config why it is excluded.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.0.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: a1c1a58f91f2
+  generated_at: '2026-11-12T08:45:27+00:00'

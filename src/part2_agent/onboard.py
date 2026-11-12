@@ -12,12 +12,16 @@ Steps (each checkpointed in logs/agent_runs/<source_id>/, so a re-run resumes):
   7 finalise  code      abstain on anything still failing; field_confidence; write config + review packet
   8 gate      human    `python -m src.part2_agent.approve <source_id>`; rejection comments come back
                         here on the next run of this command (a human-feedback revise round)
+
+This is the round-1 PIPELINE (`--mode pipeline`, the default). `--mode agent` runs the round-2 tool-using agent instead
+(onboard_agent below; design in ARCHITECTURE.md). The pipeline code is unchanged.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -316,13 +320,86 @@ def run_summary(source_id: str, started_at: str) -> dict:
             "input_tokens": tin, "output_tokens": tout, "llm_seconds": round(secs, 1), "cost_by_step": by_step}
 
 
+def trace_summary(trace_path: Path) -> list[str]:
+    """The tool sequence of a run, one entry per executed tool call (refused calls are marked)."""
+    if not trace_path.exists():
+        return []
+    out = []
+    for line in trace_path.read_text().splitlines():
+        ev = json.loads(line)
+        if ev["type"] == "tool_call":
+            out.append(ev["name"] + (" (refused)" if ev.get("refused") else " (error)" if ev.get("is_error") else ""))
+    return out
+
+
+def default_source_id(reference: str) -> str:
+    from src.part2_agent.fetch import slug
+    if re.fullmatch(r"[a-z]+:[A-Za-z0-9_\-]+", reference):
+        return slug(reference.split(":", 1)[1])
+    leaf = re.split(r"[/\\]", reference.split("?")[0].rstrip("/\\"))[-1]
+    return slug(Path(leaf).stem or leaf) or "source"
+
+
+def onboard_agent(reference: str, *, source_id: str | None = None, model: str | None = None, limits=None,
+                  overwrite: bool = False, say=print, config_dir: str | None = None,
+                  resource_index: int | None = None) -> dict:
+    """ARCHITECTURE.md round 2: the tool-using agent. Returns {"result": RunResult, "tools": [...]}."""
+    from src.engine import extract as _extract, readers as _readers, config as _config, transforms as _transforms
+    from src.part2_agent import agent_hooks, agent_prompt, agent_table, agent_tools, guard, loop, tools as _tools
+    sid = source_id or default_source_id(reference)
+    ap = (Path(config_dir) / f"{sid}.approval.json") if config_dir else _config.approval_path(sid)
+    if ap.exists() and json.loads(ap.read_text()).get("status") == "approved" and not overwrite:
+        sys.exit(f"{sid} already has an APPROVED config. Pick another --source-id, or pass --overwrite to replace it "
+                 f"(its approval is reset).")
+    files = [m.__file__ for m in (agent_hooks, agent_prompt, agent_table, agent_tools, _extract, _readers, _config, _transforms)]
+    version = loop.code_version(files)
+    work_dir = loop.RUNS_DIR / sid
+    kit = agent_tools.AgentKit(sid, work_dir, model=model, code_version=version, allow_overwrite=overwrite,
+                              config_dir=Path(config_dir) if config_dir else None)
+    run = loop.AgentRun(source_id=sid, reference=reference, task=agent_prompt.make_task(reference, sid, resource_index),
+                        tools=kit.tools, hooks=kit.hooks, system=agent_prompt.SYSTEM_TASK, model=model,
+                        limits=limits or guard.Limits(), code_version=version, say=say,
+                        fetcher=guard.FetchGuard(reference, pinned_index=resource_index))
+    say(f"onboarding {sid} (round-2 agent, model {model or llm.DEFAULT_MODEL})")
+    t0 = time.monotonic()
+    result = run.run()
+    seq = trace_summary(work_dir / "trace.jsonl")
+    say(f"outcome: {result.outcome}" + (f" (ended by the harness: {result.forced_by})" if result.forced_by else ""))
+    say(f"turns={result.turns} tool_calls={result.tool_calls} cost=${result.cost_usd:.4f} "
+        f"agent_seconds={result.elapsed_seconds} wall_clock_seconds={time.monotonic() - t0:.1f}")
+    say("tool sequence: " + " -> ".join(seq))
+    if result.packet_path:
+        say(f"packet: {result.packet_path}")
+    return {"result": result, "tools": seq}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Onboard one source with the Part 2 agent.")
-    ap.add_argument("source", nargs="?", help="a downloaded source_id, or <portal>:<ckan dataset name> for an unseen dataset")
-    ap.add_argument("--file", help="onboard a local csv/tsv/xlsx/json file instead")
-    ap.add_argument("--licence", default="unknown", help="licence of a local file (default: unknown, flagged)")
-    ap.add_argument("--resource-contains", help="CKAN: only consider resources whose name contains this")
+    ap.add_argument("source", nargs="?", help="pipeline: a downloaded source_id or <portal>:<ckan dataset>; agent: a "
+                    "<portal>:<ckan dataset>, an http(s) URL or a file path")
+    ap.add_argument("--mode", choices=("pipeline", "agent"), default="pipeline",
+                    help="pipeline = the round-1 fixed pipeline (default); agent = the round-2 tool-using agent")
+    ap.add_argument("--file", help="onboard a local file instead (pipeline: csv/tsv/xlsx/json copied in; agent: any path)")
+    ap.add_argument("--licence", default="unknown", help="pipeline: licence of a local file (default: unknown, flagged)")
+    ap.add_argument("--resource-contains", help="pipeline, CKAN: only consider resources whose name contains this")
+    ap.add_argument("--source-id", help="agent: name for the source (default: from the dataset name or file name)")
+    ap.add_argument("--model", help="agent: model id (default: the setting in src/llm.py)")
+    ap.add_argument("--max-dollars", type=float, help="agent: dollar budget for the run (default 1.00)")
+    ap.add_argument("--max-turns", type=int, help="agent: model-turn budget (default 40)")
+    ap.add_argument("--overwrite", action="store_true", help="agent: replace an approved config of the same source id")
+    ap.add_argument("--resource-index", type=int, help="agent: pin the resource (its index in the dataset's resource list); "
+                    "the agent can then fetch only that one")
+    ap.add_argument("--config-dir", help="agent: write the config and review packet here instead of configs/ (benchmark runs)")
     a = ap.parse_args()
+    if a.mode == "agent":
+        from src.part2_agent.guard import Limits
+        ref = a.file or a.source
+        if not ref:
+            sys.exit("agent mode needs a reference: <portal>:<dataset>, a URL, or a file path")
+        kw = {k: v for k, v in (("max_dollars", a.max_dollars), ("max_calls", a.max_turns)) if v is not None}
+        onboard_agent(ref, source_id=a.source_id, model=a.model, limits=Limits(**kw), overwrite=a.overwrite,
+                      config_dir=a.config_dir, resource_index=a.resource_index)
+        return
     if a.file:
         from src.part2_agent.fetch import fetch_file
         source_id = fetch_file(a.file, a.licence)

@@ -7,6 +7,11 @@
 - After submission there is a follow-up call where I must **explain every line and every design
   choice**. So: prefer simple, legible code over clever code, and explain your reasoning as you go.
 
+## Model rule
+- Planning and costly decisions are made on Fable 5.2. Building is done on Sonnet 5.5. Reviews are done on Opus 5.5 in a fresh session.
+- If you are building and reach a decision that changes the design, a gate, an outcome definition or ARCHITECTURE.md, stop. Say "This needs a planning decision" and describe the options. Do not decide it yourself.
+- Small implementation choices (names, file layout, test structure) are yours to make. Log them in your report.
+
 ## Hard constraints (from the brief)
 - **Time box: 6 hours total** of my working time, spread over two sessions. Optimise for a
   well-reasoned partial solution, not completeness. Keep a running time log in `TIMELOG.md`.
@@ -140,3 +145,19 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
   fix the document or tell me.
 - Keep ARCHITECTURE.md under about 400 lines. Details that belong to one module go in
   that module's docstring, with a pointer from the document.
+
+## Testing rule
+- Max 2 tests per changed rule; only rules the code enforces.
+- During build: run only affected test files. Full suite once at the end.
+- Always: pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15
+- Never paste full test output into reports; give count + pass/fail + first failure line.
+
+## Cleanup rule (end of every build)
+- Before reporting, list files you created or modified this session (git status, read-only). For each NEW file, decide: keep or remove.
+- KEEP: source, tests, docs, plans in reviews/, small fixtures tests need, benchmark summary files used as evidence.
+- REMOVE (delete from local disk): scratch scripts, temp files, duplicate or superseded outputs, per-run dumps and caches, debug logs, anything you created only to check something.
+- Only delete files YOU created this session. Never delete: .env, seed 2 data, datasets, files the user added, or files that were already tracked.
+- If a new run output or log folder is generated data, add it to .gitignore instead of leaving it for commit.
+- If unsure whether to keep a file, keep it and list it under "UNSURE" in the report.
+- Report one line: "Removed: <files>. Kept new: <files>. UNSURE: <files>."
+- Never run git add, commit, push, rm, or any command that changes the repo. The user does all git steps.

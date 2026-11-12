@@ -73,6 +73,15 @@ class TestEngine(unittest.TestCase):
         self.assertEqual(rej[0]["reason"], "abn_checksum_failed")
         self.assertEqual(stats["entity.abn<-abn"]["parse_rate"], 0.0)
 
+
+    def test_skip_only_observed_at_still_records_a_blank_reject(self):
+        """Step 3b review fix: a transform that only emits `skip` events (no reject) must not silently drop the row."""
+        c = cfg([field("name", "entity.legal_name", [])],
+                observed_at={"source": "d", "transforms": [{"name": "regex_extract", "arg": r"(\d{4}-\d{2}-\d{2})"}]})
+        obs, rej, _ = run_rows(c, [{"id": "1", "name": "X", "d": "not a date"}], META)
+        self.assertEqual(obs, [])
+        self.assertEqual(rej, [{"source_record_id": "1", "field": "observed_at", "reason": "observed_at_blank"}])
+
     def test_mixed_abn_acn_column_routes_by_length(self):
         c = cfg([field("x", "entity.abn", ["abn"]), field("x", "entity.acn", ["acn"])])
         obs, rej, stats = run_rows(c, [{"id": "1", "x": "51824753556"}, {"id": "2", "x": "000000019"}], META)

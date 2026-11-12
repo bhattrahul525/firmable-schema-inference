@@ -129,24 +129,58 @@ def run_rows(cfg: dict, rows: list[dict], metadata: dict, *, ingested_at: str | 
 
     for f in cfg["fields"]:
         stats[key_of(f)] = FieldStats()
+    # ENVELOPE settings with their own per-row column (not from_metadata) get a FieldStats entry too (step 3b, item D):
+    # a parse failure on observed_at / valid_from / valid_to is otherwise invisible to validate and the packet. Their
+    # keys ("observed_at", "valid_from", "valid_to") never collide with a field key, which always contains "<-".
+    envelope_keys = [k for k in ("observed_at", "valid_from", "valid_to")
+                     if isinstance(cfg.get(k), dict) and cfg[k].get("source")]
+    for k in envelope_keys:
+        stats[k] = FieldStats()
 
     for row in rows:
         rid = make_record_id(cfg, row)
 
         def per_record(key):
-            """observed_at / valid_from / valid_to: a metadata value or a per-row column."""
+            """observed_at / valid_from / valid_to: a metadata value or a per-row column. Tracked in `stats[key]` and
+            `rejects` exactly like a mapped field, when the setting has its own column (from_metadata has no parsing
+            to track)."""
             spec = cfg.get(key)
             if not spec:
                 return None, None
             if spec.get("from_metadata"):
                 return metadata[spec["from_metadata"]], None
-            vals, ev = apply_transforms(_value_of(spec["source"], row), spec.get("transforms") or [])
-            bad = next((e for e in ev if e[0] == "reject"), None)
-            return (vals[0] if vals else None), (bad[1] if bad else None)
+            st = stats[key]
+            st.rows += 1
+            raw = _value_of(spec["source"], row)
+            if _is_blank(raw):
+                st.blank += 1
+                return None, None
+            vals, ev = apply_transforms(raw, spec.get("transforms") or [])
+            had_reject = False
+            for kind, reason, item in ev:
+                if kind == "skip":
+                    st.skip += 1
+                    st.skip_reasons[reason] += 1
+                else:
+                    had_reject = True
+                    st.reject += 1
+                    st.reject_reasons[reason] += 1
+                    ex = {"raw": str(item)[:80], "reason": reason, "source_record_id": rid}
+                    if len(st.reject_examples) < MAX_REJECT_EXAMPLES:
+                        st.reject_examples.append(ex)
+                    rejects.append({"source_record_id": rid, "field": key, "source_field": spec["source"],
+                                    "raw_value": str(item)[:200], "reason": reason})
+            if vals:
+                st.ok += 1
+                return vals[0], None
+            # skip-only outcome: nothing was appended to rejects above, so the caller must still treat
+            # this like blank and record observed_at_blank (step 3b item D regression)
+            return None, (ev[-1][1] if had_reject else None)
 
         observed_at, err = per_record("observed_at")
         if observed_at is None:
-            rejects.append({"source_record_id": rid, "field": "observed_at", "reason": err or "observed_at_blank"})
+            if err is None:   # a transform failure was already recorded inside per_record; blank needs its own reason
+                rejects.append({"source_record_id": rid, "field": "observed_at", "reason": "observed_at_blank"})
             continue  # a claim with no time is not an observation
         valid_from, _ = per_record("valid_from")
         valid_to, _ = per_record("valid_to")

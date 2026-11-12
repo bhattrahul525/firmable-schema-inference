@@ -12,3 +12,11 @@ data/raw/
 # OS / editor
 .DS_Store
 .vscode/
+
+.serena/
+
+# benchmark dev-draw per-run traces and raw harness artifacts (regenerable by re-running the
+# benchmark; summarised in outputs/benchmark/dev_seed1/compare.* and results.*)
+logs/agent_runs/bench_*/
+outputs/benchmark/dev_seed1/pass_*/configs/
+outputs/benchmark/dev_seed1/pass_*/logs/

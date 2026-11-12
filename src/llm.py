@@ -289,11 +289,16 @@ def chat(
       * history caching uses the top-level `cache_control` (automatic breakpoint on the last block). Tools and system
         stay identical for a whole run, because changing tools invalidates the entire cache.
       * a refusal or max_tokens stop is RETURNED (stop_reason), not raised: the loop decides what to do.
+      * thinking is requested with `display: "summarized"` (step 3b, item G): on both Haiku 5.5 and Sonnet 5.5 this
+        was confirmed live to be accepted (no 400) and, on turns where the model actually thinks, to return readable
+        text at no extra token cost over the default `display: "omitted"` (thinking is billed the same either way).
+        The block is passed back unmodified on the next turn, like any other (request_blocks).
     Every turn is logged to logs/llm_calls.jsonl like any other call, with the number of tool calls it made."""
     model = model or DEFAULT_MODEL
     kwargs: dict = {
         "model": model, "max_tokens": max_tokens, "messages": messages,
         "output_config": {"effort": effort}, "cache_control": {"type": "ephemeral"},
+        "thinking": {"type": "adaptive", "display": "summarized"},
     }
     if system:
         kwargs["system"] = system

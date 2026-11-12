@@ -39,15 +39,17 @@ from typing import Callable
 
 from src import llm
 from src.part2_agent.guard import (ALL_OUTCOMES, CONFIG_OUTCOMES, HARNESS_MAX_USES, HARNESS_PROMPT, INCOMPLETE,
-                                   OUTCOMES, Budget, FetchGuard, FinishGate, Limits, render_result, validate_args)
-from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec
+                                   OUTCOMES, Budget, FetchGuard, FinishGate, Limits, render_result, tool_deadline,
+                                   validate_args)
+from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec, ToolTimeout
 
 RUNS_DIR = Path("logs/agent_runs")
 FINISH_REFUSALS_ALLOWED = 2   # a second consecutive refusal ends the run (partial config, or incomplete)
+FORMAT_REFUSALS_ALLOWED = 3   # refusals only for a malformed `answers` / `abstentions` list: counted apart, 3 per run
 TEXT_ONLY_ALLOWED = 2         # two replies without a tool call in a row end the run the same way
 RETRY_ATTEMPTS = 3            # transient API errors: at most 3 attempts in all
 RETRY_BACKOFF_SECONDS = 2.0   # waits 2 s, then 4 s
-_SKIP_ON_REPLAY = ("resume", "api_retry")   # bookkeeping events: replay steps over them
+_SKIP_ON_REPLAY = ("resume", "api_retry", "progress")   # bookkeeping events: replay steps over them
 
 
 def core_files() -> list[Path]:
@@ -77,6 +79,17 @@ def code_version(extra_files=()) -> str:
 CODE_VERSION = code_version()
 
 
+def thinking_summary(content: list[dict], cut: int = 300) -> str | None:
+    """The first thinking block's text, cut to `cut` characters, or None (no thinking block, or display omitted it:
+    see llm.chat's `thinking` setting). A `redacted_thinking` block has no readable text. Display-only (item G,
+    step 3b): never fed back into a prompt as the harness's own words."""
+    for b in content:
+        if b.get("type") == "thinking" and b.get("thinking"):
+            text = b["thinking"]
+            return text if len(text) <= cut else text[:cut] + "…"
+    return None
+
+
 def file_sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -101,9 +114,15 @@ class TraceMismatch(ValueError):
 
 FINISH_SPEC = ToolSpec(
     name="finish",
-    description=("Declare the outcome and end the run. Outcomes: validated_config, partial_config, no_business_entities, "
-                 "could_not_read. For a config outcome pass the exact `config` you validated and critiqued, and in "
-                 "`answers` answer every critique issue still open on it."),
+    description=("Declare the outcome and end the run. Outcomes: validated_config, no_business_entities, could_not_read. For "
+                 "validated_config pass the exact `config` you stand behind (finish validates it itself) and in `answers` "
+                 "answer every BLOCKING critique issue still open on it (advisory issues may be left; they stay in the review "
+                 "packet and the field stays). If your finish is accepted the outcome is validated_config: columns and fields "
+                 "you leave out go in `unmapped` or `abstentions`. could_not_read needs evidence the harness can verify (two "
+                 "failed read_table calls, a failed download, or a sniff / list_members result that classifies the file as "
+                 "not tabular); your own statement is not enough. Shapes: "
+                 "answers = [{\"issue_id\": \"c-1a2b3c4d\", \"action\": \"answered\", \"note\": \"why this is intended\"}]; "
+                 "abstentions = [{\"field\": \"entity.abn<-SomeColumn\", \"reason\": \"why it is left out\"}]."),
     input_schema={
         "type": "object", "additionalProperties": False, "required": ["outcome"],
         "properties": {
@@ -199,7 +218,7 @@ class AgentRun:
                  sleep: Callable[[float], None] = time.sleep, say: Callable[[str], None] = print,
                  limits: Limits = Limits(), trace_root: Path = RUNS_DIR, model: str | None = None,
                  max_tokens: int = 4096, input_path: Path | None = None, fetcher: FetchGuard | None = None,
-                 code_version: str | None = None):
+                 code_version: str | None = None, ask: Callable[[str], str | None] | None = None):
         for key, spec in tools.items():
             if key == "finish" or spec.name == "finish":
                 raise ValueError("`finish` is owned by the harness; do not register a tool with that name")
@@ -215,10 +234,12 @@ class AgentRun:
         self.fetch_guard = fetcher or FetchGuard(reference)
         self.trace = Trace(trace_root / source_id / "trace.jsonl")
         self.ctx = ToolContext(source_id=source_id, reference=reference, work_dir=trace_root / source_id,
-                               fetcher=self.fetch_guard)
+                               fetcher=self.fetch_guard, log=self._progress, ask=ask)
         self.uses: Counter = Counter()
+        self.ctx.uses = self.uses
         self.executed = 0
         self.refused_finishes = 0
+        self.format_refusals = 0
         self.text_only = 0
         self.replayed_events = 0
         self.replayed_turns = 0
@@ -300,6 +321,7 @@ class AgentRun:
         prompt = json.dumps({"system": self.system, "task": self.task, "tools": self.tool_schemas}, sort_keys=True)
         return {"source_id": self.source_id, "reference": self.reference, "model": self.model or llm.DEFAULT_MODEL,
                 "code_version": self.code_version, "limits": asdict(self.budget.limits),
+                "pinned_resource_index": self.fetch_guard.pinned_index,
                 "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()[:16],
                 "input_sha256": file_sha256(self.input_path) if self.input_path and self.input_path.exists() else None}
 
@@ -329,6 +351,11 @@ class AgentRun:
             self.say("=== REPLAY ended: continuing live ===")
         self.trace.append(kind, **data)
 
+    def _progress(self, message: str) -> None:
+        """A progress line from a running tool (a download). Live only: tools do not run during a replay."""
+        self._live("progress", message=str(message)[:200])
+        self.say(f"    {message}")
+
     def _mismatch(self, expected: str) -> TraceMismatch:
         return TraceMismatch(f"the trace and this run disagree at event {self.trace.cursor}: the run needs {expected} "
                              f"but the trace has {self.trace.next_type()!r} (or different content). Refusing to "
@@ -347,7 +374,11 @@ class AgentRun:
             turn = llm.LLMTurn(**{k: ev[k] for k in llm.LLMTurn.__dataclass_fields__})
             self.budget.replayed_seconds += turn.seconds
             names = [b["name"] for b in turn.tool_uses] or ["(text only)"]
-            self.say(f"[REPLAY] turn {self.replayed_turns}: {', '.join(names)}")
+            line = f"[REPLAY] turn {self.replayed_turns}: {', '.join(names)}"
+            summary = thinking_summary(turn.content)
+            if summary:   # item G: a readable reasoning summary, when the model actually thought this turn
+                line += f" — thinking: {summary}"
+            self.say(line)
         else:
             turn = self._chat_with_retries(max_tokens)
             self._live("model_turn", **asdict(turn))
@@ -387,7 +418,7 @@ class AgentRun:
                                 download_seconds=ev["download_seconds"])
             rendered, seconds, refused = ev["rendered"], ev["seconds"], ev["refused"]
             self.budget.replayed_seconds += seconds
-            pinned = self.trace.peek("input_pinned")
+            pinned = self.trace.peek("input_pinned") or self.trace.peek("input_switched")
             if pinned:
                 self.trace.consume()
                 self.pinned_input = self.ctx.state["input_sha256"] = pinned["sha256"]
@@ -401,6 +432,8 @@ class AgentRun:
             result.download_seconds = min(result.download_seconds, measured)
             seconds = measured - result.download_seconds
             extra = {"final_url": self.fetch_guard.final_url} if name == "fetch" else {}
+            if name == "ask_human":   # the human's wait reuses the download exclusion; the trace says what it really is
+                extra["human_wait_seconds"] = result.download_seconds
             self._live("tool_call", tool_use_id=tu["id"], name=name, args=args, is_error=result.is_error,
                        status=result.status, rendered=rendered, cost_usd=result.cost_usd,
                        download_seconds=result.download_seconds, seconds=seconds, refused=refused, **extra)
@@ -425,6 +458,13 @@ class AgentRun:
         if not sha or sha == self.pinned_input:
             return
         if self.pinned_input:
+            sw = self.ctx.state.get("input_switch")
+            if sw and sw.get("from") == self.pinned_input and sw.get("sha256") == sha:   # the ONE allowed switch of resource
+                self.ctx.state.pop("input_switch")
+                self.pinned_input = sha
+                self._live("input_switched", from_sha256=sw["from"], sha256=sha, reason=sw.get("reason", ""),
+                           resource_index=sw.get("resource_index"))
+                return
             raise TraceMismatch(f"the input file changed during the run (pinned {self.pinned_input[:12]}, now {sha[:12]})")
         self.pinned_input = sha
         self._live("input_pinned", sha256=sha)
@@ -449,21 +489,32 @@ class AgentRun:
             return self._refuse(f"{name} needs a `config` object")
         if name == "finish":
             try:
-                decision = self.gate.check(args)
+                left = max(0, min(n for n in (HARNESS_MAX_USES["critique"], self.tools["critique"].max_uses)
+                                  if n is not None) - self.uses["critique"]) if "critique" in self.tools else 0
+                decision = self.gate.check(args, lambda cfg: self.hooks.validate(copy.deepcopy(cfg)), critiques_left=left)
             except Exception as e:   # the gate is our code, but its input is the model's: refuse, never crash
                 return self._refuse(f"finish refused: could not read the arguments ({type(e).__name__})")
             if not decision.ok:
-                return self._refuse(decision.reason)
-            return ToolResult(status={"accepted": True, "outcome": decision.outcome,
-                                      "abstentions": decision.abstentions}), "accepted", None
+                result, text, why = self._refuse(decision.reason)
+                if decision.format:
+                    result.status = {"format_refusal": True}
+                return result, text, why
+            return ToolResult(status={"accepted": True, "outcome": decision.outcome, "abstentions": decision.abstentions,
+                                      "open_advisory": [i.get("id") for i in decision.open_advisory],
+                                      "unreadable_evidence": decision.unreadable_evidence}), "accepted", None
         logged_before = llm.logged_cost_total()
         try:
             # the tool gets a COPY: the model's original input stays exactly as it was for the gate's hash, the trace
             # and the replay comparison, even if a tool normalises its config in place
-            result = spec.run(copy.deepcopy(args), self.ctx)
+            with tool_deadline(spec.timeout_seconds, self.ctx):
+                result = spec.run(copy.deepcopy(args), self.ctx)
             problem = self._result_problem(name, result)
             if problem:
                 raise _BadToolResult(problem)
+            rendered = render_result(spec, result)
+        except ToolTimeout:
+            result = ToolResult(text=f"tool {name} timed out after {spec.timeout_seconds:g}s and was stopped; "
+                                     f"try a narrower request", is_error=True)
             rendered = render_result(spec, result)
         except _BadToolResult as e:
             result = ToolResult(text=f"tool {name} returned an unusable result: {e}", is_error=True)
@@ -537,6 +588,11 @@ class AgentRun:
 
     def _after_finish(self, args: dict, result: ToolResult, rendered: str) -> tuple[str, bool, RunResult | None]:
         if result.is_error:
+            if result.status.get("format_refusal") and self.format_refusals < FORMAT_REFUSALS_ALLOWED:
+                # a formatting slip is not a refusal of the finish itself: fix the shape and call again
+                self.format_refusals += 1
+                return (rendered + f" (format refusal {self.format_refusals} of {FORMAT_REFUSALS_ALLOWED}: it does not "
+                        f"count toward ending the run)"), True, None
             return self._refused_finish(rendered)
         decision = result.status
         config, outcome = args.get("config"), decision["outcome"]
@@ -546,9 +602,16 @@ class AgentRun:
             # re-critique: removing fields cannot add an error, only take one away. Hooks get copies.
             config = self.hooks.abstain(copy.deepcopy(config), [a["field"] for a in decision["abstentions"]])
             status = self.hooks.validate(copy.deepcopy(config))
+            if not config.get("fields"):
+                return self._refused_finish(
+                    f"finish refused: removing the fields with unanswered blocking critique issues would leave no mapped field. "
+                    f"Call finish again with `answers` for the blocking issue ids (answer = why the mapping is right, or fix the "
+                    f"config and call `critique`), or with outcome no_business_entities if the data holds no businesses.")
             if not _passes(status):
-                return self._refused_finish("finish refused: removing unanswered fields left validation failing; "
-                                            "fix and re-run both.")
+                return self._refused_finish(
+                    f"finish refused: removing the fields with unanswered critique issues left validation failing "
+                    f"({status.get('failing_fields', [])}). Call `validate` with the config you intend to finish with, fix "
+                    f"what it reports, then call finish again.")
         final = RunResult(outcome=outcome, config=config, abstentions=abstentions,
                           evidence=str(args.get("evidence", "")), reason=str(args.get("reason", "")))
         return "accepted", False, self._end(final)
@@ -562,8 +625,8 @@ class AgentRun:
         return float(reported) if ok and reported >= 0 else 0.0
 
     def _force(self, why: str) -> RunResult:
-        """The harness ends the run: validate, abstain on failing fields, one critique, write the packet; outcome
-        partial_config. If no config was ever proposed there is nothing to make partial: the outcome is `incomplete`
+        """The harness ends the run: validate, abstain on failing fields, one critique (only BLOCKING issues abstain a
+        field), write the packet; outcome partial_config. With no mapped field left the outcome is `incomplete`. If no config was ever proposed there is nothing to make partial: the outcome is `incomplete`
         with the reason; so it is when the config still fails validation after abstaining. (could_not_read stays
         reserved for reader or fetch failures.) The critique here is the HARNESS's own call, not one of the model's
         two critique rounds. Hooks always get copies of the config."""
@@ -578,14 +641,23 @@ class AgentRun:
                 break
             abstentions += [{"field": f, "reason": "failed validation when the harness ended the run"} for f in fields]
             config = self.hooks.abstain(copy.deepcopy(config), fields)
+        if not config.get("fields"):   # nothing left to critique
+            return self._end(RunResult(outcome=INCOMPLETE, forced_by=why, abstentions=abstentions,
+                                       reason=f"{why}; no mapped field is left (every field failed validation)"))
         logged_before = llm.logged_cost_total()
         crit = self.hooks.critique(copy.deepcopy(config))
         self.budget.dollars += self._hook_cost(crit.get("cost_usd", 0.0), llm.logged_cost_total() - logged_before)
-        fields = [i["field"] for i in crit.get("issues", [])]
-        if fields:   # nobody is left to answer the critic: its fields are abstained
-            abstentions += [{"field": i["field"], "reason": f"critique issue unanswered: {i.get('problem', '')}"}
-                            for i in crit["issues"]]
-            config = self.hooks.abstain(copy.deepcopy(config), fields)
+        # Only a BLOCKING issue (the mapping states something the source does not support) abstains a field. An advisory
+        # issue (anything else) leaves the field in place; the packet shows it. An issue with no severity counts as blocking.
+        blocking = [i for i in crit.get("issues", []) if i.get("severity", "blocking") == "blocking"]
+        if blocking:   # nobody is left to answer the critic: its blocking fields are abstained
+            abstentions += [{"field": i["field"], "reason": f"blocking critique issue unanswered: {i.get('problem', '')}"}
+                            for i in blocking]
+            config = self.hooks.abstain(copy.deepcopy(config), [i["field"] for i in blocking])
+        if not config.get("fields"):
+            return self._end(RunResult(outcome=INCOMPLETE, forced_by=why, abstentions=abstentions,
+                                       reason=f"{why}; no mapped field is left (every field failed validation or had a "
+                                              f"blocking critique issue)"))
         if not _passes(self.hooks.validate(copy.deepcopy(config))):
             return self._end(RunResult(outcome=INCOMPLETE, forced_by=why,
                                        reason=f"{why}; the config still failed validation after abstaining"))

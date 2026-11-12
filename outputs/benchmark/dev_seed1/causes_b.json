@@ -1,0 +1,9 @@
+{
+ "bench_dev1b_02": {"cause": "design: one table per run", "fix": "none (same as pass A)"},
+ "bench_dev1b_04": {"cause": "model_judgement (run-to-run variance: validated in pass A)", "fix": "none"},
+ "bench_dev1b_06": {"cause": "model_judgement (same as pass A)", "fix": "none"},
+ "bench_dev1b_07": {"cause": "non_business (plausibly correct)", "fix": "none"},
+ "bench_dev1b_08": {"cause": "download: the publisher URL returns 404", "fix": "none"},
+ "bench_dev1b_10": {"cause": "non_business (plausibly correct)", "fix": "none"},
+ "bench_dev1b_11": {"cause": "reader_gap: MapInfo TAB geodata zip (not tabular)", "fix": "none"}
+}
