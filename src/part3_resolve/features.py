@@ -10,10 +10,10 @@ import json
 import re
 from pathlib import Path
 
+from src.common.names import ATF, SUFFIX_TOKENS, name_core  # noqa: F401  (re-exported; moved in step 7a)
+
 OBS_DIR = Path("outputs/observations")
 
-# Words that carry no identity ("Acme Pty Ltd" and "ACME PTY. LIMITED" are the same name).
-SUFFIX_TOKENS = {"pty", "ltd", "limited", "proprietary", "inc", "incorporated", "the"}
 # A name with none of these, made of 2-4 plain words, looks like a person ("Michael William Argus").
 BUSINESS_WORDS = {
     "pty", "ltd", "limited", "inc", "incorporated", "club", "hotel", "group", "holdings", "services", "trust",
@@ -24,23 +24,11 @@ BUSINESS_WORDS = {
     "insurance", "legal", "accounting", "property", "properties", "developments", "engineering", "technologies",
     "systems", "management", "mortgage", "loans", "lending", "advisers", "advisory", "financial", "agency",
 }
-_ATF = re.compile(r"\s+(?:ATF|A\.T\.F\.?|as trustee for)\s+", re.I)
-
-
-def name_core(name: str | None) -> str:
-    """Normalised comparison form: lower-case, '&'->'and', punctuation gone, suffix words dropped,
-    and anything after 'ATF' (acting as trustee for ...) cut off, because that names the trust,
-    not the company."""
-    if not name:
-        return ""
-    name = _ATF.split(name)[0]
-    s = re.sub(r"[^a-z0-9 ]", " ", name.lower().replace("&", " and "))
-    return " ".join(t for t in s.split() if t not in SUFFIX_TOKENS)
 
 
 def atf_trust(name: str | None) -> str | None:
     """'X Pty Ltd ATF The X Family Trust' -> 'The X Family Trust' (a relationship, not a merge)."""
-    parts = _ATF.split(name or "", maxsplit=1)
+    parts = ATF.split(name or "", maxsplit=1)
     return parts[1].strip() if len(parts) == 2 else None
 
 

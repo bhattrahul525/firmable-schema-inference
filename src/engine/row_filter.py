@@ -22,7 +22,8 @@ from pathlib import Path
 from src.common.ids import normalise_abn
 from src.engine.config import config_path, load_config_file
 from src.engine.readers import iter_table
-from src.part3_resolve.features import load_mentions, name_core
+from src.common.names import name_core
+from src.part3_resolve.features import load_mentions
 from src.part3_resolve.run import SOURCES
 
 OUT_DIR = Path("data/reference")
