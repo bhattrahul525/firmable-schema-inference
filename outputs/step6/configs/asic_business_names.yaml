@@ -1,0 +1,132 @@
+what_it_is: ASIC register of business names (registered trading names of ABN holders), monthly snapshot extract
+one_row_is: one registered business name record, linked to the ABN of its registrant where present
+reader:
+  format: csv
+  archive: zip
+  member: BUSINESS_NAMES_202611.csv
+  encoding: utf-8-sig
+  delimiter: "\t"
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: BN_NAME
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Registered business name; a name traded under, not the registered legal name of the holder
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: BN_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ABN of the registrant of the business name, checksum validated
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 68
+    ok: 232
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: REGISTER_NAME
+  reason: constant value BUSINESS NAMES
+- source: BN_STATE_NUM
+  reason: state business name registration number; not an ABN, ACN or entity identifier in the ontology
+- source: BN_STATUS
+  reason: status of the business name registration, not of the registrant entity; not mapped to entity.status to
+    avoid asserting holder status
+- source: BN_REG_DT
+  reason: business name registration date, not stated as the entity's own registration date (rule 10)
+- source: BN_CANCEL_DT
+  reason: business name cancellation date, not the entity's own registration end (rule 10)
+- source: BN_STATE_OF_REG
+  reason: state where the business name is registered, not the holder's address
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.5
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: Official ASIC register extract of self-registered business names; names may be stale and
+  placeholder dates such as 01/01/1753 occur. Trading-name claims are weaker than legal-name claims.
+meaning_check_responses: []
+source_id: asic_business_names
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 832
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-d18e885e
+    field: address.state<-BN_STATE_OF_REG
+    problem: BN_STATE_OF_REG is the state where the business name is registered, which the config's own reason says
+      is not the holder's address. The ontology's address.state describes the entity's address, so the mapping states
+      something the source does not support. The example row for NUMBER ONE CLEANING SERVICE emits address.state
+      NSW as if it were the entity's location.
+    severity: blocking
+    suggested_fix: Remove this mapping from address.state. Leave BN_STATE_OF_REG unmapped with the reason that it
+      is the business name registration state, not the holder's address.
+  - id: c-3d723a70
+    field: entity.status<-BN_STATUS
+    problem: BN_STATUS describes the status of the business name registration, not the status of the registrant
+      entity. Mapping 'Registered' to entity.status 'active' asserts something about the holder that the column
+      does not state, since the holder could be deregistered or in liquidation.
+    severity: advisory
+    suggested_fix: Keep the mapping but lower mapping_confidence, or note in the config reason that the status applies
+      to the business name registration. Consider a name-registration-specific field if the ontology has one.
+  - id: c-2ff355ed
+    field: valid_from
+    problem: BN_REG_DT records when the business name was registered, not when the entity's own registration started.
+      Rule 10 allows valid_from only from a column stating the entity's own registration start, so this date may
+      be read as the entity's registration date.
+    severity: advisory
+    suggested_fix: Confirm that the business name registration date is an acceptable proxy for the entity's registration,
+      or document this caveat in the config reason. Consider leaving valid_from unmapped if the policy is strict.
+  - id: c-e89e6d09
+    field: valid_to
+    problem: BN_CANCEL_DT is the cancellation date of the business name registration, not the end of the entity's
+      own registration or status. The same caveat as valid_from applies.
+    severity: advisory
+    suggested_fix: Document that valid_to refers to the business name registration ending, or leave it unmapped
+      under the strict reading of rule 10.
+  - id: c-beb9f3ab
+    field: observation.licence
+    problem: The config has no licence entry for the envelope, and the ontology requires one. The config does not
+      show whether the dataset's licence was read from metadata.
+    severity: advisory
+    suggested_fix: Add the licence from the dataset metadata, or record 'unknown' and flag it as a finding.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T01:30:56+00:00'
