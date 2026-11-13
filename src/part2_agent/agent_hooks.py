@@ -507,7 +507,7 @@ Give each problem a severity. BLOCKING: the mapping states something the source 
 field, a column that does not mean what the field means, a value mapped to a meaning the source does not state). ADVISORY:
 everything else (a caveat, a nuance, incompleteness, something that could be richer or parsed further, a missing optional
 field, how the envelope looks). When unsure, choose advisory: a blocking issue removes the field. An issue is blocking only
-when the mapping states something the source does not support. A mapping that follows a written mapping rule below is NOT
+when the mapping states something the source does not support. A status or registration date of a person or role holder mapped to the entity (rule 20) is BLOCKING. A mapping that follows a written mapping rule below is NOT
 blocking because of a caveat about some of its values: report such a caveat as advisory.
 
 The agent was given the mapping rules below and must follow them. Review the mapping against the same rules.

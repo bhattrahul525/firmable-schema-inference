@@ -1,29 +1,29 @@
 source_id,dataset_id,field,source_column,level,evidence,field_confidence,example_1,example_2,example_3,wrong
-bench_fin2s_01,datagovau:asic-smsf,entity.legal_name,SMSF_NAME,W,held_out,0.7,RIMAL PRASAD -> RIMAL PRASAD,Xin Li -> Xin Li,Hao Yang -> Hao Yang,
-bench_fin2s_01,datagovau:asic-smsf,entity.abn,SMSF_PERSON_ABN,W,held_out,0.85,26487720933 -> 26487720933,84616150252 -> 84616150252,31876470368 -> 31876470368,
-bench_fin2s_01,datagovau:asic-smsf,entity.status,SMSF_STATUS,P,held_out,0.9,Registered -> active,,,
-bench_fin2s_01,datagovau:asic-smsf,entity.date_registered,SMSF_REG_DT,W,held_out,0.9,11/02/2016 -> 2016-02-11,12/03/2013 -> 2013-03-12,08/03/2013 -> 2013-03-08,
-bench_fin2s_01,datagovau:asic-smsf,address.locality,SMSF_LOCALITY,W,held_out,0.9,Aspley -> Aspley,Hurstville -> Hurstville,Kellyville -> Kellyville,
-bench_fin2s_01,datagovau:asic-smsf,address.postcode,SMSF_POST_CODE,W,held_out,0.9,4034 -> 4034,2220 -> 2220,2155 -> 2155,
-bench_fin2s_01,datagovau:asic-smsf,address.state,SMSF_STATE,W,held_out,0.9,QLD -> QLD,NSW -> NSW,VIC -> VIC,
-bench_fin2s_01,datagovau:asic-smsf,valid_from,SMSF_REG_DT,W,,,11/02/2016 -> 2016-02-11,12/03/2013 -> 2013-03-12,08/03/2013 -> 2013-03-08,
-bench_fin2s_02,sa:sacommunitydirectory,entity.legal_name,Org_name,W,held_out,0.6,RSL Moonta Sub Branch -> RSL Moonta Sub Branch,Table Tennis SA Inc. -> Table Tennis SA Inc.,Monash Tennis Club -> Monash Tennis Club,
-bench_fin2s_02,sa:sacommunitydirectory,entity.abn,Organisati_ABN,P,held_out,0.9,87122159712 -> 87122159712,16 944 372 531 -> 16944372531,95234142798 -> 95234142798,
-bench_fin2s_02,sa:sacommunitydirectory,entity.website,Website_1,W,held_out,0.8,rslsa.org.au/stores/moonta-rsl -> rslsa.org.au/stores/moonta-rsl,www.tabletennissa.org.au -> www.tabletennissa.org.au,www.waikeriegolf.com.au -> www.waikeriegolf.com.au,
-bench_fin2s_02,sa:sacommunitydirectory,address.locality,Suburb,W,held_out,0.85,Moonta -> Moonta,Adelaide -> Adelaide,Monash -> Monash,
-bench_fin2s_02,sa:sacommunitydirectory,address.state,State,W,held_out,0.85,South Australia -> SA,Victoria -> VIC,,
-bench_fin2s_02,sa:sacommunitydirectory,address.postcode,Postal_Code,W,held_out,0.85,5558 -> 5558,5342 -> 5342,5322 -> 5322,
+bench_fin2s_01,datagovau:asic-smsf,entity.legal_name,SMSF_NAME,W,held_out,0.7,RIMAL PRASAD -> RIMAL PRASAD,Xin Li -> Xin Li,Hao Yang -> Hao Yang,N
+bench_fin2s_01,datagovau:asic-smsf,entity.abn,SMSF_PERSON_ABN,W,held_out,0.85,26487720933 -> 26487720933,84616150252 -> 84616150252,31876470368 -> 31876470368,N
+bench_fin2s_01,datagovau:asic-smsf,entity.status,SMSF_STATUS,P,held_out,0.9,Registered -> active,,,Y
+bench_fin2s_01,datagovau:asic-smsf,entity.date_registered,SMSF_REG_DT,W,held_out,0.9,11/02/2016 -> 2016-02-11,12/03/2013 -> 2013-03-12,08/03/2013 -> 2013-03-08,Y
+bench_fin2s_01,datagovau:asic-smsf,address.locality,SMSF_LOCALITY,W,held_out,0.9,Aspley -> Aspley,Hurstville -> Hurstville,Kellyville -> Kellyville,N
+bench_fin2s_01,datagovau:asic-smsf,address.postcode,SMSF_POST_CODE,W,held_out,0.9,4034 -> 4034,2220 -> 2220,2155 -> 2155,N
+bench_fin2s_01,datagovau:asic-smsf,address.state,SMSF_STATE,W,held_out,0.9,QLD -> QLD,NSW -> NSW,VIC -> VIC,N
+bench_fin2s_01,datagovau:asic-smsf,valid_from,SMSF_REG_DT,W,,,11/02/2016 -> 2016-02-11,12/03/2013 -> 2013-03-12,08/03/2013 -> 2013-03-08,Y
+bench_fin2s_02,sa:sacommunitydirectory,entity.legal_name,Org_name,W,held_out,0.6,RSL Moonta Sub Branch -> RSL Moonta Sub Branch,Table Tennis SA Inc. -> Table Tennis SA Inc.,Monash Tennis Club -> Monash Tennis Club,N
+bench_fin2s_02,sa:sacommunitydirectory,entity.abn,Organisati_ABN,P,held_out,0.9,87122159712 -> 87122159712,16 944 372 531 -> 16944372531,95234142798 -> 95234142798,N
+bench_fin2s_02,sa:sacommunitydirectory,entity.website,Website_1,W,held_out,0.8,rslsa.org.au/stores/moonta-rsl -> rslsa.org.au/stores/moonta-rsl,www.tabletennissa.org.au -> www.tabletennissa.org.au,www.waikeriegolf.com.au -> www.waikeriegolf.com.au,N
+bench_fin2s_02,sa:sacommunitydirectory,address.locality,Suburb,W,held_out,0.85,Moonta -> Moonta,Adelaide -> Adelaide,Monash -> Monash,N
+bench_fin2s_02,sa:sacommunitydirectory,address.state,State,W,held_out,0.85,South Australia -> SA,Victoria -> VIC,,N
+bench_fin2s_02,sa:sacommunitydirectory,address.postcode,Postal_Code,W,held_out,0.85,5558 -> 5558,5342 -> 5342,5322 -> 5322,N
 bench_fin2s_03,qld:queensland-government-arrangements-directory-supplier-procurement-arrangements,entity.abn,Suppliers,P,held_out,0.6,"Data#3 - ABN 31010545267, 
 Digital Sense Hosting P -> 31010545267","Ciena Communications Inc - ABN 11934388437, 
 D-Lin -> 11934388437","Name: Abbott, 
 ABN: 95000180389, 
-Phone: 1800 839  -> 95000180389",
-bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,entity.legal_name,Supplier name,W,unverified,0.5,(training) Robert Walters Pty LTD -> Robert Walters Pty LTD,(training) Kingston Human Capital Pty Ltd -> Kingston Human Capital Pty Ltd,(training) Brooke Institute Pty Ltd -> Brooke Institute Pty Ltd,
-bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,entity.abn,Supplier ABN,W,unverified,0.5,(training) 18 079 521 618 -> 18079521618,(training) 15 162 677 830 -> 15162677830,(training) 11 162 612 553 -> 11162612553,
-bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,address.full,Supplier address,W,unverified,0.5,"(training) Level 23, 376-390 Collins Street VIC 3000 -> Level 23, 376-390 Collins Street VIC 3000","(training) Level 17 307 Queen Street, Brisbane QLD 4002 -> Level 17 307 Queen Street, Brisbane QLD 4002","(training) Level 1, 187 Wakefield Street, Adelaide SA 5000 -> Level 1, 187 Wakefield Street, Adelaide SA 5000",
-bench_fin2s_06,datagovau:asic-banned-disqualified-org,entity.acn,BD_ORG_ACN,W,training,0.8,(training) 081402379 -> 081402379,(training) 008876033 -> 008876033,(training) 011021640 -> 011021640,
-bench_fin2s_06,datagovau:asic-banned-disqualified-org,entity.legal_name,BD_ORG_NAME,W,training,0.7,(training) AUSTRALIAN BUSINESS INSURANCE ADVISERS (ABIA) PTY  -> AUSTRALIAN BUSINESS INSURANCE ADVISERS (ABIA) PTY LTD,(training) BLACKBURNE & DIXON PTY LTD -> BLACKBURNE & DIXON PTY LTD,(training) BRANNELLY FINANCIAL PTY LTD -> BRANNELLY FINANCIAL PTY LTD,
-bench_fin2s_07,qld:temporary-emissions-licences-tel,entity.legal_name,TEL Holder(s),W,held_out,0.7,ABERDARE COLLIERIES PROPRIETARY LIMITED -> ABERDARE COLLIERIES PROPRIETARY LIMITED,Boral Resources (Qld) Pty. Limited -> Boral Resources (Qld) Pty. Limited,HOLCIM (AUSTRALIA) PTY LTD -> HOLCIM (AUSTRALIA) PTY LTD,
-bench_fin2s_07,qld:temporary-emissions-licences-tel,valid_from,Commenced Date,W,,,2025-02-04 00:00:00 -> 2025-02-04,2025-02-28 00:00:00 -> 2025-02-28,2025-03-05 00:00:00 -> 2025-03-05,
-bench_fin2s_07,qld:temporary-emissions-licences-tel,valid_to,End Date,W,,,2025-02-18 00:00:00 -> 2025-02-18,2025-03-14 00:00:00 -> 2025-03-14,2025-06-06 00:00:00 -> 2025-06-06,
-bench_fin2s_08,sa:ict-contract-usage-guidelines,entity.trading_name,Contract,P,held_out,0.5,Hewlett-Packard -> Hewlett-Packard,Data#3 -> Data#3,Microsoft -> Microsoft,
+Phone: 1800 839  -> 95000180389",N
+bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,entity.legal_name,Supplier name,W,unverified,0.5,(training) Robert Walters Pty LTD -> Robert Walters Pty LTD,(training) Kingston Human Capital Pty Ltd -> Kingston Human Capital Pty Ltd,(training) Brooke Institute Pty Ltd -> Brooke Institute Pty Ltd,N
+bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,entity.abn,Supplier ABN,W,unverified,0.5,(training) 18 079 521 618 -> 18079521618,(training) 15 162 677 830 -> 15162677830,(training) 11 162 612 553 -> 11162612553,N
+bench_fin2s_05,qld:consultancies-and-contractors-office-of-the-information-commissioner,address.full,Supplier address,W,unverified,0.5,"(training) Level 23, 376-390 Collins Street VIC 3000 -> Level 23, 376-390 Collins Street VIC 3000","(training) Level 17 307 Queen Street, Brisbane QLD 4002 -> Level 17 307 Queen Street, Brisbane QLD 4002","(training) Level 1, 187 Wakefield Street, Adelaide SA 5000 -> Level 1, 187 Wakefield Street, Adelaide SA 5000",N
+bench_fin2s_06,datagovau:asic-banned-disqualified-org,entity.acn,BD_ORG_ACN,W,training,0.8,(training) 081402379 -> 081402379,(training) 008876033 -> 008876033,(training) 011021640 -> 011021640,N
+bench_fin2s_06,datagovau:asic-banned-disqualified-org,entity.legal_name,BD_ORG_NAME,W,training,0.7,(training) AUSTRALIAN BUSINESS INSURANCE ADVISERS (ABIA) PTY  -> AUSTRALIAN BUSINESS INSURANCE ADVISERS (ABIA) PTY LTD,(training) BLACKBURNE & DIXON PTY LTD -> BLACKBURNE & DIXON PTY LTD,(training) BRANNELLY FINANCIAL PTY LTD -> BRANNELLY FINANCIAL PTY LTD,N
+bench_fin2s_07,qld:temporary-emissions-licences-tel,entity.legal_name,TEL Holder(s),W,held_out,0.7,ABERDARE COLLIERIES PROPRIETARY LIMITED -> ABERDARE COLLIERIES PROPRIETARY LIMITED,Boral Resources (Qld) Pty. Limited -> Boral Resources (Qld) Pty. Limited,HOLCIM (AUSTRALIA) PTY LTD -> HOLCIM (AUSTRALIA) PTY LTD,N
+bench_fin2s_07,qld:temporary-emissions-licences-tel,valid_from,Commenced Date,W,,,2025-02-04 00:00:00 -> 2025-02-04,2025-02-28 00:00:00 -> 2025-02-28,2025-03-05 00:00:00 -> 2025-03-05,N
+bench_fin2s_07,qld:temporary-emissions-licences-tel,valid_to,End Date,W,,,2025-02-18 00:00:00 -> 2025-02-18,2025-03-14 00:00:00 -> 2025-03-14,2025-06-06 00:00:00 -> 2025-06-06,N
+bench_fin2s_08,sa:ict-contract-usage-guidelines,entity.trading_name,Contract,P,held_out,0.5,Hewlett-Packard -> Hewlett-Packard,Data#3 -> Data#3,Microsoft -> Microsoft,N
