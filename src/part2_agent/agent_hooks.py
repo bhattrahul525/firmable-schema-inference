@@ -19,6 +19,8 @@ EVIDENCE STATES (step 3b). A mapped field is judged on the strongest evidence th
               the column has values somewhere but not one of them ever parsed.
 The state, the whole-file counts (populated, judged, ok, rejected) and training examples go into the config, the packet,
 the review sheet and the benchmark table. The same states are computed for a per-row observed_at / valid_from / valid_to.
+  asserted    (step 4a) a `constant` field: the value is stated by the config, not read from the source, so its parse rate (100%
+              by construction) is not evidence. field_confidence is capped at ASSERTED_CAP (0.5), under Part 4's 0.6 line.
 """
 
 from __future__ import annotations
@@ -32,9 +34,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src import llm
-from src.engine.config import (CONFIG_DIR, ENGINE_VERSION, approval_path, config_path, load_ontology, normalise_transforms,
+from src.engine.config import (CONFIG_DIR, ENGINE_VERSION, P_TRANSFORMS, approval_path, config_path, load_ontology, normalise_transforms,
                                write_config)
-from src.engine.extract import (FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms, make_record_id,
+from src.engine.extract import (FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms, make_record_id, when_met,
                                 run_rows)
 from src.engine.readers import ReaderError, iter_table
 from src.part2_agent.agent_prompt import MAPPING_RULES
@@ -47,6 +49,7 @@ from src.part2_agent.validate import DUP_ID_LIMIT, MIN_JUDGED, PARSE_FLOOR, vali
 
 AGENT_VERSION = "2.1.0"
 CRITIQUE_ROWS = 10
+ASSERTED_CAP = 0.5         # evidence "asserted": a `constant`, stated by the config (DECISIONS.md, step 4a)
 UNVERIFIED_CAP = 0.5       # evidence "unverified": fewer than MIN_JUDGED judged values in the whole file
 TRAINING_CAP = 0.8         # evidence "training": judged mostly on rows the model saw (sparse on held-out)
 EXAMPLES_PER_FIELD = 3     # training raw-to-value examples carried for sparse fields (packet, review sheet)
@@ -93,6 +96,8 @@ def shape_errors(cfg) -> list[str]:
                                                          and all(isinstance(c, str) for c in f["source"]))):
                 errs.append(f"fields[{i}] ({f['canonical']}): `source` must be a column name or a list of column names")
             transforms_ok(f.get("transforms", []), f"fields[{i}] ({f['canonical']})")
+            if "when" in f and not (isinstance(f["when"], dict) and isinstance(f["when"].get("column"), str)):
+                errs.append(f"fields[{i}] ({f['canonical']}): `when` must be an object with a string `column`")
     for key, need in (("unmapped", "reason"), ("needs_transform", "why")):
         v = cfg.get(key, [])
         if not isinstance(v, list) or not all(isinstance(u, dict) and isinstance(u.get("source"), str) and need in u for u in v):
@@ -192,15 +197,15 @@ def scan_file(table, cfg: dict, check=None) -> dict:
 _TRAINING_STATS: dict = {}
 
 
-def _evidence_specs(cfg: dict) -> list[tuple[str, object, list, str | None]]:
-    """(key, source, transforms, canonical) for everything evidence states are computed for: every mapped field, and a
+def _evidence_specs(cfg: dict) -> list[tuple[str, object, list, str | None, dict | None]]:
+    """(key, source, transforms, canonical, when) for everything evidence states are computed for: every mapped field, and a
     per-row observed_at / valid_from / valid_to (their key is the setting's own name; it cannot collide with a field key,
     which always contains '<-')."""
-    specs = [(field_key(f), f["source"], f["transforms"], f["canonical"]) for f in cfg.get("fields", [])]
+    specs = [(field_key(f), f["source"], f["transforms"], f["canonical"], f.get("when")) for f in cfg.get("fields", [])]
     for key in ("observed_at", "valid_from", "valid_to"):
         spec = cfg.get(key)
         if isinstance(spec, dict) and spec.get("source"):
-            specs.append((key, spec["source"], normalise_transforms(spec.get("transforms")), None))
+            specs.append((key, spec["source"], normalise_transforms(spec.get("transforms")), None, None))
     return specs
 
 
@@ -211,18 +216,22 @@ def training_stats(table, reader: dict, specs: list, check=None) -> dict:
     Cached per (file, reader, specs), so repeated validate calls on one config scan once."""
     st = table.path.stat()
     cache_key = (str(table.path), st.st_size, st.st_mtime_ns, json.dumps(reader, sort_keys=True),
-                 json.dumps([(k, s, t) for k, s, t, _ in specs], sort_keys=True, default=str))
+                 json.dumps([(k, s, t, w) for k, s, t, _, w in specs], sort_keys=True, default=str))
     if cache_key in _TRAINING_STATS:
         return _TRAINING_STATS[cache_key]
     ontology = load_ontology()
-    accs = {key: (FieldStats(), []) for key, _, _, _ in specs}
+    accs = {key: (FieldStats(), []) for key, *_ in specs}
     for row in training_rows(table, reader, check):
-        for key, source, transforms, canonical in specs:
+        for key, source, transforms, canonical, when in specs:
             stats, examples = accs[key]
             stats.rows += 1
             raw = _value_of(source, row)
             if _is_blank(raw):
                 stats.blank += 1
+                continue
+            if not when_met(when, row):   # same rule as the extractor: the scan must not judge rows the field excludes
+                stats.skip += 1
+                stats.skip_reasons["when_not_met"] += 1
                 continue
             values, events = apply_transforms(raw, transforms)
             for kind, reason, _item in events:
@@ -250,12 +259,12 @@ def evidence_states(cfg: dict, table, report: dict, check=None) -> tuple[dict, l
     """The evidence state per key (see the module docstring) plus the hard failures the states add. Training rows are
     only scanned for keys the held-out rows cannot judge (fewer than MIN_JUDGED judged values)."""
     specs = _evidence_specs(cfg)
-    held = {key: report["stats"].get(key) or {} for key, _, _, _ in specs}
+    held = {key: report["stats"].get(key) or {} for key, *_ in specs}
     judged = lambda s: (s.get("ok") or 0) + (s.get("reject") or 0)
     sparse = [sp for sp in specs if judged(held[sp[0]]) < MIN_JUDGED]
     trained = training_stats(table, cfg["reader"], sparse, check) if sparse else {}
     states, failures = {}, []
-    for key, _, _, _ in specs:
+    for key, *_ in specs:
         s = held[key]
         if judged(s) >= MIN_JUDGED:
             states[key] = {"evidence": "held_out"}
@@ -354,8 +363,9 @@ def identifier_warnings(cfg: dict, stats: dict) -> list[dict]:
             out.append({"id": f"identifier_checksum_{f['canonical'].split('.')[-1]}", "text": (
                 f"{fails} of {judged} judged values mapped to {f['canonical']} ({fails / judged:.0%}) fail the checksum. A genuine "
                 f"column rarely fails that often, so it may mix real identifiers with look-alikes (internal ids of the same length). "
-                f"About 1 in {one_in} look-alikes passes the checksum by chance, so some values read as valid may not be. Use a "
-                f"type column or a stricter pattern to keep only the real identifiers, or say why the column is kept as it is.")})
+                f"About 1 in {one_in} look-alikes passes the checksum by chance, so some values read as valid may not be. If another "
+                f"column says which rows hold this identifier, add `when` so only those rows are mapped (or use a stricter pattern); "
+                f"otherwise say why the column is kept as it is.")})
     return out
 
 
@@ -575,7 +585,8 @@ def critique_config(cfg_in, source_id: str, work_dir: Path, model: str | None, c
                                           "column this config maps") for row in extra_rows]
     summary = {"reader": cfg["reader"], "record_id": cfg["record_id"], "observed_at": cfg["observed_at"],
                "valid_from": cfg.get("valid_from"), "valid_to": cfg.get("valid_to"),
-               "fields": [{"key": field_key(f), "transforms": f["transforms"], "reason": f.get("reason", "")} for f in cfg["fields"]],
+               "fields": [{"key": field_key(f), "transforms": f["transforms"], "reason": f.get("reason", ""),
+                          **({"when": f["when"]} if f.get("when") else {})} for f in cfg["fields"]],
                "unmapped": cfg["unmapped"], "needs_transform": cfg.get("needs_transform", [])}
     rows_note = ("training rows: this file was too small for a held-out split" if small_file else "held-out rows")
     prompt = ("Review this mapping.\n\nCONFIG:\n" + json.dumps(summary, default=str) + "\n\nEXAMPLES (" + rows_note +
@@ -602,12 +613,14 @@ def finalise_config(cfg_in: dict, source_id: str, work_dir: Path, model: str | N
         s = report["stats"].get(field_key(f), {})
         rate = s.get("parse_rate")
         ev = (report.get("evidence") or {}).get(field_key(f)) or {}
-        state = ev.get("evidence")
+        state = "asserted" if any(t["name"] == "constant" for t in f["transforms"]) else ev.get("evidence")
         if state is None:   # no evidence computed (a structural failure, or an older report): judge from the held-out stats
             judged = (s.get("ok") or 0) + (s.get("reject") or 0)
             state = "held_out" if judged >= MIN_JUDGED and rate is not None else "unverified"
         conf = f.get("mapping_confidence", 0.5)
-        if state == "held_out":
+        if state == "asserted":
+            conf = min(conf, ASSERTED_CAP)
+        elif state == "held_out":
             conf = min(conf, rate if rate is not None else 1.0)
         elif state == "training":
             t_rate = ev.get("parse_rate")
@@ -616,7 +629,7 @@ def finalise_config(cfg_in: dict, source_id: str, work_dir: Path, model: str | N
             conf = min(conf, UNVERIFIED_CAP)
         f["field_confidence"] = round(conf, 3)
         f["evidence"] = state
-        f["transform_level"] = "W"   # only whitelisted transforms exist until build step 4 adds the P and G levels
+        f["transform_level"] = "P" if f.get("when") or any(t["name"] in P_TRANSFORMS for t in f["transforms"]) else "W"
         f["validation"] = {"held_out_rows": s.get("rows"), "blank": s.get("blank"), "ok": s.get("ok"),
                            "skipped_not_applicable": s.get("skip"), "rejected": s.get("reject"), "parse_rate": rate,
                            "evidence": state, "whole_file": ev.get("whole_file")}
@@ -632,7 +645,7 @@ def finalise_config(cfg_in: dict, source_id: str, work_dir: Path, model: str | N
 
 def _t(f: dict) -> str:
     parts = [t["name"] + (f"({t['arg']})" if t["arg"] not in (None, "") else "") for t in f["transforms"]]
-    return " → ".join(parts) or "none"
+    return (" → ".join(parts) or "none") + (f" [when {json.dumps(f['when'])}]" if f.get("when") else "")
 
 
 def _envelope_row(cfg: dict, report: dict | None, key: str) -> str | None:
@@ -727,6 +740,8 @@ def _packet_markdown(result, cfg: dict | None, report: dict | None, metadata: di
         L.append("\nThe model's reasons per field (its words, not verified):\n")
         L += [f"{i}. `{f['canonical']}` ← `{_src(f)}`: {f.get('reason', '')}" for i, f in enumerate(cfg["fields"], 1)]
         sparse = [f for f in cfg["fields"] if f.get("evidence") in ("training", "unverified")]
+        L += [f"\n`{field_key(f)}` is **asserted**: a fixed value stated by the config, not read from the source (L3, confidence "
+              f"capped at {ASSERTED_CAP}). Basis given: {f.get('reason', '')}" for f in cfg["fields"] if f.get("evidence") == "asserted"]
         if sparse or (report or {}).get("no_held_out_split"):
             L.append("\n## Fields without enough held-out evidence\n")
             if (report or {}).get("no_held_out_split"):

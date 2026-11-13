@@ -486,10 +486,12 @@ def _norm_transforms(ts) -> list:
 
 
 def field_def(f) -> str:
-    """What DEFINES a mapped field: source, canonical field, transforms, group. Confidence and reason may change freely."""
+    """What DEFINES a mapped field: source, canonical field, transforms, group, `when` (a condition decides which rows the field
+    maps, so changing one is a change of mapping). Confidence and reason may change freely."""
     if not isinstance(f, dict):
         return repr(f)
-    return json.dumps([f.get("source"), f.get("canonical"), _norm_transforms(f.get("transforms")), f.get("group") or "main"],
+    return json.dumps([f.get("source"), f.get("canonical"), _norm_transforms(f.get("transforms")), f.get("group") or "main",
+                       f.get("when")],
                       sort_keys=True, default=str)
 
 

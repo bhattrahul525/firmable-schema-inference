@@ -1,0 +1,268 @@
+what_it_is: ASIC register of Australian credit licensees (credit licence holders), snapshot export.
+one_row_is: one credit licence held by a licensee entity, identified by its credit licence number.
+reader:
+  format: tsv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - CRED_LIC_NUM
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: CRED_LIC_START_DT
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: CRED_LIC_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Register of credit licence holders; the row subject is the licensee holding the licence (rule 5b), but
+    the header does not itself label it as the licensee name, so confidence is capped at 0.7.
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_NAME
+  canonical: entity.entity_type
+  transforms:
+  - name: entity_type_from_suffix
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: No explicit entity type column; suffix rule on the licensee name.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Column mixes 11-digit ABNs and 9-digit ACNs; the split is by digit length, with checksum validation via
+    the abn transform.
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 257
+    skipped_not_applicable: 43
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: 'Split by digit length: 9-digit values are ACNs, checksum validated via the acn transform.'
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 31
+    skipped_not_applicable: 269
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_BN
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Business name column, a name traded under; not the registered name.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 195
+    ok: 105
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Locality column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_PCODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: CRED_LIC_STATUS
+  reason: Credit licence status (APPR/SUSP) describes the licence, not the entity's own status; no licence-status
+    field in the ontology subset. Left out to avoid a wrong entity.status claim.
+- source: REGISTER_NAME
+  reason: Constant register label, carries no claim about the entity.
+- source: CRED_LIC_AFSL_NUM
+  reason: AFSL number duplicates the licence number in most rows; no canonical field for it.
+- source: CRED_LIC_END_DT
+  reason: Empty in all rows.
+- source: CRED_LIC_STATUS_HISTORY
+  reason: Free-text status history; no canonical field.
+- source: CRED_LIC_LAT
+  reason: Geocode; no canonical field.
+- source: CRED_LIC_LNG
+  reason: Geocode; no canonical field.
+- source: CRED_LIC_EDRS
+  reason: External dispute resolution scheme; no canonical field.
+- source: CRED_LIC_AUTHORISATIONS
+  reason: Licence authorisation text; no canonical field.
+needs_transform: []
+source_reliability:
+  identity: 0.85
+  address: 0.8
+  classification: 0.6
+  contact: 0.5
+source_reliability_basis: Official ASIC regulator register of credit licence holders; identity and address are regulator-held.
+  Classification is limited (no explicit entity type).
+meaning_check_responses: []
+source_id: asic_credit_licensee
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1893
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-48681020
+    field: entity.status<-CRED_LIC_STATUS
+    problem: The source column CRED_LIC_STATUS holds the status of the credit licence (APPR = approved, SUSP = suspended),
+      but the mapping writes it to entity.status as the status of the entity. Rows such as FIRST MORTGAGE MANAGED
+      INVESTMENTS LIMITED therefore get the claim that the company is 'active', which the source does not state.
+    severity: blocking
+    suggested_fix: Remove the entity.status mapping, or record the licence status under a field that means licence
+      status if the ontology has one. If it is kept, the reason must say it is licence status and not entity status.
+  - id: c-16a4ae52
+    field: entity.abn / entity.acn
+    problem: CRED_LIC_ABN_ACN mixes 11-digit ABNs and 9-digit ACNs, and both fields read the same column. The config
+      relies on the abn and acn transforms to split them by length, which is acceptable, but no mapping_confidence
+      or note records that the split is by length alone.
+    severity: advisory
+    suggested_fix: Add a mapping_confidence and a reason that states the split is by digit length and checksum.
+      No `when` clause is needed unless another column says which rows hold an ABN or ACN.
+  - id: c-6189cf50
+    field: entity.legal_name<-CRED_LIC_NAME
+    problem: The name is mapped to legal_name under rule 5b, which needs the source to label the name as the licensee
+      or holder. The header CRED_LIC_NAME does not say so by itself, and the config has no mapping_confidence. Under
+      5b that means confidence should be 0.7 or lower unless the register's label is cited.
+    severity: advisory
+    suggested_fix: Add a mapping_confidence for the legal_name mapping. Cite the register's own wording (for example,
+      the licensee column definition) to support the 5b mapping, or lower the confidence to 0.7 or below.
+  - id: c-1750d38f
+    field: entity.status<-CRED_LIC_STATUS
+    problem: The map_values table covers only APPR and SUSP. The profile shows only APPR, so other licence status
+      codes, such as cancelled or expired, are unmapped and will be handled silently.
+    severity: advisory
+    suggested_fix: Confirm the full set of CRED_LIC_STATUS values in the profile and map each one, or leave unseen
+      values unmapped with an explicit note.
+  - id: c-1faa76aa
+    field: record_id
+    problem: record_id uses CRED_LIC_NUM but the config does not say it was checked for uniqueness (check_unique)
+      or what happens if it is not unique.
+    severity: advisory
+    suggested_fix: Record a check_unique result for CRED_LIC_NUM, or use hash_row if uniqueness cannot be confirmed.
+  - id: c-64315a29
+    field: config (source reliability and confidence)
+    problem: The config has no mapping_confidence per field and no source_reliability with its basis, although rules
+      14 and 16 require them.
+    severity: advisory
+    suggested_fix: Add mapping_confidence for each field and a source_reliability value per claim kind, with source_reliability_basis
+      explaining the judgement.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e6626bda1af5
+  generated_at: '2026-11-13T00:28:57+00:00'

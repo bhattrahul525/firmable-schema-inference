@@ -1,0 +1,211 @@
+what_it_is: Queensland Health (System Procurement) register of current contracts valued over $10,000 for the 2023-24
+  period, one row per contract with supplier details.
+one_row_is: one contract disclosed by a QLD Health agency, with its supplier(s)
+reader:
+  format: csv
+  encoding: cp1252
+  header_rows: 1
+  skip_rows: 0
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Column is the supplier name on the contract; supplier is the contracted entity. Only mapped where a single
+    supplier is listed (see when).
+  when:
+    column: Supplier ABN
+    matches: ^\s*\d{2} ?\d{3} ?\d{3} ?\d{3}\s*$
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 105
+    blank: 0
+    ok: 96
+    skipped_not_applicable: 9
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Supplier ABN
+  canonical: entity.abn
+  transforms:
+  - name: regex_replace
+    arg:
+      pattern: ' '
+      repl: ''
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Supplier ABN column; spaces removed and checksum validated. Multi-supplier cells are skipped by the transform.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 105
+    blank: 0
+    ok: 95
+    skipped_not_applicable: 9
+    rejected: 1
+    parse_rate: 0.9896
+    evidence: held_out
+    whole_file: null
+- source: Supplier address
+  canonical: address.full
+  transforms:
+  - name: regex_extract
+    arg: ^(.*[A-Za-z].*)$
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Supplier address for the supplier; only single-supplier rows; placeholder values without letters (e.g.
+    '0') are skipped.
+  when:
+    column: Supplier ABN
+    matches: ^\s*\d{2} ?\d{3} ?\d{3} ?\d{3}\s*$
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 105
+    blank: 48
+    ok: 40
+    skipped_not_applicable: 17
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Agency (Dept or Stat Body)
+  reason: government buyer, not the supplier entity
+- source: Agency address
+  reason: address of the government buyer, not the supplier
+- source: _id
+  reason: blank in the source
+- source: Contract description/name
+  reason: contract description; no ontology field
+- source: Award contract date
+  reason: date of the contract event, not when the entity's status began
+- source: Contract value
+  reason: contract value; no ontology field
+- source: Variation to contract (Yes/No)
+  reason: contract attribute; no ontology field
+- source: Specific confidentiality provision used
+  reason: contract attribute
+- source: Procurement method
+  reason: contract attribute
+- source: Justification (if limited tender)
+  reason: contract attribute
+- source: Form of contract
+  reason: contract attribute
+- source: Number of offers sought
+  reason: contract attribute
+- source: Evaluation criteria and weightings
+  reason: contract attribute
+- source: Deliverables
+  reason: contract attribute
+- source: Contract milestones
+  reason: contract attribute
+- source: Contract performance management
+  reason: contract attribute
+- source: Contract reference number
+  reason: contract identifier, not unique enough to be record id
+- source: Contract category group
+  reason: contract category; no ontology field
+- source: Parent contract number/SOA
+  reason: contract identifier
+- source: Commence date
+  reason: contract date, not entity registration
+- source: Finish date
+  reason: contract date, not entity status
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.6
+  classification: 0.5
+  contact: 0.3
+source_reliability_basis: Government procurement disclosure register; names and ABNs are supplier-supplied with
+  some formatting errors and a checksum failure, so moderate trust.
+meaning_check_responses: []
+source_id: qld_health_contracts_2023_24
+config_version: 1
+validation_summary:
+  held_out_rows: 105
+  observations_in_held_out: 327
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.legal_name / entity.abn / address.full (multi-supplier rows)
+    reason: 'Cells listing several suppliers are deliberately not mapped: supplier and ABN lists use mixed separators
+      ('', '' and ''; '') so positional alignment is unreliable. These rows (about 6%) yield no supplier observations.
+      Advisory critique suggested split; not applied to avoid misaligned suppliers.'
+  critique_issues:
+  - id: c-a4e9753e
+    field: address.full<-Supplier address
+    problem: For the ADITS NQ PTY LTD row the Supplier address cell is the placeholder "0", and the mapping emits
+      it as address.full = "0". The row's Supplier ABN is a single 11-digit ABN, so the `when` clause passes and
+      the placeholder is mapped as a real address. The source does not support an address here.
+    severity: blocking
+    suggested_fix: Add a rule that rejects non-address placeholder values such as "0" (for example a regex requiring
+      at least one letter, or a value exclusion list), or treat "0" as null, and re-check the rows where this column
+      holds placeholders.
+  - id: c-a26924a6
+    field: entity.abn<-Supplier ABN
+    problem: The multi-supplier rows (for example the Cleanaway/Ace Waste row and the ALPENGLOW row) produce no
+      entity observations at all. Rule 12 says aligned columns should be split on ';' within one group so items
+      line up by position. The config instead skips these rows entirely, so their suppliers are lost.
+    severity: advisory
+    suggested_fix: Add split on ';' to Supplier name, Supplier ABN and Supplier address in a shared group, so each
+      supplier is emitted as its own entity observation, with the `when` restriction removed or applied per item.
+  - id: c-edb78fe3
+    field: address.state
+    problem: The Supplier address cells often contain a state (for example "Newcastle West, NSW, 2302" or "Chapel
+      Hill QLD 4069"), but the config maps only address.full. The state and postcode are not parsed out, though
+      they are present in the source text.
+    severity: advisory
+    suggested_fix: Consider a parse step that extracts the state and postcode from the Supplier address into address.state
+      and address.postcode, with a note that this is L1 parsing and that the field_confidence should reflect it.
+  - id: c-872478a0
+    field: entity.legal_name<-Supplier name
+    problem: Multi-supplier cells (for example the Cleanaway/Ace Waste and ALPENGLOW rows) produce no entity observations
+      at all. Rule 12 asks for split on every aligned column in one group so that items line up by position. The
+      config skips these rows instead, so the listed suppliers and their ABNs are lost even though the source holds
+      them.
+    severity: advisory
+    suggested_fix: Add split (';') to Supplier name, Supplier ABN and Supplier address in one shared group, with
+      the when condition applied per item, so each supplier in a multi-supplier cell is emitted. Alternatively,
+      record in the config why these rows are deliberately excluded.
+  - id: c-05f767af
+    field: entity.abn<-Supplier ABN
+    problem: The reason says the abn transform skips multi-supplier cells, but the transform is applied to the whole
+      cell after spaces are stripped. The skip is therefore a property of the engine's behaviour, not something
+      the config enforces. The config does not state this clearly, and no when condition guards this field the way
+      it guards the name and address fields.
+    severity: advisory
+    suggested_fix: Add the same single-ABN when condition used on Supplier name to entity.abn<-Supplier ABN, so
+      that the guard is explicit in the config rather than resting on transform behaviour.
+  - id: c-8be2d1b2
+    field: observation envelope
+    problem: The config does not show the envelope fields that are required by the ontology (licence, source_reliability,
+      extractor_version, source_id). The sample output shows observed_at only. The licence in particular has no
+      value in the config, and the source is a government contracts dataset whose licence is not stated here.
+    severity: advisory
+    suggested_fix: Confirm that licence is taken from the CKAN metadata (or recorded as 'unknown' and flagged),
+      and that source_reliability and extractor_version are set and documented, with a basis for the reliability
+      judgement.
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: e6626bda1af5
+  generated_at: '2026-11-13T00:26:26+00:00'

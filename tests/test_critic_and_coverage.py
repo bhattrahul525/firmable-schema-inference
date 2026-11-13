@@ -295,7 +295,7 @@ class TestIdentifierWarning(unittest.TestCase):
         self.assertEqual([x["id"] for x in w], ["identifier_checksum_abn"])
         self.assertIn("10 of 200 judged values", w[0]["text"])
         self.assertIn("About 1 in 89", w[0]["text"])
-        self.assertIn("type column or a stricter pattern", w[0]["text"])
+        self.assertIn("add `when` so only those rows are mapped", w[0]["text"])
 
     def test_at_or_under_two_percent_or_with_too_few_values_there_is_no_warning(self):
         key = "entity.abn<-id"

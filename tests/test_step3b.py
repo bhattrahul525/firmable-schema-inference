@@ -143,7 +143,7 @@ class TestTrainingStatsUsesConfigReader(unittest.TestCase):
         cfg_reader = {"format": "csv", "header_rows": 1, "skip_rows": 1}     # header "A"; two valid ABNs
         t = Table(path=path, reader=stale_reader, headers=["X"], n_rows=3, visible_n=3,
                   held_fp=frozenset(), held_rows=[], cache=None)
-        specs = [("entity.abn<-A", "A", [{"name": "abn", "arg": ""}], "entity.abn")]
+        specs = [("entity.abn<-A", "A", [{"name": "abn", "arg": ""}], "entity.abn", None)]
         stale = agent_hooks.training_stats(t, stale_reader, specs)["entity.abn<-A"]["stats"]
         self.assertEqual(stale["ok"], 0)   # table.reader's own header has no column "A": correct old behaviour
         agent_hooks._TRAINING_STATS.clear()

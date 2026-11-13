@@ -26,7 +26,7 @@ from pathlib import Path
 from src.engine.config import (CLAIM_KIND, config_path, derivation_level, extractor_version,
                                load_approved_config, load_ontology, sha256_of)
 from src.engine.readers import read_rows
-from src.engine.transforms import CATALOGUE, Reject, Skip, clean_whitespace
+from src.engine.transforms import CATALOGUE, Reject, Skip, clean_whitespace, run_regex
 
 RAW_DIR = Path("data/raw/sources")
 OUT_DIR = Path("outputs/observations")
@@ -70,6 +70,22 @@ def make_record_id(cfg: dict, row: dict) -> str:
             return "|".join(parts)
     norm = {k: clean_whitespace(v) for k, v in sorted(row.items(), key=lambda kv: str(kv[0]))}
     return "h:" + hashlib.sha1(json.dumps(norm, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def when_met(when, row) -> bool:
+    """A field's `when` (step 4a): does this row hold? No `when` -> True. Judged on the condition column alone, whitespace-cleaned;
+    `equals` ignores case; `matches` is re.search under the regex timer. A blank cell, a timeout or a bad pattern -> not met."""
+    if not when:
+        return True
+    cell = clean_whitespace(row.get(when["column"]))
+    if not cell:
+        return False
+    if "equals" in when:
+        return cell.lower() in {(clean_whitespace(x) or "").lower() for x in when["equals"]}
+    try:
+        return bool(run_regex(when["matches"], lambda rx: rx.search(cell)))
+    except Reject:
+        return False
 
 
 def _value_of(spec_source, row):
@@ -193,6 +209,10 @@ def run_rows(cfg: dict, rows: list[dict], metadata: dict, *, ingested_at: str | 
             raw = _value_of(f["source"], row)
             if _is_blank(raw):
                 st.blank += 1
+                continue
+            if not when_met(f.get("when"), row):   # not an error and not in the parse rate: the rule does not apply to this row
+                st.skip += 1
+                st.skip_reasons["when_not_met"] += 1
                 continue
             values, events = apply_transforms(raw, f["transforms"])
             for kind, reason, item in events:

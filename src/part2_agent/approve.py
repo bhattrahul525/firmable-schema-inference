@@ -36,11 +36,11 @@ def main() -> None:
 
     print(f"\n{sid}  (config v{cfg['config_version']}). Full detail: configs/{sid}.review.md\n")
     for i, f in enumerate(cfg["fields"], 1):
-        print(f"{i:>2}. {_src(f)[:34]:34s} → {f['canonical']:22s} [{_t(f)[:40]}]  field_conf {f['field_confidence']:.2f}  ({f['proposal_agreement']})")
+        print(f"{i:>2}. {_src(f)[:34]:34s} → {f['canonical']:22s} [{_t(f)[:40]}]  field_conf {f['field_confidence']:.2f}  ({f.get('proposal_agreement') or f.get('evidence', '')})")   # agent configs have no proposal_agreement
     print(f"\n    record id : {cfg['record_id']}\n    observed_at: {cfg['observed_at']}")
     for k in ("valid_from", "valid_to"):
         if cfg.get(k):
-            print(f"    {k:10s}: {cfg[k]['source']} [{', '.join(t['name'] for t in cfg[k]['transforms'])}]")
+            print(f"    {k:10s}: {cfg[k].get('source') or cfg[k].get('from_metadata')} [{', '.join(t['name'] for t in cfg[k].get('transforms') or [])}]")
     print("\nUnmapped:", "; ".join(f"{u['source']}" for u in cfg["unmapped"]) or "none")
     raw = input("\nWhich numbers are WRONG? (e.g. 3,5 — or press Enter if all are right): ").strip()
     wrong_idx = sorted({int(x) for x in raw.replace(" ", "").split(",") if x}) if raw else []
