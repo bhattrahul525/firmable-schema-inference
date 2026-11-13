@@ -1,0 +1,6 @@
+onboarding bench_fin2s_14 (round-2 agent, model claude-sonnet-5-5)
+    download complete: 11,096 bytes
+outcome: could_not_read
+turns=4 tool_calls=4 cost=$0.0343 agent_seconds=4.76 wall_clock_seconds=5.0
+tool sequence: fetch -> fetch -> sniff -> finish
+packet: logs/agent_runs/bench_fin2s_14/outcome.md

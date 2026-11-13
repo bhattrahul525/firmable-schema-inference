@@ -1,103 +1,96 @@
-# Schema inference and agentic ingestion (Firmable take-home)
+# Schema inference and agentic ingestion (Firmable take-home, round 2)
 
-One generic extraction engine, an agent that writes the mapping config for each new source, a link table that
-decides which records are the same business, and 50 transparent company profiles. Written answers are in
-[WRITEUP.md](WRITEUP.md); decisions and their reasons are in [DECISIONS.md](DECISIONS.md); ideas for later are in
-[NEXT.md](NEXT.md); the time log is [TIMELOG.md](TIMELOG.md).
+A tool-using agent onboards a dataset it has never seen (URL, CKAN id or file) into a mapping config. One generic,
+config-driven engine extracts observations from it. A matcher links records that are the same business, using ASIC
+Business Names as bridge evidence, and the links feed profiles. A human approves every config before it runs.
 
-## Run it from a clean checkout (under a minute after install: 24 s measured, plus 1-3 min download; no API key needed)
+Read next: [ARCHITECTURE.md](ARCHITECTURE.md) (design, v2.15) · [docs/write_up.md](docs/write_up.md) (round-2 write-up)
+· [demo/RUNBOOK.md](demo/RUNBOOK.md) (live demo) · [WRITEUP.md](WRITEUP.md) (round-1 write-up) · [DECISIONS.md](DECISIONS.md)
+· [docs/runbook.md](docs/runbook.md) (measured timings) · [TIMELOG.md](TIMELOG.md)
 
-Needs Python 3.10+ and [uv](https://docs.astral.sh/uv/) (or plain `python -m venv`).
+## What it does
+1. **Onboard** (`src/part2_agent/`): the agent picks its own tools (fetch, sniff, read_table, profile, try_transform,
+   validate, critique, ...). Code enforces held-out validation, a critique gate, budgets and the human gate.
+   Outcomes: `validated_config`, `needs_review`, `partial_config`, `no_business_entities`, `could_not_read`, `incomplete`.
+2. **Extract** (`src/engine/`): generic readers (csv/tsv, xlsx, xls, json/ndjson, zip, gz) plus whitelisted and parametric
+   transforms. Generated Python (level G) is designed but not built (see docs/write_up.md).
+3. **Resolve** (`src/part3_resolve/`): matcher m2.0 (ABN/ACN checksums, rarity-weighted names, register bridging),
+   link table, graph edges, unlinked queue with reasons. `rescore` re-runs a matcher over stored evidence only.
+4. **Profiles** (`src/part4_profiles/`): per-field value, confidence and provenance, conflicts shown.
+5. **Benchmark** (`src/benchmark/`): seeded draws of unseen datasets, run on Haiku and Sonnet, with an injection case.
 
+Three confidences are never blended: `source_reliability`, `field_confidence`, `link_confidence`.
+
+## Setup (Python 3.10+)
 ```bash
-uv venv --python 3.13 && source .venv/bin/activate
+uv venv --python 3.13 && source .venv/bin/activate      # or: python -m venv .venv
 uv pip install -r requirements.txt
-python -m unittest discover tests                       # 41 tests, under a second
-
-python -m src.part1_triage.download                     # fetches the 6 source files (~140 MB, 1-3 min)
-
-# Part 2: run the generic engine over the six APPROVED, agent-written configs in configs/
-for pair in asic_credit_licensee:10000 qld_health_contracts_2023_24:10000 wa_tenders_awards_2023_24:10000 \
-            vic_liquor_licences:5000 qbcc_licensed_contractors:5000 act_notifiable_invoices:5000; do
-  python -m src.engine.extract ${pair%%:*} --limit ${pair##*:}
-done
-
-python -m src.part3_resolve.run                         # links, unlinked queue, entities
-python -m src.part3_resolve.rescore --to m1.1           # re-test the REJECTED m1.1 rule on stored links (no sources read)
-python -m src.part4_profiles.build                      # 50 profiles + source-deletion test
+cp .env.example .env                                     # put ANTHROPIC_API_KEY in .env (never commit it)
+pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15    # full suite; no key or network needed
 ```
+Everything under `outputs/` is committed, so results can be read without running anything. Raw data is git-ignored.
 
-Everything in `outputs/` is already committed, so you can read the results without running anything.
-Re-running the commands above regenerates them (the engine is deterministic for identical inputs; see the caveat below).
-
-**Reproducibility caveat (measured):** the QBCC register is live. A fresh download on 2026-11-12 had 206,595 rows against
-206,548 when we onboarded, so a clean re-run gave 268 accepted links / 41 entities instead of 266 / 40 (47 of the 50
-hand-checked links still appear). `download` prints a WARNING when a file differs from `outputs/part1_sources_manifest.json`
-and leaves that committed manifest unchanged (`--refresh-manifest` overwrites it). Every observation also carries a fresh
-`ingested_at`, so those files differ line by line. **The committed outputs are the reference.** The whole sequence above
-ran in 24 seconds on a clean clone.
-
-### The agent (needs `ANTHROPIC_API_KEY` in `.env`; costs cents)
-
+## Onboard an unseen dataset (needs the API key; model is the `LLM_MODEL` setting in `src/llm.py`)
+`--mode agent` (the round-2 agent) is the default and the flag is optional. `--mode pipeline` runs the round-1 fixed pipeline.
 ```bash
-cp .env.example .env   # then put your key in .env (never commit it)
-python -m src.part2_agent.onboard nsw:find-by-lia-band      # an UNSEEN dataset: <portal>:<ckan dataset name>
-python -m src.part2_agent.onboard --file my_data.csv        # or a local file (licence recorded as 'unknown', flagged)
-python -m src.part2_agent.approve find_by_lia_band          # the human gate; rejected fields are revised on the next onboard
-python -m src.engine.extract find_by_lia_band               # only works once approved
+python -m src.part2_agent.onboard nsw:find-by-lia-band      # <portal>:<ckan dataset name>
+python -m src.part2_agent.onboard https://data.gov.au/...   # a URL, or a local file path
+python -m src.part2_agent.onboard my_data.csv --source-id my_data --max-dollars 0.5
 ```
+Useful flags: `--resource-index N` (pin a resource), `--model`, `--max-turns` (default 40), `--max-dollars` (default 1.00),
+`--overwrite` (replace an approved config). The trace is `logs/agent_runs/<source_id>/trace.jsonl`; running the same
+command again replays it without model calls. The config and review packet are written to `configs/<source_id>.yaml`
+and `.review.md`.
 
-Round 2 (tool-using agent, built step by step; design in [ARCHITECTURE.md](ARCHITECTURE.md)): the same command with
-`--mode agent` runs the agent that chooses its own tools instead of the fixed pipeline. `pipeline` stays the default.
-
+## Approve, extract, resolve, profile
 ```bash
-python -m src.part2_agent.onboard --mode agent nsw:find-by-lia-band --source-id find_by_lia_band_agent --max-dollars 0.5
-python -m src.part2_agent.onboard --mode agent path/to/any.csv       # a URL or a path works too; xls, zip, gz, ndjson, json too
+python -m src.part2_agent.approve <source_id>            # the human gate; stores the config SHA-256
+python -m src.engine.extract <source_id> [--limit N]     # default 1000 rows; refuses an unapproved config
+python -m src.part3_resolve.run                          # links, unlinked queue, graph -> outputs/part3/
+python -m src.part3_resolve.rescore --to m1.1            # re-score stored links only (no sources, no model)
+python -m src.part4_profiles.profiles                    # builds outputs/profiles/graph_profiles.jsonl
+python -m src.part4_profiles.show <source_id>            # profiles containing a mention from that source
 ```
+`approve` refuses a `needs_review` outcome unless `--allow-needs-review` is passed. `rescore` refuses to write if a
+human-labelled Y would be demoted or an N promoted. `src.part4_profiles.build` is the round-1 profile builder and
+does not read the m2.0 link shape; do not re-run it as is (DECISIONS.md, step 7d).
 
-The trace of each run is `logs/agent_runs/<source_id>/trace.jsonl`; running the same command again replays it.
+## Round-1 reproduction (no key needed)
+```bash
+python -m src.part1_triage.download      # six source files (~140 MB); warns if a file differs from the manifest
+```
+then `extract` on the six source ids in `configs/` (approved, agent-written). QBCC is a live register, so a fresh
+download differs slightly from the committed one; the committed outputs are the reference (see WRITEUP.md).
 
-**Warning:** `onboard` on an already-approved source overwrites its config and resets its approval. Do not re-run it on
-the six unless you intend to re-review them. The model is set in `src/llm.py` (`LLM_MODEL` env var, default Haiku).
+## Business Names register (resolve needs it for register-bridged links)
+`data/reference/asic_business_names_trimmed.csv` (committed, attribution in `data/reference/ATTRIBUTION.md`) is enough
+for the six sources. For a NEW source, put the full register zip at the path in `configs/reference_sources.yaml`
+(`data/raw/reference/business_names_202611.zip`) and run `python -m src.engine.row_filter asic_business_names`
+(16.9 s measured, docs/runbook.md). Without it the matcher uses identifier and name evidence only.
 
-## What is where
+## Benchmark (costs money; the final draw is run once, unchanged)
+```bash
+python -m src.benchmark.draw --seed 1 --out outputs/benchmark/dev_seed1                  # dev draw
+python -m src.benchmark.run --draw outputs/benchmark/dev_seed1 --pass a --model claude-haiku-5-5
+python -m src.benchmark.report --dir outputs/benchmark/dev_seed1 --passes a
+```
+Seed 2 is the final draw and is refused without `--final`. Results: `outputs/benchmark/final_seed2/compare.md` and
+`reviews/step9_results.md`. Human review columns in `handcheck/benchmark_review_fin2{h,s}.csv` are NOT yet filled.
 
-| Part | Code | Main outputs |
+## Where things are
+| Area | Code | Outputs |
 |---|---|---|
-| 1 Discovery and triage (deterministic, no LLM) | `src/part1_triage/` | `outputs/part1_shortlist.csv` (50 ranked), `handcheck/part1_fp_result.json` |
-| 2 Engine | `src/engine/` (readers, 12 whitelisted transforms, config + approval lock, extractor) | `outputs/observations/*.jsonl`, `outputs/rejects/*.jsonl` |
-| 2 Agent | `src/part2_agent/` (inspect, profile, propose x2, validate, revise, critique, packet, approve) | `configs/*.yaml` (agent-written), `configs/*.review.md`, `configs/*.approval.json`, `logs/agent_runs/` |
-| 3 Entity identification | `src/part3_resolve/` | `outputs/part3/links.jsonl`, `unlinked_queue.jsonl`, `entities.jsonl`, `handcheck/part3_link_result.json` |
-| 4 Profiles | `src/part4_profiles/` | `outputs/profiles/profiles.jsonl`, `outputs/profiles/summary.json` |
-| LLM calls | `src/llm.py` (the only file that imports `anthropic`) | `logs/llm_calls.jsonl` (model, tokens, cost, seconds per call) |
-| Hand-check materials | `handcheck/` | the sheets exactly as labelled, plus result JSON |
+| Part 1 triage (no LLM) | `src/part1_triage/` | `outputs/part1_shortlist.csv` |
+| Agent, engine | `src/part2_agent/`, `src/engine/` | `configs/`, `outputs/observations/`, `outputs/rejects/` |
+| Resolve | `src/part3_resolve/` | `outputs/part3/` (`links.jsonl`, `unlinked_queue.jsonl`, `graph_*.jsonl`, `summary.json`) |
+| Profiles | `src/part4_profiles/` | `outputs/profiles/graph_profiles.jsonl` |
+| LLM calls | `src/llm.py` (the only file importing `anthropic`) | `logs/llm_calls.jsonl` (model, tokens, cost, seconds, `round`) |
+| Hand checks | `handcheck/` | sheets as labelled, plus result files |
 
-The six sources are listed in `sources.yaml` (which files, not how to map them). `outputs/part1_sources_manifest.json`
-records the licence, dates and SHA-256 of each downloaded file. Raw data is git-ignored (`data/raw/`).
-
-## Headline numbers (all measured; details and caveats in WRITEUP.md)
-
-- Part 1: 2,440 de-duplicated datasets from 5 portals, 50 shortlisted. Hand-checked 20 at random: **14 yes, 5 no, 1 unsure,
-  false positive rate 26.3%** (30% if the unsure one counts as wrong).
-- Part 2: 6 configs written by the agent, 4-7 LLM calls and $0.009-0.032 each (Haiku 5.5). 41 field verdicts across all
-  review rounds, 2 wrong (both WA name fields). Total API spend for Round 1: **$0.17** (computed from list prices).
-- Part 3: 266 accepted links (40 businesses) and 119 looser links. Hand-checked 50 links covering **43 distinct businesses**.
-  **Precision at the 0.80 threshold: 30 of 30 correct, 0 wrong, 0 unsure (95% interval 89-100%).** Looser band (0.60-0.80):
-  19 correct, 0 wrong, **1 unsure (check 23)** of 20, i.e. 100% excluding unsure (interval 83-100%) and 95% counting unsure
-  as wrong. **Treat these as upper bounds, not as expected real-world precision:** the sample is narrow (42 of the 50
-  checked links are ACT invoices against QLD Health); the matcher already required names to agree before proposing a link;
-  the labels were drafted with an AI assistant and then every row was checked by the author on ABN Lookup (notes in
-  `handcheck/part3_verify.csv`); and the intervals treat the 50 rows as independent although several are the same business.
-- Part 4: 50 profiles; 9 have an unresolved legal name (shown, not guessed).
-
-## Known issues and honest limits
-
-- **Configs were made with Haiku 5.5, not Sonnet.** Re-running on Sonnet would mean re-reviewing all six; not done.
-- **WA Tenders has no usable name or ID**, so none of its records can be linked (all 5,817 are in the unlinked queue).
-- Agent output varies between runs (two ASIC runs differed on date mapping; VIC lost `address.full` in the regenerated run).
-  The approval hash pins the exact config that was reviewed.
-- Part 3 evidence is narrow: 42 of the 50 hand-checked links are ACT invoices against QLD Health contracts.
-- Source reliability numbers are model judgements, not measurements.
-- Source licences: five are Creative Commons; the ACT dataset's licence is "Other" and is **flagged** on every one of its
-  observations. We used all six for this assignment only; check terms before reuse.
-- `outputs/observations/` is about 67 MB. If `git push` fails with HTTP 400, run `git config http.postBuffer 524288000`.
+## Honest limits (numbers and sources in docs/write_up.md)
+- m2.0 link precision rests on 18 new labels, with wide intervals; the loose band is weak. Labels are not independent.
+- The final benchmark has no human check yet: only automatic outcomes are reported.
+- Companies register, ABR lookup, `renamed_to` / `trustee_for` edges and the level-G sandbox are designed, not built.
+- Sampled extraction (default 1,000 rows per source), not full files.
+- Source licences: carried in each observation; an `unknown` licence is flagged. ACT's is "Other". Check terms before reuse.
+- If `git push` fails on `outputs/observations/` (about 67 MB), run `git config http.postBuffer 524288000`.

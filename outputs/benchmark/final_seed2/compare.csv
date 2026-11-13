@@ -1,0 +1,16 @@
+dataset_id,title,format_class,outcome_h,outcome_s,mapped_h,mapped_s
+datagovau:asic-smsf,ASIC – Self-Managed Super Fund Auditor Dataset,csv,validated_config,validated_config,7,7
+sa:sacommunitydirectory,SA Community Directory,csv,validated_config,partial_config,7,6
+qld:queensland-government-arrangements-directory-supplier-procurement-arrangements,Queensland government arrangements directory—supplier procurement arrangements,csv,validated_config,validated_config,1,1
+qld:dcdss-contract-disclosure-1-july-2020-31-december-2020,DCDSS Contract Disclosure 1 July 2020 - 31 December 2020,csv,could_not_read,could_not_read,0,0
+qld:consultancies-and-contractors-office-of-the-information-commissioner,"Consultancies, contractors and Contracts over 10K  - OIC",csv,validated_config,validated_config,3,3
+datagovau:asic-banned-disqualified-org,ASIC - Banned and Disqualified Organisations Dataset,csv,validated_config,validated_config,2,2
+qld:temporary-emissions-licences-tel,Temporary emissions licences (TEL),xlsx,validated_config,validated_config,1,1
+sa:ict-contract-usage-guidelines,ICT Contract Usage Guidelines,csv,validated_config,validated_config,1,1
+sa:2020-21-number-of-food-businesses-in-sa-per-risk-classification,2020-21 Number of Food Businesses in SA per Risk Classification,csv,no_business_entities,no_business_entities,0,0
+sa:annual-report-cbs,Annual Report CBS,xlsx,no_business_entities,no_business_entities,0,0
+vic:taxi-industry-statistics,Taxi Industry Statistics,xls,no_business_entities,no_business_entities,0,0
+sa:corrosion-environment-areas,Corrosion Environment Areas,json,no_business_entities,no_business_entities,0,0
+nsw:water-modelling-modelled-data-annual-permitted-take-apt-murrumbidgee,Water Modelling-Modelled Data-Annual Permitted Take (APT)-Murrumbidgee,zip,no_business_entities,no_business_entities,0,0
+datagovau:data-collected-on-voyages-of-australian-antarctic-program-vessels-in-the-southern-ocean-2021-20,Data collected on voyages of Australian Antarctic Program vessels in the Southern Ocean - 2021-2022 onwards.,no-tabular,could_not_read,could_not_read,0,0
+vic:summary-residential-community-emissions,Summary Residential and Business  Community Emissions,csv,no_business_entities,no_business_entities,0,0

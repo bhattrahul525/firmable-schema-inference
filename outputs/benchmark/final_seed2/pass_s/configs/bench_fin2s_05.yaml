@@ -1,0 +1,146 @@
+what_it_is: OIC contract disclosure over 10K
+one_row_is: a contract with a supplier
+reader:
+  format: xlsx
+  header_rows: 1
+record_id:
+  from:
+  - Contract reference number
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: supplier name
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+- source: Supplier ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: supplier ABN
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+- source: Supplier address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: supplier address
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+unmapped:
+- source: Agency name
+  reason: government buyer
+- source: Agency address
+  reason: government buyer
+- source: Contract category group
+  reason: contract detail
+- source: Parent contract/Head agremeent/Common-use supply arrangement number
+  reason: contract detail
+- source: Contract description/name
+  reason: contract detail
+- source: Award contract date
+  reason: transaction date
+- source: Contract value
+  reason: contract detail
+- source: Variation to contract (Yes/No)
+  reason: contract detail
+- source: Specific confidentiality provision used
+  reason: contract detail
+- source: Procurement method
+  reason: contract detail
+- source: Reason for use of limited tendering
+  reason: contract detail
+- source: Form of contract
+  reason: contract detail
+- source: Number of offers sought
+  reason: contract detail
+- source: Evaluation criteria and weightings
+  reason: contract detail
+- source: Deliverables
+  reason: contract detail
+- source: Contract milestones
+  reason: contract detail
+- source: Contract performance management
+  reason: contract detail
+- source: Additional details
+  reason: contract detail
+- source: Consultancy (Yes/No)
+  reason: contract detail
+source_reliability:
+  identity: 0.85
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government disclosure
+source_id: bench_fin2s_05
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 0
+  observations_in_held_out: 0
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues: []
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:28:54+00:00'

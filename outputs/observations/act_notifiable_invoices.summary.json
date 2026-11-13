@@ -1,19 +1,19 @@
 {
   "source_id": "act_notifiable_invoices",
-  "extractor_version": "act_notifiable_invoices@cfg2.90ebd69e+engine0.1.0",
+  "extractor_version": "act_notifiable_invoices@cfg1.da43a00d+engine0.1.0",
   "rows_in_file": 127437,
-  "rows_extracted": 5000,
-  "sampling": "every 25.5th row",
-  "observations": 14971,
-  "rejects": 3,
+  "rows_extracted": 1000,
+  "sampling": "every 127.4th row",
+  "observations": 2993,
+  "rejects": 0,
   "licence": "Other",
   "licence_flag": true,
-  "distinct_source_record_ids": 5000,
+  "distinct_source_record_ids": 1000,
   "field_stats": {
     "entity.legal_name<-supplier_name": {
-      "rows": 5000,
+      "rows": 1000,
       "blank": 0,
-      "ok": 5000,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -22,44 +22,15 @@
       "reject_examples": []
     },
     "entity.abn<-supplier_abn": {
-      "rows": 5000,
+      "rows": 1000,
       "blank": 1,
-      "ok": 4971,
-      "skip": 25,
-      "reject": 3,
-      "parse_rate": 0.9994,
-      "skip_reasons": {
-        "not_digits": 25
-      },
-      "reject_reasons": {
-        "abn_checksum_failed": 3
-      },
-      "reject_examples": [
-        {
-          "raw": "21 074 287 046",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "row-mkdb~t95h~93ca"
-        },
-        {
-          "raw": "21 074 287 046",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "row-urc3.ek2s.xupy"
-        },
-        {
-          "raw": "64 104 869 132",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "row-n8vy-a6ws_brfz"
-        }
-      ]
-    },
-    "entity.entity_type<-supplier_name": {
-      "rows": 5000,
-      "blank": 0,
-      "ok": 5000,
-      "skip": 0,
+      "ok": 993,
+      "skip": 6,
       "reject": 0,
       "parse_rate": 1.0,
-      "skip_reasons": {},
+      "skip_reasons": {
+        "not_digits": 6
+      },
       "reject_reasons": {},
       "reject_examples": []
     }

@@ -1,0 +1,6 @@
+onboarding bench_fin2h_07 (round-2 agent, model claude-haiku-5-5)
+    download complete: 29,082 bytes
+outcome: validated_config
+turns=15 tool_calls=15 cost=$0.0135 agent_seconds=71.94 wall_clock_seconds=72.2
+tool sequence: fetch -> fetch -> list_sheets -> read_table -> profile -> check_unique -> try_transform -> validate -> validate -> validate -> critique -> validate -> critique -> finish (refused) -> finish
+packet: outputs/benchmark/final_seed2/pass_h/configs/bench_fin2h_07.review.md

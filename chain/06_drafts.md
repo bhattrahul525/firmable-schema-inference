@@ -1,0 +1,5 @@
+[BUILD: Sonnet 5.5, medium] Draft the step 10 documents from the repo only; invent no numbers. Do not edit src/, tests/, configs/ or ARCHITECTURE.md.
+1. README.md: update for round 2 (what it does, setup, onboarding with --mode agent, extract, resolve, rescore, profiles, benchmark); under 120 lines.
+2. demo/RUNBOOK.md: live-demo runbook from ARCHITECTURE.md (machines, internet, onboarding by URL or file, extract, resolve, profile show), with measured timings from docs/runbook.md and reviews/step9_results.md, and a fallback per step.
+3. docs/write_up.md (max 150 lines): design, decisions (DECISIONS.md), results (step 5 approvals, reviews/step8_results.md with its caveats verbatim, reviews/step9_results.md), cost, a "Designed, not built" section (sandbox for generated code 4b, Companies register, T3c, renamed_to and trustee_for edges, ABR lookup, code cap on name confidence by header word) and limitations (loose T3 precision, only 2 of 50 round-1 labels carried over, sampled extraction, non-independent labels).
+Cite the source file for every number. Report max 8 lines: files written and any number you could not source.

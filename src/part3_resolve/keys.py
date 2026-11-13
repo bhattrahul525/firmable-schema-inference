@@ -20,6 +20,7 @@ from collections import defaultdict
 
 from src.part3_resolve.features import containment, name_core
 
+NAME_TIERS = ("T3", "T4")  # name-only tiers: m1.x T3, m2.0 T3 (register bridge) and T4
 NAME_OK = 0.5  # same threshold the scorer uses to say "these names agree"
 
 
@@ -42,11 +43,11 @@ def rekey_conflicting_name_links(links: list[dict]) -> list[dict]:
     for key, group in by_key.items():
         if not key.startswith("abn:"):
             continue
-        anchors = {c for l in group if not l["tier"].startswith("T3") for c in _cores(l)}
+        anchors = {c for l in group if not l["tier"].startswith(NAME_TIERS) for c in _cores(l)}
         if not anchors:
             continue  # nothing to compare against: we cannot tell the ABN is wrong
         for l in group:
-            if not l["tier"].startswith("T3"):
+            if not l["tier"].startswith(NAME_TIERS):
                 continue
             if any(containment(c, a) >= NAME_OK for c in _cores(l) for a in anchors):
                 continue  # agrees with at least one anchor name: the ABN key is consistent

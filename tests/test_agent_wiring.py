@@ -368,15 +368,15 @@ class TestOnboardCli(unittest.TestCase):
         self.assertEqual(onboard.default_source_id("/tmp/My Data.v2.csv"), "my_data_v2")
         self.assertEqual(onboard.default_source_id("https://example.org/x/Licences-2024.xlsx?dl=1"), "licences_2024")
 
-    def test_pipeline_is_the_default_mode_and_agent_mode_dispatches(self):
+    def test_agent_is_the_default_mode_and_explicit_pipeline_still_works(self):
         with mock.patch.object(onboard, "onboard") as pipe, mock.patch.object(onboard, "onboard_agent") as agent, \
                 mock.patch("src.part2_agent.fetch.fetch_ckan", return_value="sid"), \
                 mock.patch.object(Path, "exists", return_value=True):
-            with mock.patch.object(sys, "argv", ["onboard", "nsw:thing"]):
+            with mock.patch.object(sys, "argv", ["onboard", "nsw:thing", "--mode", "pipeline"]):
                 onboard.main()
             pipe.assert_called_once_with("sid")
             agent.assert_not_called()
-            with mock.patch.object(sys, "argv", ["onboard", "nsw:thing", "--mode", "agent", "--max-dollars", "0.5", "--source-id", "x"]):
+            with mock.patch.object(sys, "argv", ["onboard", "nsw:thing", "--max-dollars", "0.5", "--source-id", "x"]):
                 onboard.main()
             self.assertEqual(agent.call_args.args[0], "nsw:thing")
             self.assertEqual(agent.call_args.kwargs["source_id"], "x")

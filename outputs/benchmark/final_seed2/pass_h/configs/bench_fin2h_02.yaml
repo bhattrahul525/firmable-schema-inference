@@ -1,0 +1,297 @@
+what_it_is: South Australian community services directory, 2021 edition, listing organisations and their service
+  details.
+one_row_is: one community service organisation listed in the 2021 SA Community Directory
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Org_name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.5
+  reason: Organisation name in a community directory; not stated as registered name, so trading-name at low confidence.
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 2
+    ok: 298
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Organisati_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Column is labelled ABN; checksum validated.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 150
+    ok: 149
+    skipped_not_applicable: 1
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Website_1
+  canonical: entity.website
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Primary website column.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 60
+    ok: 240
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Primary_Category
+  canonical: entity.industry_code
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.5
+  reason: Directory's own category, not ANZSIC; recorded raw.
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 3
+    ok: 297
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Suburb of street address.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 13
+    ok: 287
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: State of the street address; full names like South Australia.
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 5
+    ok: 295
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Postal_Code
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode of street address.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 15
+    ok: 285
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: ID_19
+  reason: Directory-internal id; used only as hash basis (not fully unique)
+- source: Street_Address_Line_1
+  reason: 'Not mapped to address.full: free text sometimes holds non-address labels or business names (critique
+    c-33ed8a49)'
+- source: Street_Address_Line_2
+  reason: Secondary street detail; not mapped to avoid partial addresses
+- source: Country
+  reason: Always Australia; no jurisdiction basis recorded for a constant
+- source: Postal_Address_Line_1
+  reason: Postal address; no postal field in ontology
+- source: Suburb__2
+  reason: Postal suburb; no postal field
+- source: State__2
+  reason: Postal state; no postal field
+- source: Postal_Code__2
+  reason: Postal code; no postal field
+- source: Country__2
+  reason: Postal country
+- source: Postal_Address_Line_2
+  reason: Postal address detail
+- source: Website_2
+  reason: Secondary website; not mapped
+- source: Website_3
+  reason: Secondary website; not mapped
+- source: Geo_Code_1_StreetAddress_
+  reason: Latitude; no geo field
+- source: Geo_Code_2_StreetAddress_
+  reason: Longitude; no geo field
+- source: Organisati_Hours
+  reason: Opening hours; no field
+- source: Organisati_Meetings
+  reason: Meetings; no field
+- source: Organisati_AGM
+  reason: AGM code; no field
+- source: Branch_Address_1
+  reason: Free-text branch address; nearly empty
+- source: Organisati_Venue_hire
+  reason: Venue description; no field
+- source: Organisati_Access
+  reason: Access description
+- source: Organisati_Disability_parking
+  reason: Accessibility; no field
+- source: Organisati_Access_toilets
+  reason: Accessibility; no field
+- source: Organisati_Wheelchair_access
+  reason: Accessibility; no field
+- source: Organisati_Fees
+  reason: Fees; no field
+- source: Contact
+  reason: Contact person; no contact field in ontology
+- source: Phone_1
+  reason: Phone; no contact field in ontology
+- source: Phone_1_comment
+  reason: Phone comment
+- source: Phone_3
+  reason: Phone; no field
+- source: Email_StreetAddress_1
+  reason: Email; no contact field in ontology
+- source: Email_StreetAddress_2
+  reason: Email; no field
+- source: Email_StreetAddress_3
+  reason: Email; no field
+- source: Directory_Directory_Entry_1
+  reason: Directory sub-category; not mapped
+- source: Directory_Directory_Entry_2
+  reason: Directory sub-category; not mapped
+- source: Directory_Directory_Entry_3
+  reason: Directory sub-category; not mapped
+- source: Organisati_Eligibility
+  reason: Eligibility text; no field
+- source: Organisati_Services
+  reason: Services text; no field
+- source: Organisati_Tag_Line
+  reason: Tagline; no field
+- source: Organisation_Last_updated
+  reason: Source's own last-updated stamp; observed_at uses resource metadata
+- source: Parent_Body
+  reason: Parent organisation; not mapped
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government-published community directory compiled from provider self-reports; names and
+  ABNs not verified against the registry in this dataset; moderate trust.
+meaning_check_responses: []
+source_id: bench_fin2h_02
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 2149
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-33ed8a49
+    field: address.full<-Street_Address_Line_1
+    problem: In the Adelaide Drumming row the source value is 'Locations in the City of Onkaparinga', which describes
+      a set of locations and is not a street address. Mapping it to address.full states an address the source does
+      not support. In the ADRA row the value is 'ADRA SA,', an organisation label, while the actual street ('31
+      Prospect Rd') sits in Street_Address_Line_2. The mapped value there is not the street address.
+    severity: blocking
+    suggested_fix: Make address.full conditional so it maps only rows whose Street_Address_Line_1 holds a street
+      address (for example by excluding non-address text), or drop the field for this column. Map Street_Address_Line_2
+      to address.full where it holds the street, or document why it is left out.
+  - id: c-2a24c2ea
+    field: Street_Address_Line_2
+    problem: Street_Address_Line_2 is listed as unmapped with the reason 'Secondary address detail'. In the ADRA
+      row it holds the actual street address, so the stated reason does not match the data.
+    severity: advisory
+    suggested_fix: Revisit the unmapped reason. Consider a conditional mapping of Street_Address_Line_2 to address.full
+      for rows where Line 1 is not a street address.
+  - id: c-b1b2ebd2
+    field: address.full<-Street_Address_Line_1
+    problem: In the Goodstart row the value includes the business name ('Goodstart Early Learning Plympton, 247-251
+      Anzac Hwy'). The street part is correct, but the claim includes non-address text.
+    severity: advisory
+    suggested_fix: Accept as a source-stated value with a caveat, or parse out the street portion with a transform
+      that removes text without adding any.
+  - id: c-f91460a6
+    field: record_id
+    problem: record_id uses hash_row=true, but ID_19 appears to be a unique directory-internal identifier on every
+      row shown. Rule 15 prefers a check_unique column when one exists.
+    severity: advisory
+    suggested_fix: If ID_19 is confirmed unique across the file, use record_id on ID_19 with check_unique and keep
+      hash_row only as a fallback.
+  - id: c-47af2a63
+    field: address.country
+    problem: Country is unmapped as 'Always Australia'. The directory's own metadata may support a constant for
+      the jurisdiction, but no basis is recorded for it.
+    severity: advisory
+    suggested_fix: Leave address.country unmapped unless the dataset metadata or title states that the directory
+      covers every row. If it does, document that basis in a constant mapping anchored on a column filled on every
+      row.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:25:23+00:00'

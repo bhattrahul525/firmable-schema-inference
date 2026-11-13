@@ -1,0 +1,116 @@
+what_it_is: SA government ICT contract usage guidelines listing supplier contracts
+one_row_is: a contract/panel agreement with a supplier
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Contract
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.5
+  reason: short supplier name; generic category rows excluded
+  when:
+    column: Contract
+    matches: ^(?!Software Suppliers$).+
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 38
+    blank: 0
+    ok: 32
+    skipped_not_applicable: 6
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Segment
+  reason: contract category
+- source: Guideline
+  reason: guideline text
+- source: CDContractSummary
+  reason: contract title
+- source: Commencement Date
+  reason: contract event date
+- source: OriginalExpiryDate
+  reason: contract event date
+- source: Completion Date
+  reason: contract event date
+- source: ExtnComments
+  reason: comments
+- source: Contract Value
+  reason: contract value
+source_reliability:
+  identity: 0.5
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: government publication, informal supplier names
+source_id: bench_fin2s_08
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 38
+  observations_in_held_out: 64
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-f4530e81
+    field: entity.trading_name<-Contract
+    problem: The Contract column is not a trading-as name. In the first row it holds a generic category ('Software
+      Suppliers'), which is not any entity's name. Other rows hold short supplier names such as 'Oracle' and 'Hewlett-Packard'.
+      The CDContractSummary column holds the fuller supplier legal names (e.g. 'Acer Computer Australia Pty Ltd').
+      Mapping Contract to trading_name therefore asserts a name the source does not state as a trading name, and
+      for the category row it names no entity at all.
+    severity: blocking
+    suggested_fix: Remove the trading_name mapping for Contract, or restrict it to rows where it is a supplier name.
+      Put Contract in unmapped with the reason 'short supplier label, sometimes a category'.
+  - id: c-9455637f
+    field: entity.legal_name
+    problem: CDContractSummary embeds the supplier's full legal name (e.g. 'Optus Networks Pty Limited', 'Lenovo
+      Australia & New Zealand Pty Ltd'), but the mapping neither extracts it nor flags it. Parsing it would need
+      a transform that does not exist.
+    severity: advisory
+    suggested_fix: List CDContractSummary under needs_transform, noting that a supplier name is embedded in the
+      title text.
+  - id: c-cd946df5
+    field: record_id
+    problem: hash_row is used with no uniqueness check. The rows are fairly distinct, but the same supplier recurs
+      (e.g. Microsoft, Hewlett-Packard), so a stable record key would be better if one exists.
+    severity: advisory
+    suggested_fix: Keep hash_row, or use a combination such as Contract plus CDContractSummary if check_unique passes.
+  - id: c-17a3e027
+    field: entity.trading_name<-Contract
+    problem: The Contract column holds short supplier names such as Hewlett-Packard, Microsoft and Oracle. These
+      are not labelled as registered names, so trading_name is the correct and conservative target under rule 5.
+      The mapping does not state anything the source does not support. The full legal names (e.g. 'Acer Computer
+      Australia Pty Ltd') appear only inside CDContractSummary, which is unmapped.
+    severity: advisory
+    suggested_fix: No change needed. A future version could parse the legal name out of CDContractSummary if a suitable
+      transform exists, otherwise list it under needs_transform.
+  - id: c-20a5904e
+    field: entity.trading_name<-Contract
+    problem: The rows have no explicit entity_type column, and the suffix-based transform cannot apply to short
+      names, so entity_type is correctly left as unknown. The row with Contract='Software Suppliers' is correctly
+      excluded as a generic category rather than a supplier.
+    severity: advisory
+    suggested_fix: No action needed.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:29:30+00:00'

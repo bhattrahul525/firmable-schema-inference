@@ -1,30 +1,19 @@
 {
   "source_id": "asic_credit_licensee",
-  "extractor_version": "asic_credit_licensee@cfg2.9015a501+engine0.1.0",
+  "extractor_version": "asic_credit_licensee@cfg1.ee7dc6e2+engine0.1.0",
   "rows_in_file": 4313,
-  "rows_extracted": 4313,
-  "sampling": "all rows",
-  "observations": 27234,
+  "rows_extracted": 1000,
+  "sampling": "every 4.3th row",
+  "observations": 6317,
   "rejects": 0,
   "licence": "Creative Commons Attribution 3.0 Australia",
   "licence_flag": false,
-  "distinct_source_record_ids": 4313,
+  "distinct_source_record_ids": 1000,
   "field_stats": {
     "entity.legal_name<-CRED_LIC_NAME": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4313,
-      "skip": 0,
-      "reject": 0,
-      "parse_rate": 1.0,
-      "skip_reasons": {},
-      "reject_reasons": {},
-      "reject_examples": []
-    },
-    "entity.trading_name<-CRED_LIC_BN": {
-      "rows": 4313,
-      "blank": 2841,
-      "ok": 1472,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -33,41 +22,35 @@
       "reject_examples": []
     },
     "entity.abn<-CRED_LIC_ABN_ACN": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 3852,
-      "skip": 461,
+      "ok": 915,
+      "skip": 85,
       "reject": 0,
       "parse_rate": 1.0,
       "skip_reasons": {
-        "not_11_digits(7)": 17,
-        "not_11_digits(8)": 30,
-        "not_11_digits(9)": 345,
-        "not_11_digits(1)": 69
+        "when_not_met": 85
       },
       "reject_reasons": {},
       "reject_examples": []
     },
     "entity.acn<-CRED_LIC_ABN_ACN": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 345,
-      "skip": 3968,
+      "ok": 57,
+      "skip": 943,
       "reject": 0,
       "parse_rate": 1.0,
       "skip_reasons": {
-        "not_9_digits(11)": 3852,
-        "not_9_digits(7)": 17,
-        "not_9_digits(8)": 30,
-        "not_9_digits(1)": 69
+        "when_not_met": 943
       },
       "reject_reasons": {},
       "reject_examples": []
     },
-    "entity.entity_type<-CRED_LIC_NAME": {
-      "rows": 4313,
-      "blank": 0,
-      "ok": 4313,
+    "entity.trading_name<-CRED_LIC_BN": {
+      "rows": 1000,
+      "blank": 655,
+      "ok": 345,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -76,9 +59,9 @@
       "reject_examples": []
     },
     "address.locality<-CRED_LIC_LOCALITY": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4313,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -87,9 +70,9 @@
       "reject_examples": []
     },
     "address.state<-CRED_LIC_STATE": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4313,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -98,9 +81,20 @@
       "reject_examples": []
     },
     "address.postcode<-CRED_LIC_PCODE": {
-      "rows": 4313,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4313,
+      "ok": 1000,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "valid_from": {
+      "rows": 1000,
+      "blank": 0,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,

@@ -1,0 +1,9 @@
+# Hand-written (not agent-generated): which sources are REFERENCE registers, not mentions (step 7 amendment R1).
+# A register record is never a mention and never a second source. keep_where is the row-filter condition.
+sources:
+- id: asic_business_names
+  role: reference
+  path: data/raw/reference/business_names_202611.zip
+  keep_where:
+    column: BN_STATUS
+    equals: Registered

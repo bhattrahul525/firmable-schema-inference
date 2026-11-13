@@ -1,0 +1,6 @@
+onboarding bench_fin2h_09 (round-2 agent, model claude-haiku-5-5)
+    download complete: 365 bytes
+outcome: no_business_entities
+turns=7 tool_calls=7 cost=$0.0027 agent_seconds=9.99 wall_clock_seconds=10.1
+tool sequence: fetch -> fetch -> sniff -> read_table -> finish (refused) -> profile -> finish
+packet: logs/agent_runs/bench_fin2h_09/outcome.md

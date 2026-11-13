@@ -11,7 +11,8 @@ Dev draw (seed 1): 6 from shortlist ranks 7-50, 5 from the non-shortlist pool, o
 zip-only: five classes, five slots), plus the injection slot (a fixture pair, see injection.py). The draw file is written once,
 before any run; writing it again with different content is refused, so a draw cannot be adjusted after the fact.
 
-The FINAL draw (seed 2) is not made anywhere in this session: `--seed 2` is refused unless `--final` is passed.
+The FINAL draw (seed 2) is not made in the dev phase: `--seed 2` is refused unless `--final` is passed. Its shape is
+8 shortlist + 7 pool (5 format classes, one no-tabular, one second csv).
 """
 
 from __future__ import annotations
@@ -109,7 +110,7 @@ def _item(rec: dict, slot: str, stratum: str, rank: int | None) -> dict:
             "format_class": format_class(rec), "family": family_key(rec)}
 
 
-def make_draw(seed: int, pool: list[dict], shortlist: dict[str, int], excluded: list[str], *, n_shortlist: int = 6) -> dict:
+def make_draw(seed: int, pool: list[dict], shortlist: dict[str, int], excluded: list[str], *, n_shortlist: int = 6, final: bool = False) -> dict:
     eligible, frame_report = build_frame(pool, excluded)
     rng = random.Random(seed)
     used_families: set[str] = set()
@@ -124,7 +125,12 @@ def make_draw(seed: int, pool: list[dict], shortlist: dict[str, int], excluded: 
     used_families |= {family_key(r) for r in pick}
 
     # pool stratum: non-shortlist datasets, one family representative per format class, one drawn per class
-    for cls in FORMAT_CLASSES:
+    # final shape (seed 2, --final): 8 shortlist + 7 pool = the 5 classes, one no-tabular, and a SECOND csv
+    # (a different dataset in a different family from the first csv). Appended after the dev slots, so dev is unchanged.
+    slots = [(c, f"format: {c}") for c in FORMAT_CLASSES]
+    if final:
+        slots += [("no-tabular", "format: no-tabular"), ("csv", "format: csv (second)")]
+    for cls, stratum in slots:
         pool_cand = {}
         for r in sorted((r for r in eligible if r["dataset_id"] not in shortlist and format_class(r) == cls), key=lambda r: r["dataset_id"]):
             fam = family_key(r)
@@ -132,7 +138,7 @@ def make_draw(seed: int, pool: list[dict], shortlist: dict[str, int], excluded: 
                 pool_cand.setdefault(fam, r)
         chosen = rng.choice(sorted(pool_cand.values(), key=lambda r: r["dataset_id"]))
         used_families.add(family_key(chosen))
-        items.append(_item(chosen, "pool", f"format: {cls}", None))
+        items.append(_item(chosen, "pool", stratum, None))
 
     counts = class_counts(pool)
     core = counts["csv"] + counts["xlsx"] + counts["json"]
@@ -164,7 +170,7 @@ def main() -> None:
     a = ap.parse_args()
     if a.seed == 2 and not a.final:
         raise SystemExit("seed 2 is the FINAL draw: it is not made in the dev phase (pass --final only for the real final run)")
-    draw = make_draw(a.seed, load_pool(), load_shortlist(), excluded_ids())
+    draw = make_draw(a.seed, load_pool(), load_shortlist(), excluded_ids(), **({"n_shortlist": 8, "final": True} if a.final else {}))
     write_draw_once(draw, Path(a.out))
     for it in draw["items"]:
         print(f"{it['slot']:9s} {it['stratum']:14s} rank={it['rank']} {it['dataset_id']}  [{it['format_class']}]  {it['title']}")

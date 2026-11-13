@@ -15,16 +15,36 @@ measured, not assumed.
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 from collections import Counter
 from pathlib import Path
 
+from src.part3_resolve.labels import load_allowlist, load_labels, pair_id
 from src.part3_resolve.keys import rekey_conflicting_name_links
 from src.part3_resolve.score import ACCEPT, KEY_RULE_VERSIONS, LOOSE, SCORERS, band
 
 OUT = Path("outputs/part3")
-HANDCHECK = Path("handcheck/part3_link_check.csv")
+
+
+def gate(changed: list[dict], labels: dict, allowed: dict) -> tuple[Counter, list, list]:
+    """THE GATE. A rescore may not demote a pair a human labelled Y or promote one labelled N, unless the pair is in
+    handcheck/accepted_conflicts.csv (hand-written; reported, not blocking). Returns (effect, blocking, accepted).
+    Pure function; labels are never edited."""
+    rank = {"refused": 0, "loose": 1, "accepted": 2}
+    effect: Counter = Counter()
+    blocking, accepted_conflicts = [], []
+    for c in changed:
+        pid = pair_id(c["a"], c["b"])
+        if pid not in labels:
+            continue
+        effect[f"{c['from'][2]}->{c['to'][2]} hand label {labels[pid]}"] += 1
+        delta = rank[c["to"][2]] - rank[c["from"][2]]
+        kind = "Y_demoted" if labels[pid] == "Y" and delta < 0 else "N_promoted" if labels[pid] == "N" and delta > 0 else None
+        if kind:
+            (accepted_conflicts if pid in allowed else blocking).append(
+                {"pair_id": pid, "problem": kind, "from": c["from"], "to": c["to"],
+                 **({"reason": allowed[pid]["reason"]} if pid in allowed else {})})
+    return effect, blocking, accepted_conflicts
 
 
 def main() -> None:
@@ -38,11 +58,15 @@ def main() -> None:
     refused = [q for q in refused if q.get("kind") == "pair"]  # refused pairs also carry their features
 
     moves: Counter = Counter()
-    rescored, changed = [], []
+    rescored, changed, not_rescoreable = [], [], 0
     for l in links + refused:
         old_conf, old_v = l["link_confidence"], l["matcher_version"]
         old_band = band(old_conf)
-        conf, tier, why = scorer(l["evidence"])
+        try:
+            conf, tier, why = scorer(l["evidence"])
+        except KeyError:  # an old link that lacks the features this matcher needs: report it, do not guess
+            not_rescoreable += 1
+            continue
         new_band = band(conf)
         moves[f"{old_band} -> {new_band}"] += 1
         row = {**l, "link_confidence": conf, "tier": tier, "matcher_version": new_v,
@@ -61,24 +85,20 @@ def main() -> None:
     # canonical-key rule (m1.2+): also a pure function of the stored evidence
     key_changes = rekey_conflicting_name_links(rescored) if new_v in KEY_RULE_VERSIONS else []
 
-    # what would this change have done to the 50 links a human labelled?
-    labels = {((r["a_source"], r["a_record_id"]), (r["b_source"], r["b_record_id"])): r["label"].strip().upper()[:1]
-              for r in csv.DictReader(HANDCHECK.open(encoding="utf-8-sig"))}
-    effect: Counter = Counter()
-    for c in changed:
-        key = ((c["a"]["source_id"], c["a"]["source_record_id"]), (c["b"]["source_id"], c["b"]["source_record_id"]))
-        if key in labels:
-            effect[f"{c['from'][2]}->{c['to'][2]} hand label {labels[key]}"] += 1
-    with (OUT / f"links_rescored_{new_v}.jsonl").open("w") as f:
-        for r in rescored:
-            f.write(json.dumps(r) + "\n")
+    effect, blocking, accepted_conflicts = gate(changed, load_labels(), load_allowlist())
     report = {"from_versions": sorted({l["matcher_version"] for l in links}), "to_version": new_v,
               "thresholds": {"accept": ACCEPT, "loose": LOOSE}, "links_considered": len(links) + len(refused),
-              "band_moves": dict(moves), "links_changed": len(changed),
+              "band_moves": dict(moves), "links_changed": len(changed), "not_rescoreable": not_rescoreable,
+              "gate_blocking": blocking, "gate_accepted_conflicts": accepted_conflicts, "written": not blocking,
               "effect_on_hand_labelled_links": dict(effect),
               "labelled_yes_links_demoted_or_refused": sum(v for k, v in effect.items() if k.endswith("hand label Y") and k.split("->")[1].startswith("refused")),
               "canonical_keys_rekeyed": key_changes, "changed_links": changed[:40]}
     (OUT / f"rescore_to_{new_v}.json").write_text(json.dumps(report, indent=2))
+    if blocking:
+        raise SystemExit(f"REFUSED to write rescored links: {len(blocking)} human label(s) contradicted: {blocking}")
+    with (OUT / f"links_rescored_{new_v}.jsonl").open("w") as f:
+        for r in rescored:
+            f.write(json.dumps(r) + "\n")
     print(json.dumps({k: v for k, v in report.items() if k not in ("changed_links", "canonical_keys_rekeyed")}, indent=2))
     print("canonical keys re-keyed:", [(k["names"][0], k["from"], "->", k["to"]) for k in key_changes])
     for c in changed[:8]:

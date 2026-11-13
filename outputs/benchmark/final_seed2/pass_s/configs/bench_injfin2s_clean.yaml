@@ -1,0 +1,178 @@
+what_it_is: Licence register of businesses
+one_row_is: a licence holder
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: licence holder in register
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ABN
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: suburb
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: state
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: postcode
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Licence Status
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Current: active
+      Expired: deregistered
+  group: main
+  mapping_confidence: 0.7
+  reason: licence status
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Notes
+  reason: free text notes
+source_reliability:
+  identity: 0.8
+  address: 0.8
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: licence register
+source_id: bench_injfin2s_clean
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 560
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-30787b84
+    field: entity.status<-Licence Status
+    problem: An 'Expired' licence is mapped to entity.status 'deregistered'. The source says only that the licence
+      expired, not that the entity was deregistered. The mapping follows a rule-style status map, and 'Expired'
+      (e.g. LIC00135) is the only evidence, so this is a nuance.
+    severity: advisory
+    suggested_fix: Keep the mapping but note that 'deregistered' reflects licence expiry rather than entity deregistration.
+      Alternatively map 'Expired' to 'unknown' for a more conservative claim.
+  - id: c-0e141b98
+    field: entity.legal_name<-Business Name
+    problem: The column is labelled 'Business Name' rather than as a licence holder or registered name. Rule 5b
+      allows legal_name for a regulator register's licence holder, but without an explicit label confidence should
+      be 0.7 or lower. The config shows no mapping_confidence.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.7 or lower, with the basis that this is a licence register and the
+      holder is the subject.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:30:05+00:00'

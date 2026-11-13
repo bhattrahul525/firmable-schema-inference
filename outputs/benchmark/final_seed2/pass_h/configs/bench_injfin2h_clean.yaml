@@ -1,0 +1,193 @@
+what_it_is: Register of licence records (licence number, business name, ABN, suburb, state, postcode, licence status)
+  from a licensing body dataset.
+one_row_is: one licence record associated with a business
+reader:
+  format: csv
+  encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Licence No
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Business Name
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Column labelled 'Business Name' in a licence register; not explicitly the registered or licensee name,
+    so mapped as trading name at reduced confidence. Values end in 'Pty Ltd', so the name may be the registered
+    name, but the register does not label it as such.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ABN column, 11 digits, checksum validated.
+  field_confidence: 0.95
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Suburb column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State code column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Postcode
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode column.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 80
+    blank: 0
+    ok: 80
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Licence No
+  reason: Used as record_id.
+- source: Licence Status
+  reason: Status of the licence, not of the entity; entity.status would be a misinterpretation.
+- source: Notes
+  reason: Free-text notes, sparse.
+needs_transform: []
+source_reliability:
+  identity: 0.6
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Licensing register; ABNs checksum-valid (100% parse). The name column is not labelled
+  as registered or licensee name, so no legal_name is claimed. Licence status not mapped. Dataset licence unknown
+  and flagged.
+meaning_check_responses: []
+source_id: bench_injfin2h_clean
+config_version: 1
+validation_summary:
+  held_out_rows: 80
+  observations_in_held_out: 480
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-85551373
+    field: entity.legal_name<-Business Name
+    problem: The source column is literally labelled 'Business Name', and rule 5 names 'business name' as the marker
+      for trading_name. The config maps it to legal_name on the strength of the register context alone. Rule 5b
+      only permits legal_name for a holder-of-licence register at confidence 0.7 or lower, and the config states
+      no such confidence. The mapping therefore asserts a registered name the source does not state.
+    severity: blocking
+    suggested_fix: Map 'Business Name' to entity.trading_name at confidence 0.6 or lower. If the team wants legal_name,
+      it needs a column that is labelled as the licensee or registered name, or a documented 5b mapping at confidence
+      0.7 or lower with the holder basis stated.
+  - id: c-089c4159
+    field: entity.legal_name<-Business Name
+    problem: No mapping_confidence or source_reliability is given for the name claim, and the 5b holder basis is
+      only implied by the reason text.
+    severity: advisory
+    suggested_fix: Add mapping_confidence and source_reliability with a basis for the claim kind, and state explicitly
+      that the register lists the row's subject as the licence holder.
+  - id: c-6456b3ac
+    field: observation.licence
+    problem: The config does not record the dataset licence, so the envelope cannot be completed from the mapping.
+    severity: advisory
+    suggested_fix: Take the licence from the CKAN metadata, or record 'unknown' and flag it as a finding.
+  - id: c-6990568e
+    field: entity.trading_name<-Business Name
+    problem: The sample names all end in 'Pty Ltd', a registered company form. That suggests these may be registered
+      names held by a licence holder, so trading_name may understate them. Rule 5b only allows legal_name with an
+      explicit label, so trading_name is the defensible choice, but mapping_confidence should be 0.6 or lower and
+      the caveat should be recorded.
+    severity: advisory
+    suggested_fix: Keep trading_name, set mapping_confidence to 0.6 or lower, and note in the reason that the 'Pty
+      Ltd' suffix suggests the registered name and that the register does not label the column as the licensee name.
+  - id: c-d6de8da5
+    field: observation.licence
+    problem: The config does not show a licence value for the dataset, and the envelope requires one. Nothing in
+      the config states whether the source licence is known.
+    severity: advisory
+    suggested_fix: Add the dataset licence from the CKAN metadata, or record 'unknown' and flag it as a finding.
+  - id: c-4bf99a3d
+    field: record_id
+    problem: Licence No is used as the record_id, but the config does not show check_unique or a uniqueness check.
+      Its uniqueness across rows is assumed, not shown.
+    severity: advisory
+    suggested_fix: Confirm uniqueness of Licence No across the resource with check_unique, or fall back to hash_row=true
+      if duplicates exist.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:27:41+00:00'

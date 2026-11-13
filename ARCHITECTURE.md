@@ -345,7 +345,7 @@ XLS-only = 1,192. Zip only: 87 (reachable if the members are readable). XML only
 | Draw | Seed | Shortlist ranks 7-50 | Pool, stratified by format | Injection case |
 |---|---|---|---|---|
 | dev (fix against it) | 1 | 6 | 5 | 1 |
-| final (run once, unchanged) | 2 | 8 (rank 38 excluded) | 7 (one from the no-tabular group) | 1 |
+| final (run once, unchanged) | 2 | 8 (rank 38 excluded) | 7 (one from the no-tabular group; the 7th slot is a second csv) | 1 |
 
 The final draw runs once per model (Haiku and Sonnet) at a recorded commit.
 
@@ -395,7 +395,7 @@ measurements; "to measure" is filled in during the build.
 
 | Step | Command | Time | What the audience sees |
 |---|---|---|---|
-| 1 Onboard | `python -m src.part2_agent.onboard --mode agent <url or file>` (`--mode pipeline`, the round-1 pipeline, is still the default until build step 10) | target 4 min excl. download | Live trace: fetch progress, `sniff`, `read_table` headers, `profile` shapes, `try_transform` parse rates, `validate` pass, `critique` issues answered, outcome `validated_config`. For B the trace ends at `no_business_entities` with the cited evidence, and the demo stops there |
+| 1 Onboard | `python -m src.part2_agent.onboard --mode agent <url or file>` (`--mode agent` is the default; `--mode pipeline` is the round-1 pipeline) | target 4 min excl. download | Live trace: fetch progress, `sniff`, `read_table` headers, `profile` shapes, `try_transform` parse rates, `validate` pass, `critique` issues answered, outcome `validated_config`. For B the trace ends at `no_business_entities` with the cited evidence, and the demo stops there |
 | 2 Review | open `configs/<source>.review.md` | 1-2 min (human) | Fields with raw to value examples, transform level W/P/G, generated code if any, unmapped columns with reasons |
 | 3 Approve | `python -m src.part2_agent.approve <source_id>` | 1 min | One question: which numbers are wrong; approval stores the hash (covers any generated code) |
 | 4 Extract | `python -m src.engine.extract <source_id>` | target under 10 s | Rows, observations, rejects with reasons |

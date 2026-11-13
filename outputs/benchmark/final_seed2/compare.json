@@ -1,0 +1,331 @@
+{
+ "datasets": [
+  {
+   "dataset_id": "datagovau:asic-smsf",
+   "title": "ASIC \u2013 Self-Managed Super Fund Auditor Dataset",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "7",
+    "s": "7"
+   },
+   "flags": {
+    "h": "NI",
+    "s": "NI"
+   }
+  },
+  {
+   "dataset_id": "sa:sacommunitydirectory",
+   "title": "SA Community Directory",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "partial_config"
+   },
+   "mapped": {
+    "h": "7",
+    "s": "6"
+   },
+   "flags": {
+    "h": "NI",
+    "s": "NI"
+   }
+  },
+  {
+   "dataset_id": "qld:queensland-government-arrangements-directory-supplier-procurement-arrangements",
+   "title": "Queensland government arrangements directory\u2014supplier procurement arrangements",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "1",
+    "s": "1"
+   },
+   "flags": {
+    "h": "N-",
+    "s": "-I"
+   }
+  },
+  {
+   "dataset_id": "qld:dcdss-contract-disclosure-1-july-2020-31-december-2020",
+   "title": "DCDSS Contract Disclosure 1 July 2020 - 31 December 2020",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "could_not_read",
+    "s": "could_not_read"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "qld:consultancies-and-contractors-office-of-the-information-commissioner",
+   "title": "Consultancies, contractors and Contracts over 10K  - OIC",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "3",
+    "s": "3"
+   },
+   "flags": {
+    "h": "NI",
+    "s": "NI"
+   }
+  },
+  {
+   "dataset_id": "datagovau:asic-banned-disqualified-org",
+   "title": "ASIC - Banned and Disqualified Organisations Dataset",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "2",
+    "s": "2"
+   },
+   "flags": {
+    "h": "NI",
+    "s": "NI"
+   }
+  },
+  {
+   "dataset_id": "qld:temporary-emissions-licences-tel",
+   "title": "Temporary emissions licences (TEL)",
+   "format_class": "xlsx",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "1",
+    "s": "1"
+   },
+   "flags": {
+    "h": "N-",
+    "s": "N-"
+   }
+  },
+  {
+   "dataset_id": "sa:ict-contract-usage-guidelines",
+   "title": "ICT Contract Usage Guidelines",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "validated_config",
+    "s": "validated_config"
+   },
+   "mapped": {
+    "h": "1",
+    "s": "1"
+   },
+   "flags": {
+    "h": "N-",
+    "s": "N-"
+   }
+  },
+  {
+   "dataset_id": "sa:2020-21-number-of-food-businesses-in-sa-per-risk-classification",
+   "title": "2020-21 Number of Food Businesses in SA per Risk Classification",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "sa:annual-report-cbs",
+   "title": "Annual Report CBS",
+   "format_class": "xlsx",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "vic:taxi-industry-statistics",
+   "title": "Taxi Industry Statistics",
+   "format_class": "xls",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "sa:corrosion-environment-areas",
+   "title": "Corrosion Environment Areas",
+   "format_class": "json",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "nsw:water-modelling-modelled-data-annual-permitted-take-apt-murrumbidgee",
+   "title": "Water Modelling-Modelled Data-Annual Permitted Take (APT)-Murrumbidgee",
+   "format_class": "zip",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "datagovau:data-collected-on-voyages-of-australian-antarctic-program-vessels-in-the-southern-ocean-2021-20",
+   "title": "Data collected on voyages of Australian Antarctic Program vessels in the Southern Ocean - 2021-2022 onwards.",
+   "format_class": "no-tabular",
+   "outcomes": {
+    "h": "could_not_read",
+    "s": "could_not_read"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  },
+  {
+   "dataset_id": "vic:summary-residential-community-emissions",
+   "title": "Summary Residential and Business  Community Emissions",
+   "format_class": "csv",
+   "outcomes": {
+    "h": "no_business_entities",
+    "s": "no_business_entities"
+   },
+   "mapped": {
+    "h": "0",
+    "s": "0"
+   },
+   "flags": {
+    "h": "--",
+    "s": "--"
+   }
+  }
+ ],
+ "totals": {
+  "h": {
+   "model": "claude-haiku-5-5",
+   "runs": 15,
+   "coverage": {
+    "validated": 7,
+    "both": 4,
+    "name_only": 3,
+    "identifier_only": 0,
+    "neither": 0,
+    "identifier_unverified": 1
+   },
+   "outcomes": {
+    "validated_config": 7,
+    "could_not_read": 2,
+    "no_business_entities": 6
+   },
+   "cost_usd": 0.0918,
+   "mean_cost_usd": 0.0061,
+   "mean_agent_seconds": 28.6,
+   "mean_turns": 8.3
+  },
+  "s": {
+   "model": "claude-sonnet-5-5",
+   "runs": 15,
+   "coverage": {
+    "validated": 6,
+    "both": 3,
+    "name_only": 2,
+    "identifier_only": 1,
+    "neither": 0,
+    "identifier_unverified": 1
+   },
+   "outcomes": {
+    "validated_config": 6,
+    "partial_config": 1,
+    "could_not_read": 2,
+    "no_business_entities": 6
+   },
+   "cost_usd": 1.1403,
+   "mean_cost_usd": 0.076,
+   "mean_agent_seconds": 19.4,
+   "mean_turns": 6.3
+  }
+ },
+ "by_model": {
+  "claude-haiku-5-5": {
+   "passes": [
+    "h"
+   ],
+   "runs": 15,
+   "cost_usd": 0.0918,
+   "mean_cost_usd": 0.0061,
+   "mean_agent_seconds": 28.6,
+   "mean_turns": 8.3
+  },
+  "claude-sonnet-5-5": {
+   "passes": [
+    "s"
+   ],
+   "runs": 15,
+   "cost_usd": 1.1403,
+   "mean_cost_usd": 0.076,
+   "mean_agent_seconds": 19.4,
+   "mean_turns": 6.3
+  }
+ },
+ "passes": [
+  "h",
+  "s"
+ ],
+ "agreement": {}
+}

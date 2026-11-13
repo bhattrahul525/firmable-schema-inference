@@ -159,4 +159,45 @@ Build notes: the uncompilable-pattern crash in `regex_extract` is fixed in the s
 ## Step 6B: Business Names row filter (2026-11-13)
 Owner decisions (final), from reviews/step6_plan.md: 1=B filter keys are ABN + name key; 2=B T3c disabled (a second Business Names hit is not independent), T3 kept, no-ABN links hand-judged; 3=A agent onboarding; 4=A trimmed result committed with attribution. Companies register, T1r and T3c are designed, not built; offline fallback is Business Names only and outputs must say Companies and ABR features are absent.
 - `keep_where` (column, equals) is an explicit row-filter condition; `BN_STATUS == Registered` is applied there and is NOT mapped to entity.status. The approved-style config has no `keep_where` key (configs are agent-written, never hand-edited), so it is passed as `--keep-where`; the filter also reads a `keep_where:` from the config if an agent ever writes one.
-- Name key = the matcher's `name_core` (legal and trading names of every mention), no state: the register's state is where the name is registered, not the holder's address. Result: 12,145 of 3,312,255 rows kept in ~17 s (`docs/runbook.md`).
+- Name key = the matcher's `name_core` (legal and trading names of every mention), no state: the register's state is where the name is registered, not the holder's address. Result: 3,867 of 3,312,255 rows kept in ~17 s (`docs/runbook.md`).
+
+## Step 7b1: reference sources, Business Names lookups, generic-name threshold (2026-11-13)
+- `configs/reference_sources.yaml` (hand-written, R1) lists reference registers; `load_mentions` skips them; the row filter reads path and `keep_where` from it (CLI flags override). Supersedes the "pass --keep-where" note in step 6B.
+- Holder uniqueness (R4): holders = distinct valid ABNs, each blank-ABN row its own holder; a name with more than one holder is refused. Over the 5,224 distinct mention names (legal + trading, normalised): 961 hit exactly one holder, **14 refused** (more than one holder).
+- State / postcode derived from `address.full` (L1, only where the source gave none; a state is never inferred from a postcode): 86 mentions gain a state, 1,056 a postcode (mostly the WA tender addresses, which end in a bare postcode). This changes matcher inputs (postcode/state evidence) only when Part 3 is re-run in 7b2.
+- **GENERIC_MIN_WEIGHT = 14.02**, set before any labels were viewed. Summed IDF weight of the normalised name (suffix words dropped) over the 5,224 distinct mention names: min 5.56, p5 14.02, p10 14.66, median 23.23. So about 5% of mention names count as generic. The weights depend on the IDF corpus, so the threshold is a version-stamped constant: rebuild the cache and the weights move.
+
+## Step 7b2: matcher m2.0 (2026-11-13)
+- **NAME_AGREE_MIN = 0.6**, hand-set, never tuned against labels: two names agree when their rarity-weighted overlap (idf.py) is at least 0.6, or they share an exact trading name, or their normalised names are equal.
+- Tiers: T1 0.98 (equal ABN/ACN, names agree), T1r 0.95 (equal ABN, names differ, one name is a Registered Business Names name under that ABN; **the register confirms one side only**, weaker than the design), T2 0.88, T3 register name bridge 0.65 (loose, never promoted, T3c off), T4 exact name + postcode / state 0.70, + both companies 0.65 (loose, not promoted). Register ABN match with agreeing names = T1_register_abn 0.98. An ABN whose config evidence is `unverified` caps a link at 0.79 (none triggered in this run).
+- Refusals: identifier match with names in conflict, name matching more than one holder, generic name (GENERIC_MIN_WEIGHT 14.02), different ABNs, person-like names without an equal ABN.
+- Register records have stable ids `bn:<state of registration>:<BN_STATE_NUM>` (hash fallback when the number is blank) and never join a cluster.
+- m1.x T3 name-only tiers became m2.0 T4 (the rekey guard now covers T3 and T4). The old m1.0 "name too short" rule is replaced by the IDF generic-name rule.
+- Result of the first m2.0 run is in outputs/part3/summary.json. R8 label check found a demotion (see the 7b2 report): STOPPED for a planning decision.
+
+
+Check 8 (Cantel Australia -> Steris Australia, labelled Y) is refused by m2.0: equal ABN, names share only
+a generic word, and no Business Names name under that ABN confirms the rename (Companies and ABR are cut).
+Accepted as the cost of the reduction: renames with no register name history are refused. Recall loss, not
+a precision error. The label is not edited. The rescore gate (7c) reports such pairs through a hand-written
+allow-list, handcheck/accepted_conflicts.csv (pair id, reason, date). Mention in the write-up.
+## Step 7c: graph and rescore gate (2026-11-13)
+- Graph (`src/part3_resolve/graph.py`, outputs/part3/graph_nodes.jsonl + graph_edges.jsonl): nodes mention / register / person / entity (entities are derived components of ACCEPTED same_as edges, recomputed each build). Edges `same_as` (the m2.0 link table) and `nominee_of`. `edge_id` = hash of type + endpoints, NOT the matcher version, so a re-score keeps the id and `previous` records the earlier tier/band (read from the graph file being replaced).
+- `nominee_of`: a person-like mention with an ABN that is shared with a company-like mention (the QBCC pattern), one edge per distinct company name under that ABN. Hand-set relationship score 0.70 (loose, not calibrated). A person-like mention with NO ABN gets no nominee edge (nothing to anchor it to). renamed_to and trustee_for not built.
+- Labels are keyed by `pair_id` (record level; final label = `my_label` in part3_verify.csv, else `label` in part3_link_check.csv). `handcheck/accepted_conflicts.csv` (hand-written) holds the check-8 pair.
+- Rescore gate: refuses to write the rescored links when a human Y would be demoted or an N promoted, unless the pair is allow-listed (then reported). Old links lacking the features a matcher needs are counted as `not_rescoreable`. Consequence: the 420 round-1 (m1.2) links cannot be re-scored to m2.0; only m2.0 links can be rescored by later versions.
+
+## Step 7d: graph-based profiles (2026-11-13)
+- `src/part4_profiles/profiles.py` builds profiles from the m2.0 graph (round-1 `build.py` is untouched and still reads the old link shape; it would fail on register links, so do not re-run it as is). `show.py` reads `outputs/profiles/graph_profiles.jsonl` only.
+- A profile = connected component of same_as edges of any band; trust = weakest band. Types: `cross_source` (2+ mention sources) and `single_source_register_confirmed` (one source + Business Names record, which is never a second source). Person-only components: no profile.
+- Field choice (owner rule): score = field_confidence x source_reliability (the claim kind's reliability the observation carries, so address fields use the address reliability, not `identity`); highest wins; equal top scores = all shown, none chosen. Replaces the round-1 "more sources agree" step in the new profiles.
+- **Open (needs a planning decision):** a component whose members carry more than one ABN (1 component: two mentions and one register record joined by two loose T3 name bridges) is skipped and counted, not profiled. The skip is the conservative default, copied from the round-1 builder's "ambiguous loose group" rule; ARCHITECTURE does not say what to do.
+
+## Step 7e2: blank-ABN register bridge rule (2026-11-13)
+- Found by the 7e check: one loose component held two mentions with different ABNs (both bridged by name to one register record with no ABN). m2.0 now refuses every bridge to a blank-ABN register record when the bridged mentions carry different valid ABNs (`register_bridge_different_abns`; a mention with no ABN does not count as different, but is refused too when the others differ, since it would join the two). The flag `bridge_abn_conflict` is stored on each link's features, so the scorer stays pure. Accepted edges are never touched (no accepted edge joins different ABNs).
+- graph.py now checks ALL same_as edges for components with more than one ABN and writes the offenders to outputs/part3/graph_checks.json (0 after the rule).
+
+## Final-review items (2026-11-13)
+- 16. The write-up must state plainly that m2.0 link precision rests on the 18 new step 8 labels (reviews/step8_results.md) plus the few round-1 labels that carried over; the brief asked for 50 at a stated threshold. Loose band: 4 Y / 5 N (0.44).
+- 17. The 7d item "skip a component with more than one ABN" is closed as moot: after 7e2, graph_checks.json shows 0 offenders.
+- Final draw shape: 8 shortlist + 7 pool (5 format classes, one no-tabular, a second csv in a different family). Per-run limit stays $0.50, as in the dev passes; the system prompt tells the model "$1.00" regardless of the cap, so the model's view of its budget differs from the enforced one.

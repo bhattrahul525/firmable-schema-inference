@@ -1,0 +1,233 @@
+what_it_is: ASIC register of approved SMSF auditors with conditions and capacities
+one_row_is: one attribute (condition or capacity) of an auditor
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+  delimiter: "\t"
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: SMSF_REG_DT
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+fields:
+- source: SMSF_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Regulator register; holder of auditor registration
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_PERSON_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: auditor ABN
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 254
+    ok: 46
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_STATUS
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Registered: active
+      Suspended: suspended
+  group: main
+  mapping_confidence: 0.9
+  reason: registration status
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_REG_DT
+  canonical: entity.date_registered
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+  group: main
+  mapping_confidence: 0.9
+  reason: registration date
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: locality
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_POST_CODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: postcode
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: state
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: REGISTER_NAME
+  reason: constant register label
+- source: SMSF_NUM
+  reason: auditor number, no ontology field
+- source: SMSF_SUSP_START_DT
+  reason: suspension dates not mapped
+- source: SMSF_SUSP_END_DT
+  reason: suspension dates not mapped
+- source: SMSF_ATTRIBUTE_TYPE
+  reason: row type
+- source: SMSF_CAPACITY
+  reason: no field
+- source: SMSF_CONDITION_NUMBER
+  reason: no field
+- source: SMSF_CAPACITY_FIRM_NAME
+  reason: employer firm, not the entity
+- source: SMSF_CAPACITY_START_DT
+  reason: no field
+- source: SMSF_CONDITION
+  reason: no field
+- source: SMSF_CONDITION_DTL
+  reason: no field
+- source: SMSF_CONDITION_START_DT
+  reason: no field
+source_reliability:
+  identity: 0.9
+  address: 0.8
+  classification: 0.8
+  contact: 0.5
+source_reliability_basis: ASIC regulator register
+source_id: bench_fin2s_01
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 2146
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-17b0802f
+    field: valid_from
+    problem: valid_from is mapped from SMSF_REG_DT, the same column as entity.date_registered. The column does state
+      when the auditor's registration started, so this is supported, but it duplicates date_registered. Registration
+      start is not necessarily when the name, ABN or address became true.
+    severity: advisory
+    suggested_fix: Keep it if registration start is accepted as valid_from. Otherwise drop valid_from and keep only
+      entity.date_registered.
+  - id: c-0e8281b3
+    field: entity.status<-SMSF_STATUS
+    problem: map_values covers only Registered and Suspended. Other values the register may hold (e.g. Removed,
+      Disqualified, Cancelled) are unmapped and would be lost.
+    severity: advisory
+    suggested_fix: Add mappings for every status value in the profile that has a clear meaning, e.g. a cancelled
+      or removed status mapped to deregistered.
+  - id: c-aaf21a45
+    field: entity.legal_name<-SMSF_NAME
+    problem: Under rule 5b a regulator register without an explicit label for the name column should have mapping_confidence
+      of 0.7 or lower. The reason cites a regulator register and holder of auditor registration, but SMSF_NAME carries
+      no explicit registered-name label.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.7 or lower for SMSF_NAME.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:28:26+00:00'
