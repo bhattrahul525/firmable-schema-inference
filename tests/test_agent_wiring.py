@@ -249,8 +249,8 @@ class TestOutcomesAndHooks(Wiring):
         issue = {"field": "entity.legal_name", "problem": "p", "suggested_fix": "f"}
         with mock.patch("src.part2_agent.agent_hooks.llm.call", FakeCritic([issue])):
             res = self.agent(front() + [t("validate", {"config": CFG}), t("critique", {"config": CFG}),
-                                        t("finish", {"outcome": "validated_config", "config": CFG})]).run()
-        self.assertEqual(res.outcome, "validated_config")                    # the agent's own finish was accepted
+                                        *[t("finish", {"outcome": "validated_config", "config": CFG})] * 3]).run()
+        self.assertEqual(res.outcome, "needs_review")                        # accepted on the third try, issue still open
         self.assertNotIn("entity.legal_name", [f["canonical"] for f in res.config["fields"]])
         self.assertTrue(any("blocking critique issue unanswered" in a["reason"] for a in res.abstentions))
 

@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.12
+Version: 2.14
 Last updated: 2026-11-13
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -72,7 +72,7 @@ spend never changes the round-1 figures quoted in the first submission.
 | `profile` | Per-column fill, distinct count, shapes, over training rows | 60 columns; distinct counts above 200k marked `capped` |
 | `check_unique` | Uniqueness of named columns over training rows (streamed; 128-bit key digests, so a collision is not a practical concern) | one answer |
 | `sample` / `search` | Rows by strategy (head, spread, random, by_column) or regex, from the training partition only | 30 / 10 rows |
-| `try_transform` | Real engine on up to 1,000 TRAINING rows (spread): parse rate and rejects. Level W only until build step 4 adds P | 5 examples |
+| `try_transform` | Real engine on up to 1,000 TRAINING rows (spread): parse rate and rejects. Levels W and P (step 4a; optional `when`); level G is step 4 | 5 examples |
 | `define_transform` | Level-G generated transform (section c) | 40 lines of code |
 | `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file (unaccounted columns, `record_id` uniqueness), an EVIDENCE state per mapped field and envelope setting (`held_out` / `training` / `unverified`; step 3b item C — see below), and meaning warnings when an ABN / ACN field fails its checksum on more than 2% of judged values (a column mixing real identifiers with look-alikes of the same length), when a MAPPED column has a generated placeholder header (`_blank_N`, `Unnamed`: the header rows may be misread; the text names `skip_rows`, `header_rows` and `skip_rows_after_header`), and when `header_rows` is 0 and the first data row looks like a misread header (`header_like_first_row`: distinct all-text cells, most columns below them numeric or date-like) | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
 | `critique` | Separate model call, fresh context: raw rows beside their observations, reviewed against the SAME mapping rules text the agent has (`agent_prompt.MAPPING_RULES`). The config summary it sees includes `valid_from` / `valid_to` / `needs_transform` (step 3b item D2); for a field with no populated example among the sampled rows, up to 2 populated TRAINING rows are added, marked as such | 10 examples |
@@ -83,7 +83,7 @@ spend never changes the round-1 figures quoted in the first submission.
 - `fetch` accepts no argument except `resource_index`; a URL or path found inside a cell is never fetched.
 - The held-out split is made when a table is first read (a seeded reservoir of up to 300 rows, or half the rows if fewer than 600) and is stored as row FINGERPRINTS (a hash of the raw cells), so a later read with other options still excludes them. `read_table` (first rows), `sample`, `search`, `profile`, `check_unique` and `try_transform` see training rows only; only `validate`, `critique` and the harness's own hooks read held-out rows. If the first read was a wrong parse and fewer than half the fingerprints match a later parse, the split is re-made and the tool says so. Identical rows share a fingerprint, so copies of a held-out row are all held out. `validate` shows example values on its first call only (later calls: counts, with raw values scrubbed from reject reasons), which limits what repeated calls can reveal (counts still carry some information; the cap bounds it).
 - **Protected top rows (step 3b, item B).** The first 12 raw rows of the file (`PROTECTED_ROWS`, a layout-free read so it holds whatever `skip_rows` / `header_rows` end up being) are NEVER candidates for the held-out set; a data row identical to one of them is protected too. This closes two leaks found in the dev draw: a title or the real header row could land in the held-out set and be hidden from the agent for the whole run, and `sniff` already showed the first 12 raw lines regardless of the split, so a row shown there could later be tested as "unseen". `read_table` always returns these 12 rows as `raw_top`, numbered as `skip_rows` counts them, on success and on a failed read; no prompt hint and no finish gate enforce this (a hint already existed and Sonnet never followed it). A file with fewer than 10 rows eligible after the top is protected gets NO held-out split at all (`held_fp` empty); its fields are judged on training evidence instead (item C) and the packet says so.
-- Every tool has a per-call time limit (`ToolSpec.timeout_seconds`, default 60 s; sniff and list tools 20-30 s, `critique` 150 s). `fetch` (a download) and `ask_human` (a human) have none. On POSIX in the main thread a SIGALRM timer interrupts the tool, including a runaway regex (measured: `(a+)+$` was stopped at the limit); everywhere the row loops also check a cooperative deadline. A timeout is an error result. On Windows only the cooperative check exists, so a catastrophic regex is not interrupted there.
+- Every tool has a per-call time limit (`ToolSpec.timeout_seconds`, default 60 s; sniff and list tools 20-30 s, `critique` 150 s). `fetch` (a download) and `ask_human` (a human) have none. On POSIX in the main thread a SIGALRM timer interrupts the tool, including a runaway regex (measured: `(a+)+$` was stopped at the limit); everywhere the row loops also check a cooperative deadline. A timeout is an error result. On Windows only the cooperative check exists, so a catastrophic regex is not interrupted there. A regex in a config (`regex_extract`, `regex_replace`, `when.matches`) also runs under its own 1 s per-value timer, nested inside the tool timer (same Unix-only limit), see section c.
 - `finish` runs `validate` ITSELF (code) on the submitted config, so "validate has not run" is never a refusal reason; it
   refuses only if validation fails. It also needs a `critique`, with one exception, the NARROWING rule: a config that only
   removes fields, abstains fields or moves columns to `unmapped` compared with a critiqued config needs no new critique (it
@@ -101,11 +101,14 @@ spend never changes the round-1 figures quoted in the first submission.
   support) or `advisory` (everything else; the critic is told to choose advisory when unsure, and that a mapping which follows a written mapping rule is not blocking because of a caveat about some values). At a forced end only fields
   with a blocking issue are abstained; fields that pass validate with only advisory issues stay and the issues go in the
   packet. An issue with no severity counts as blocking. The same rule holds at an ordinary `finish`: every BLOCKING issue must
-  be fixed or answered in `answers` or its field is abstained by code (the finish is still accepted: `validated_config`); unanswered ADVISORY issues
+  be fixed or answered in `answers`, or the finish is REFUSED with the issue text (2 such refusals per run; they do not count toward
+  "refused twice in a row"). The next finish is then accepted with outcome `needs_review` and the field abstained by code;
+  `approve` refuses a `needs_review` config unless `--allow-needs-review` is passed (the outcome is stored in
+  `validation_summary.outcome`). Unanswered ADVISORY issues
   leave the field in place and are listed in the packet and in the finish event's `open_advisory`. After code abstains fields the
   harness re-validates (code) but does not re-critique: removing fields cannot add an error.
-- **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate (fields
-  left out are in `unmapped` or `abstentions`, including fields code abstained for an unanswered blocking issue). `partial_config`
+- **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate with no blocking issue open (fields
+  left out are in `unmapped` or `abstentions`). `needs_review` = the gate accepted a finish only after refusing it twice for open blocking issues (the fields are abstained). `partial_config`
   = the HARNESS ended the run (turns, dollars, time, repeated refusals) and at least one field passed validate. `incomplete` =
   the harness ended it and no field did, or no config existed. The model can declare only `validated_config`,
   `no_business_entities` and `could_not_read`. How much a config covers is a separate measure (benchmark columns
@@ -145,7 +148,8 @@ spend never changes the round-1 figures quoted in the first submission.
   `held_out` (5 or more judged values on held-out rows: no cap beyond the usual parse-rate floor); `training` (fewer
   on held-out, but 5 or more over held-out plus training rows combined: same 90% floor on the combined rate, hard
   failure below it, `field_confidence` capped at 0.8); `unverified` (fewer than 5 judged values anywhere in the file:
-  capped at 0.5, already below Part 4's 0.6 low-trust line, hard failure only if no value ever parses). Training
+  capped at 0.5, already below Part 4's 0.6 low-trust line, hard failure only if no value ever parses). A fourth state, `asserted` (step 4a), is set for a `constant` field: its value is
+  stated by the config, so its 100% parse rate is not evidence; capped at 0.5. Training
   evidence is scanned only for fields the held-out rows cannot judge alone, through the same `apply_transforms` +
   ontology-guard path the engine uses. The config, the packet ("Fields without enough held-out evidence", with
   whole-file counts and training examples), the review sheet and the benchmark (`fields_training_evidence`,
@@ -202,8 +206,17 @@ never creates an `approval.json` (it only resets an existing one); only `approve
 | Level | What | Notes |
 |---|---|---|
 | W | The existing 12 whitelisted transforms | |
-| P | Parametric primitives: `regex_extract`, `regex_replace`, `template`, `map_values`, `split`, `constant` | `constant` tagged L3, capped at 0.6, allowed only for `address.state` and `address.country` |
+| P | Parametric primitives: `regex_extract`, `regex_replace`, `template`, `map_values`, `split`, `constant`; also any field with a `when` (step 4a) | `constant` tagged L3, evidence `asserted`, capped at 0.5 (under Part 4's 0.6 line), allowed only for `address.state` and `address.country`, as the field's only transform, with one anchor column |
 | G | Generated Python | Accepted only after `try_transform` shows W and P stay below 90% parse rate |
+
+Step 4a rules (code, `src/engine/transforms.py`, `config.py`, `extract.py`): text in a `template` or `repl` may hold separators and
+group references only, never a letter or digit, so neither can write a word the source does not hold; a `template` with some parts
+blank is rejected (`template_missing_part`), all blank is absent. Regex safety: pattern a string of at most 200 characters that
+compiles (config time, a structural error); at run time one 1 s timer per value (SIGALRM, Unix main thread only, nested inside
+the tool timer, which wins if it would fire first), a timeout is `Reject("regex_timeout")`, a pattern is switched off after 20
+timeouts, an uncompilable pattern is `Reject("bad_pattern")`, never a crash. `when` on a field: `{"column", "equals": [..]}` or
+`{"column", "matches": regex}`, judged per row alone (no order); not met = skip `when_not_met`, not a reject, not in the parse
+rate; it is part of the field's definition for the critique gate.
 
 Preference order is W, then P, then G. The packet shows the level per field; the benchmark reports how often G was
 needed. Recurring G transforms are listed by a `promote` report for the human to move into the whitelist.
@@ -405,11 +418,11 @@ measurements; "to measure" is filled in during the build.
 2. Tools and parametric readers (incl. xls).
 3. Benchmark harness, injection case, dev draw and fixes.
 4. Primitives, sandbox, custom execution, tests.
-   4a. OPEN ITEM, not built: a CONDITIONAL mapping, "apply this mapping only where another column equals a value" (and its
+   4a. BUILT (v2.13; scope: the three transforms `regex_replace`, `template`, `constant` and the condition are all 4a; step 4 keeps level G): a CONDITIONAL mapping, "apply this mapping only where another column equals a value" (and its
    `try_transform` / `validate` support). The dev draw found a mixed identifier column: real ABNs for the rows a second column
    labels as ABN, look-alike internal ids of the same length for the rest. Without a condition the look-alikes that fail the
    checksum are rejects and about 1 in 89 of them passes by chance as a false ABN (about 0.05% of that file's ABN observations);
-   today validate only warns (round-3 identifier-checksum warning).
+   the identifier-checksum warning (round 3) now names `when` as the fix.
 5. Re-onboard the six, your approvals, extract. The step 3b `valid_from` / `valid_to` strict rule (section b) changes
    what two round-1 configs produce (a contract-dates config loses that mapping); the reject-file difference it makes
    is measured here, not before.
@@ -474,3 +487,5 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.10 | Round-3 review changes: after the last critique `mapping_confidence` may go down but not up (a raise needs a critique); the critic reviews against the same mapping rules text as the agent (`MAPPING_RULES`) and is told a mapping that follows a written rule is not blocking for a caveat; business-entity rule 18 (organisations of any entity_type, including schools, charities and government bodies; `no_business_entities` is for people, places, assets, events, measurements); benchmark `has_name` / `has_identifier`, coverage counts and self-agreement; injection verdict by canary checks only (comparison is information); validate warns when an ABN / ACN field fails its checksum on more than 2% of judged values | Review of dev draw c and s: a name column kept as legal_name, a mixed-identifier column read as ABN, two clean runs of one file differing |
 | 2026-11-12 | 2.11 | Rule 18 amended to section d (a person-like name WITH ITS OWN valid ABN may be an entity; `no_business_entities` is for rows that are neither organisations nor such individuals), wording shared with this document and guarded by a test; name rule next to rule 5 (an unlabelled name column maps to `trading_name` at 0.6 or lower, never left unmapped for that); validate warns on a mapped placeholder header (`_blank_N`, `Unnamed`); step 4a open item recorded (conditional mapping for a mixed identifier column) | Dev draw d: the first wording of rule 18 sent a file of individual sole traders to `no_business_entities` |
 | 2026-11-13 | 2.12 | Step 3b (reviews/step3b_plan.md) built: (C) three evidence states per mapped field / envelope setting (`held_out`/`training`/`unverified`), capped at 0.8/0.5, computed by code, not a model statement; (B) the first 12 raw rows of a file are never held out, `read_table` returns them as `raw_top`, a too-small file gets no held-out split; (A) `skip_rows_after_header` reader option; (E) the packet shows the raw top rows and the layout in code's words, plus a `header_like_first_row` warning; no model-written column labels; (D) `valid_from`/`valid_to` get the same stats/reject tracking as a field, shown in the packet and the critic's config summary, abstained by deleting the key, and mapped only from the entity's own registration/licence/status date (reverses one round-1 config's practice, effective only on re-onboarding at step 5); (F) a register exception added to rule 5 (prompt wording only; a code cap on the confidence and header word lists are deferred); (G) `llm.chat` requests `display: "summarized"` thinking (confirmed live on both models, no extra token cost), shown in the replay line. DEFERRED, not built: the F code cap, an ABN-evidence rule for Part-3 linking (item C) | Planning session (reviews/step3b_plan.md) found: a run's held-out split hid the real header from the agent; a sparse ABN column passed validation with no evidence; `valid_from`/`valid_to` were invisible to the critic and the packet; an individual-register name rule conflicted with rule 5; the trace's thinking text was empty because display was never requested |
+| 2026-11-13 | 2.13 | Step 4a (reviews/step4a_plan.md) built: `regex_replace`, `template`, `constant` and the per-field `when` condition; regex safety (200 chars, compile check, 1 s per-value timer, switch-off after 20, `bad_pattern` instead of a crash); literal text in `template` / `repl` is separators only; template with a blank part is rejected; `constant` capped at 0.5 (was 0.6) with evidence `asserted`; `try_transform` takes `when`; rule 19; scope: all four items are 4a (section i), step 4 keeps level G | Owner decisions 1-5 on the 4a plan |
+| 2026-11-13 | 2.14 | Blocking-issue finish gate: a finish with an open BLOCKING critique issue is refused with the issue text (2 per run, not counted toward "refused twice in a row"); the next is accepted as outcome `needs_review` (fields abstained by code, `validation_summary.outcome` stored); `approve` refuses `needs_review` unless `--allow-needs-review` | Step 5 re-runs ended `validated_config` with blocking issues still in the config |

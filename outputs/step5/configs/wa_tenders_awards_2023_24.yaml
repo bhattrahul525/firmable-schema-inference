@@ -1,0 +1,189 @@
+what_it_is: WA government tender contract award records 2023-24 listing the awarded supplier, supplier address and
+  contract details, published by WA tenders.
+one_row_is: 'one contract award line: a public authority''s tender reference and one awarded supplier'
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier_Name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: Column is the awarded supplier's name in a tender award register; it is the supplier's name as the source
+    records it. Parenthetical text is left as published.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Supplier_Address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Supplier address column, same row as Supplier_Name.
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Public_Authority
+  reason: government buyer; not the supplier entity
+- source: Public_Authority_Address
+  reason: address of the government buyer, not the supplier
+- source: Title
+  reason: contract description
+- source: Reference_Number
+  reason: tender reference
+- source: Description
+  reason: contract description
+- source: Type_of_Work
+  reason: procurement type
+- source: Procurement_Method
+  reason: procurement process attribute
+- source: Associated_With_Tender
+  reason: related tender text
+- source: UNSPSC_Code_1
+  reason: contract goods/services code, not supplier ANZSIC
+- source: UNSPSC_Title_1
+  reason: contract classification
+- source: UNSPSC_Percent_1
+  reason: share of contract
+- source: UNSPSC_Code_2
+  reason: contract classification
+- source: UNSPSC_Title_2
+  reason: contract classification
+- source: UNSPSC_Percent_2
+  reason: share of contract
+- source: UNSPSC_Code_3
+  reason: contract classification
+- source: UNSPSC_Title_3
+  reason: contract classification
+- source: UNSPSC_Percent_3
+  reason: share of contract
+- source: Gascoyne
+  reason: delivery region flag
+- source: Goldfields_Esperance
+  reason: delivery region flag
+- source: Great_Southern
+  reason: delivery region flag
+- source: Kimberley
+  reason: delivery region flag
+- source: Mid_West
+  reason: delivery region flag
+- source: Peel
+  reason: delivery region flag
+- source: Perth_Metropolitan
+  reason: delivery region flag
+- source: Pilbara
+  reason: delivery region flag
+- source: South_West
+  reason: delivery region flag
+- source: Wheatbelt
+  reason: delivery region flag
+- source: State_Wide
+  reason: delivery region flag
+- source: Interstate
+  reason: delivery region flag
+- source: International
+  reason: delivery region flag
+- source: Number_of_Submissions
+  reason: tender statistic
+- source: Panel_Contract
+  reason: contract attribute
+- source: Contract_Term
+  reason: contract attribute
+- source: Closing_Date
+  reason: tender event date
+- source: Award_Date
+  reason: contract event date
+- source: Commencement_Date
+  reason: contract term date
+- source: Initial_Expiry_Date
+  reason: contract term date
+- source: Final_Expiry_Date
+  reason: contract term date
+- source: Original_Contract_Value
+  reason: contract value
+- source: Original_Contract_Value_Type
+  reason: contract value type
+- source: CUA_Number
+  reason: common use arrangement reference
+needs_transform: []
+source_reliability:
+  identity: 0.7
+  address: 0.6
+  classification: 0.3
+  contact: 0.4
+source_reliability_basis: Official WA government tender award publication; supplier names as reported by agencies,
+  not checked against registers; no ABN supplied.
+meaning_check_responses: []
+source_id: wa_tenders_awards_2023_24
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 900
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-354f4f86
+    field: entity.legal_name<-Supplier_Name
+    problem: Several Supplier_Name values pair a trading-style name with a parenthetical registered-style name,
+      e.g. 'Programmed Property Services (Programmed Property Services Pty Ltd)', 'My Home Care (MyHomecare Pty
+      Ltd)' and 'Talent International (Talent International Pty Ltd)'. The whole string is mapped to legal_name,
+      so the outer name is presented as the registered name. The source does not say which part is registered.
+    severity: advisory
+    suggested_fix: Keep the mapping (the column is the awarded supplier's name, which rule 5 allows), but record
+      a caveat that the value may combine a trading name and a registered name. If the split is needed later, add
+      a transform that splits the parenthetical, or map the outer part to trading_name at 0.6 or lower after such
+      a transform exists (needs_transform).
+  - id: c-dbd49edd
+    field: entity.legal_name<-Supplier_Name
+    problem: Some values are abbreviated or carry a trustee designation rather than a plain registered name, e.g.
+      'Progenesis Holdings P/L' and 'DFP Recruitment Services (DFP Recruitment Services Pty Ltd ATF The DFP Business
+      Trust)'. 'ATF' means the company acts as trustee, so the trust is not the supplier itself.
+    severity: advisory
+    suggested_fix: Keep the mapping as published, since the source does not give a registered form. Add a note that
+      'P/L' is an abbreviation and that 'ATF' indicates a trustee capacity, and do not infer entity_type from these
+      strings.
+  - id: c-bd51232c
+    field: address.full<-Supplier_Address
+    problem: The raw value 'Level 5, 25 Walters Drive, Osborne Park, OSBORNE PARK, 6017' repeats the locality, and
+      clean_whitespace does not address this. The mapping keeps the duplication as published.
+    severity: advisory
+    suggested_fix: This is acceptable under the rule against cleaning beyond the transforms. Note the duplicated
+      locality as a known quirk. Do not remove it unless a transform for that exists.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T01:13:33+00:00'

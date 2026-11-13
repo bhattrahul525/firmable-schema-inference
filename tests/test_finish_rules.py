@@ -165,11 +165,12 @@ class TestNarrowingRule(unittest.TestCase):
 
     def test_issues_about_a_removed_field_no_longer_apply_but_others_do(self):
         g, c = FinishGate(), cfg("a", "b")
+        g.blocking_refusals = 2                                                      # the two allowed blocking refusals are used up
         critiqued(g, c, [issue("entity.a<-a", "blocking", "1"), issue("entity.b<-b", "blocking", "2"),
                          issue("observation envelope", "blocking", "3")])
         d = g.check({"outcome": "validated_config", "config": cfg("b")}, OK)
         self.assertTrue(d.ok)
-        self.assertEqual(d.outcome, "validated_config")                              # accepted finish = validated, always
+        self.assertEqual(d.outcome, "needs_review")                                  # accepted with a blocking issue still open
         self.assertEqual([a["field"] for a in d.abstentions], ["entity.b<-b", "observation envelope"])   # a's issue is gone
         ans = [{"issue_id": "i2", "action": "answered", "note": "n"}, {"issue_id": "i3", "action": "answered", "note": "n"}]
         d = g.check({"outcome": "validated_config", "config": cfg("b"), "answers": ans}, OK)
@@ -177,22 +178,36 @@ class TestNarrowingRule(unittest.TestCase):
 
     def test_unanswered_advisory_issues_keep_the_field_and_are_reported_open(self):
         g, c = FinishGate(), cfg("a", "b")
+        g.blocking_refusals = 2
         critiqued(g, c, [issue("entity.a<-a", "advisory", "1"), issue("entity.b<-b", "blocking", "2"), issue("envelope", "advisory", "3")])
         d = g.check({"outcome": "validated_config", "config": c}, OK)
-        self.assertEqual((d.outcome, [a["field"] for a in d.abstentions]), ("validated_config", ["entity.b<-b"]))   # only blocking abstains
+        self.assertEqual((d.outcome, [a["field"] for a in d.abstentions]), ("needs_review", ["entity.b<-b"]))   # only blocking abstains
         self.assertEqual([i["id"] for i in d.open_advisory], ["i1", "i3"])
         d = g.check({"outcome": "validated_config", "config": c, "answers": [{"issue_id": "i2", "action": "answered", "note": "n"}]}, OK)
         self.assertEqual((d.ok, d.outcome, d.abstentions), (True, "validated_config", []))     # the advisory ones may stay open
         self.assertEqual(len(d.open_advisory), 2)
 
+    def test_an_open_blocking_issue_is_refused_twice_then_accepted_as_needs_review(self):
+        g, c = FinishGate(), cfg("a", "b")
+        critiqued(g, c, [issue("entity.a<-a", "blocking", "1")])
+        for n in (1, 2):
+            d = g.check({"outcome": "validated_config", "config": c}, OK)
+            self.assertEqual((d.ok, d.blocking), (False, True))
+            self.assertIn(f"({n} of 2)", d.reason)
+            self.assertIn("[i1] entity.a<-a: p1", d.reason)                          # the issue text goes back to the agent
+        d = g.check({"outcome": "validated_config", "config": c}, OK)
+        self.assertEqual((d.ok, d.outcome), (True, "needs_review"))
+
     def test_an_issue_without_a_severity_is_blocking_at_finish_too(self):
         g, c = FinishGate(), cfg("a")
+        g.blocking_refusals = 2
         critiqued(g, c, [{"id": "x", "field": "entity.a<-a", "problem": "p"}])
         d = g.check({"outcome": "validated_config", "config": c}, OK)
         self.assertEqual([a["field"] for a in d.abstentions], ["entity.a<-a"])
 
     def test_issues_of_every_critique_a_config_narrows_accumulate(self):
         g = FinishGate()
+        g.blocking_refusals = 2
         c1, c2 = cfg("a", "b", "c"), cfg("a", "b")
         critiqued(g, c1, [issue("entity.a<-a", "blocking", "1")])
         critiqued(g, c2, [issue("entity.b<-b", "blocking", "2")])
@@ -396,11 +411,13 @@ class TestNoConfigWithoutFields(Base):
     def test_a_finish_whose_unanswered_blocking_issues_would_remove_every_field_is_refused_not_accepted(self):
         c = {"fields": ["a", "b"], "bad": [], "issues": [issue("a", "blocking", "1"), issue("b", "blocking", "2")]}
         res = self.run_loop([tool_turn("validate", {"config": c}, id="v"), tool_turn("critique", {"config": c}, id="k"),
+                             tool_turn("finish", {"outcome": "validated_config", "config": c}, id="f0a"),   # blocking refusals 1 and 2
+                             tool_turn("finish", {"outcome": "validated_config", "config": c}, id="f0b"),
                              tool_turn("finish", {"outcome": "validated_config", "config": c}, id="f1"),
                              tool_turn("finish", {"outcome": "validated_config", "config": c, "answers": [
                                  {"issue_id": "1", "action": "answered", "note": "n"}, {"issue_id": "i1", "action": "answered", "note": "n"},
                                  {"issue_id": "i2", "action": "answered", "note": "n"}]}, id="f2")])
-        refusal = self.tool_results(3)[0]["content"]
+        refusal = self.tool_results(5)[0]["content"]
         self.assertIn("would leave no mapped field", refusal)
         self.assertIn("Call finish again with `answers`", refusal)
         self.assertEqual(res.outcome, "validated_config")                           # once answered, the fields stay

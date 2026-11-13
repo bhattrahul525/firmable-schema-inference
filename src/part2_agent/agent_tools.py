@@ -36,11 +36,11 @@ import requests
 
 from src.common.ckan import PORTAL_DATASET_PAGE
 from src.common.ids import digits_only
-from src.engine.config import _check_transforms, load_ontology, normalise_transforms
-from src.engine.extract import FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms
+from src.engine.config import P_TRANSFORMS, _check_transforms, load_ontology, normalise_transforms, when_error
+from src.engine.extract import FieldStats, _is_blank, _ontology_ok, _value_of, apply_transforms, when_met
 from src.engine.readers import (ALL_FORMATS, ARCHIVES, MAX_DECOMPRESSED_BYTES, ReaderError, _open_binary, layout_description,
                                 raw_head, workbook_sheets, zip_members)
-from src.engine.transforms import _COMPANY_END, CATALOGUE, clean_whitespace
+from src.engine.transforms import _COMPANY_END, CATALOGUE, MAX_PATTERN_CHARS, clean_whitespace
 from src.part1_triage.pull import slim
 from src.part1_triage.run import licence_of
 from src.part2_agent import agent_hooks as hooks_mod
@@ -57,7 +57,6 @@ MAX_DOWNLOADS = 2                          # one resource, plus ONE switch to an
 SNIFF_BYTES = 64 * 1024
 DISTINCT_CAP = 200_000
 TRY_ROWS = 1000
-MAX_PATTERN_CHARS = 200
 MEMBER_LIST_CAP = 50
 RAW_TOP_MAX_CHARS = 2000          # raw_top's own budget inside read_table's 6,000-char ceiling (step 3b review fix)
 
@@ -273,9 +272,11 @@ class AgentKit:
             ToolSpec("try_transform", "Try a transform chain on one column (or a list of columns with join_nonempty first) over "
                                       f"{TRY_ROWS} training rows with the REAL engine. Reports parse rate, rejects and at most "
                                       "5 raw-to-value examples. Whitelisted transforms only; give `canonical` to also apply "
-                                      "the ontology's enum and pattern rules.",
+                                      "the ontology's enum and pattern rules, and `when` ({\"column\": c, \"equals\": [..]} or "
+                                      "{\"column\": c, \"matches\": regex}) to try the field on only the rows where it holds.",
                      {"type": "object", "additionalProperties": False, "required": ["source", "transforms"],
-                      "properties": {"source": {}, "transforms": {"type": "array"}, "canonical": {"type": "string"}}},
+                      "properties": {"source": {}, "transforms": {"type": "array"}, "canonical": {"type": "string"},
+                                     "when": {"type": "object"}}},
                      self.t_try_transform, max_rows=5, max_cell_chars=100, timeout_seconds=60),
             ToolSpec("validate", "Validate a complete config on the HELD-OUT rows with the real engine: structure, parse rates, "
                                  "columns left unaccounted for, record-id uniqueness and meaning checks. At most 6 calls per "
@@ -776,13 +777,17 @@ class AgentKit:
             return fail("try_transform: each transform must be {\"name\": ..., \"arg\": ...}.")
         ts = normalise_transforms(raw_ts)
         errs: list[str] = []
-        _check_transforms(ts, "try_transform", errs, is_list_source=isinstance(source, list))
         canonical = args.get("canonical")
         ontology = load_ontology()
+        _check_transforms(ts, "try_transform", errs, is_list_source=isinstance(source, list), n_cols=len(cols),
+                          canonical=canonical, ontology=ontology)
+        when = args.get("when")
+        if when is not None and when_error(when, table.headers):
+            errs.append(when_error(when, table.headers))
         if canonical is not None and canonical not in ontology:
             errs.append(f"`canonical` {canonical!r} is not in the ontology")
         if errs:
-            return fail("try_transform refused: " + "; ".join(errs) + ". Level W (whitelisted) transforms only for now.")
+            return fail("try_transform refused: " + "; ".join(errs) + ".")
         step = max(1, table.visible_n // TRY_ROWS)
         stats, examples, rejected = FieldStats(), [], []
         rows_n = 0
@@ -794,6 +799,10 @@ class AgentKit:
             raw = _value_of(source, row)
             if _is_blank(raw):
                 stats.blank += 1
+                continue
+            if not when_met(when, row):
+                stats.skip += 1
+                stats.skip_reasons["when_not_met"] += 1
                 continue
             values, events = apply_transforms(raw, ts)
             for kind, reason, item in events:
@@ -819,7 +828,7 @@ class AgentKit:
         d = stats.as_dict()
         rate = "n/a (nothing was judged)" if d["parse_rate"] is None else f"{d['parse_rate']:.1%}"
         return ToolResult(
-            text=f"Tried level-W transforms on {rows_n} training rows: parse rate {rate} (ok {d['ok']}, rejected {d['reject']}, "
+            text=f"Tried level-{'P' if when or any(t['name'] in P_TRANSFORMS for t in ts) else 'W'} transforms on {rows_n} training rows: parse rate {rate} (ok {d['ok']}, rejected {d['reject']}, "
                  f"not applicable {d['skip']}, blank {d['blank']}). Examples and rejects are below.",
             payload={"examples": examples, "rejects": rejected, "reject_reasons": d["reject_reasons"],
                      "skip_reasons": d["skip_reasons"]},

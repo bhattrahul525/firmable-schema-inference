@@ -1,0 +1,256 @@
+what_it_is: ASIC register of credit licensees (Credit Act licence holders), one row per credit licence.
+one_row_is: one credit licence held by a company or business, as listed on the ASIC Credit Licence register snapshot.
+reader:
+  format: csv
+  delimiter: "\t"
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - CRED_LIC_NUM
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: CRED_LIC_START_DT
+  transforms:
+  - name: parse_date
+    arg: '%d/%m/%Y'
+fields:
+- source: CRED_LIC_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Regulator register (ASIC credit licences); the row's subject is the licence holder listed by name. No
+    explicit 'registered' label, so confidence capped under rule 5b.
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  when:
+    column: CRED_LIC_ABN_ACN
+    matches: ^\d{11}$
+  mapping_confidence: 0.9
+  reason: 11-digit values are ABNs (checksum validated).
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 257
+    skipped_not_applicable: 43
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_ABN_ACN
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  when:
+    column: CRED_LIC_ABN_ACN
+    matches: ^\d{9}$
+  mapping_confidence: 0.85
+  reason: 9-digit values are ACNs (checksum validated).
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 31
+    skipped_not_applicable: 269
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_BN
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Business name column, a name traded under; not the registered name.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 195
+    ok: 105
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Locality of the licensee.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State of the licensee.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: CRED_LIC_PCODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode of the licensee.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: REGISTER_NAME
+  reason: Constant register label 'Credit Licence'.
+- source: CRED_LIC_END_DT
+  reason: Empty in all rows.
+- source: CRED_LIC_STATUS
+  reason: Licence approval status (APPR/SUSP) describes the credit licence, not the entity; not mapped to entity.status.
+- source: CRED_LIC_STATUS_HISTORY
+  reason: Free-text status history; no canonical field.
+- source: CRED_LIC_AFSL_NUM
+  reason: Duplicate of CRED_LIC_NUM; no AFSL field in ontology.
+- source: CRED_LIC_EDRS
+  reason: External dispute resolution scheme; no canonical field.
+- source: CRED_LIC_LAT
+  reason: Geocode; no canonical field.
+- source: CRED_LIC_LNG
+  reason: Geocode; no canonical field.
+- source: CRED_LIC_AUTHORISATIONS
+  reason: Long licence authorisation text; no canonical field.
+needs_transform: []
+source_reliability:
+  identity: 0.85
+  address: 0.8
+  classification: 0.6
+  contact: 0.5
+source_reliability_basis: Official ASIC register extract; names and ABNs are registry-held. Business name fields
+  are less controlled.
+meaning_check_responses: []
+source_id: asic_credit_licensee
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1893
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-4defdc28
+    field: entity.status<-CRED_LIC_STATUS
+    problem: CRED_LIC_STATUS records the status of the credit licence (APPR = approved licence, SUSP = suspended
+      licence), but the mapping writes it to entity.status, which describes the entity itself. The source does not
+      state that the company is active or suspended; a licence can be suspended while the entity is still trading,
+      and the reverse is also possible.
+    severity: blocking
+    suggested_fix: Remove the entity.status mapping for this column, or map it to a licence-status claim if the
+      ontology has one. If the ontology must keep entity.status here, record the licence status only as an advisory
+      caveat and do not state it as the entity's status.
+  - id: c-c7edc7b7
+    field: entity.status<-CRED_LIC_STATUS
+    problem: The map_values transform covers only APPR and SUSP. Rule 8 requires every raw value visible in the
+      profile to be considered, and the config does not show whether other codes (for example cancelled or expired)
+      exist in the column or were deliberately left unmapped.
+    severity: advisory
+    suggested_fix: Confirm the full set of CRED_LIC_STATUS values in the profile and state explicitly how any remaining
+      codes are handled.
+  - id: c-d93a8e49
+    field: entity.legal_name<-CRED_LIC_NAME
+    problem: The mapping is justified under rule 5b, since this is a regulator's register and the row's subject
+      is the licence holder. The config gives no mapping_confidence, and rule 5b requires 0.7 or lower without an
+      explicit label. The column header CRED_LIC_NAME does not itself say 'licensee' or 'registered name'.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.7 or lower for entity.legal_name, citing the register-holder basis,
+      or add an explicit confidence value.
+  - id: c-20d9dfaa
+    field: entity.trading_name<-CRED_LIC_BN
+    problem: CRED_LIC_BN is a business name, so trading_name is the right target. The config gives no mapping_confidence,
+      and rule 5 caps non-registered name columns at 0.6 or lower.
+    severity: advisory
+    suggested_fix: Add mapping_confidence of 0.6 or lower to this field.
+  - id: c-c1e7b03e
+    field: record_id
+    problem: record_id is CRED_LIC_NUM, but the config does not show that it was checked for uniqueness. Rule 15
+      requires check_unique or hash_row.
+    severity: advisory
+    suggested_fix: Confirm CRED_LIC_NUM is unique across rows, or fall back to hash_row=true.
+  - id: c-b4422b4c
+    field: valid_from
+    problem: valid_from uses CRED_LIC_START_DT, which is the licence start date. That fits rule 10 for the licence,
+      but it is applied to every observation in the row, including name and address claims, which the licence start
+      date does not describe.
+    severity: advisory
+    suggested_fix: Note in the config that valid_from relates to the licence, or restrict it to the licence-related
+      observations.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T01:11:26+00:00'

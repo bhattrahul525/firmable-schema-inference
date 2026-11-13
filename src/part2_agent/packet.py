@@ -6,6 +6,7 @@ reasons, which are labelled as such.
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from src.part2_agent.profile import trim_row
 
 def _t(f: dict) -> str:
     parts = [t["name"] + (f"({t['arg']})" if t["arg"] not in (None, "") else "") for t in f["transforms"]]
-    return " → ".join(parts) or "none"
+    return (" → ".join(parts) or "none") + (f" [when {json.dumps(f['when'])}]" if f.get("when") else "")
 
 
 def _src(f: dict) -> str:

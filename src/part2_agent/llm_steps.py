@@ -16,14 +16,16 @@ from src import llm
 from src.engine.config import (METADATA_DATE_KEYS, ONTOLOGY_PATH, RELIABILITY_KINDS, load_ontology,
                                normalise_transforms)
 from src.engine.readers import FORMATS
-from src.engine.transforms import CATALOGUE
+from src.engine.transforms import CATALOGUE, STEP4A_TRANSFORMS
+
+ROUND1_CATALOGUE = {n: v for n, v in CATALOGUE.items() if n not in STEP4A_TRANSFORMS}   # the fixed list of the original 12
 
 ONTOLOGY = load_ontology()
 
 # ---- shared system prompt (stable across steps, so it is cached) --------------------------------
 
 _catalogue_text = "\n".join(
-    f"- {name}" + (f"(arg: {arg})" if arg else "") + f": {doc}" for name, (_, doc, arg) in CATALOGUE.items())
+    f"- {name}" + (f"(arg: {arg})" if arg else "") + f": {doc}" for name, (_, doc, arg) in ROUND1_CATALOGUE.items())
 
 SYSTEM = f"""You are the schema-inference agent of a data-ingestion system for Australian business data.
 You map ONE raw public dataset onto a fixed canonical ontology by writing a mapping CONFIG. A generic
@@ -58,7 +60,7 @@ RULES
 # ---- schemas ----------------------------------------------------------------------------------
 
 _T = {"type": "object", "additionalProperties": False, "required": ["name", "arg"],
-      "properties": {"name": {"type": "string", "enum": sorted(CATALOGUE)}, "arg": {"type": "string"}}}
+      "properties": {"name": {"type": "string", "enum": sorted(ROUND1_CATALOGUE)}, "arg": {"type": "string"}}}
 _COL_REASON = {"type": "object", "additionalProperties": False, "required": ["source", "reason"],
                "properties": {"source": {"type": "string"}, "reason": {"type": "string"}}}
 _PER_ROW_DATE = {"type": "object", "additionalProperties": False, "required": ["source", "transforms"],

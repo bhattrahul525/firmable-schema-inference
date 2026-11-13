@@ -37,6 +37,8 @@ def _referenced_columns(cfg: dict) -> set[str]:
     cols: set[str] = set(cfg["record_id"].get("from") or [])
     for f in cfg["fields"]:
         cols |= set(f["source"] if isinstance(f["source"], list) else [f["source"]])
+        if isinstance(f.get("when"), dict):
+            cols.add(f["when"].get("column"))
     for k in ("observed_at", "valid_from", "valid_to"):
         s = cfg.get(k)
         if s and s.get("source"):

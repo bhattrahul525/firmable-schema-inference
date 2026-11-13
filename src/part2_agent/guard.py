@@ -38,9 +38,11 @@ from src.part2_agent.tools import ToolContext, ToolResult, ToolSpec, ToolTimeout
 # `partial_config` and `incomplete` are the HARNESS's: it ended the run (turns, dollars, time, repeated refusals) and at least
 # one field passed validate (partial), or none did / no config existed (incomplete).
 OUTCOMES = ("validated_config", "no_business_entities", "could_not_read")   # what the model may declare
-CONFIG_OUTCOMES = ("validated_config", "partial_config")
+NEEDS_REVIEW = "needs_review"   # the gate accepted a finish only after refusing it twice for open BLOCKING critique issues
+CONFIG_OUTCOMES = ("validated_config", "partial_config", NEEDS_REVIEW)
 INCOMPLETE = "incomplete"
-ALL_OUTCOMES = OUTCOMES + ("partial_config", INCOMPLETE)
+ALL_OUTCOMES = OUTCOMES + ("partial_config", NEEDS_REVIEW, INCOMPLETE)
+BLOCKING_REFUSALS_ALLOWED = 2   # refusals of a finish with an open BLOCKING issue; they do not count as "refused twice in a row"
 # Fixed reason codes by which CODE (the sniff and list_members tools) classifies a file as not tabular or unsupported. The
 # model's own statement that a file is unreadable is never enough for could_not_read.
 UNREADABLE_CODES = ("empty_file", "pdf_document", "html_page", "xml_unsupported", "binary_unknown", "archive_has_no_tabular_member")
@@ -66,8 +68,8 @@ Harness rules (enforced in code, not by trust):
 - `finish` validates the config you give it, by itself, and is refused if validation fails. It is also refused unless
   `critique` ran on that config, or on a config it only narrows: a config that merely REMOVES fields, abstains fields or moves
   columns to `unmapped` needs no new critique; one that adds or alters a mapping does. `critique` may be called at most 2
-  times. Every BLOCKING critique issue must be fixed or answered in `finish` (answer by its id); a blocking issue that is
-  neither gets its field removed by code. ADVISORY issues may be left unanswered: they stay in the review packet and the
+  times. Every BLOCKING critique issue must be fixed or answered in `finish` (answer by its id); a finish with one still
+  open is refused (twice at most), then accepted as needs_review with that field removed by code. ADVISORY issues may be left unanswered: they stay in the review packet and the
   field stays. Every refusal tells you the exact next call.
 - Budget: 40 model turns (every reply counts, even one without a tool call), $1.00, 4 minutes (download time
   excluded). You will be told when 80% is used; wrap up then. If the budget ends first, the harness ends the run
@@ -462,6 +464,7 @@ class Decision:
     reason: str = ""
     outcome: str | None = None
     abstentions: list[dict] = field(default_factory=list)   # added by code when critique issues were left unanswered
+    blocking: bool = False   # a refusal only because of an open BLOCKING critique issue (max 2 per run, counted by the gate)
     format: bool = False   # a refusal only because `answers` / `abstentions` were malformed (counted separately by the loop)
     open_advisory: list[dict] = field(default_factory=list)   # advisory issues left unanswered: kept in the packet, no field lost
     unreadable_evidence: list[str] = field(default_factory=list)   # could_not_read: the reason codes the harness verified
@@ -486,10 +489,12 @@ def _norm_transforms(ts) -> list:
 
 
 def field_def(f) -> str:
-    """What DEFINES a mapped field: source, canonical field, transforms, group. Confidence and reason may change freely."""
+    """What DEFINES a mapped field: source, canonical field, transforms, group, `when` (a condition decides which rows the field
+    maps, so changing one is a change of mapping). Confidence and reason may change freely."""
     if not isinstance(f, dict):
         return repr(f)
-    return json.dumps([f.get("source"), f.get("canonical"), _norm_transforms(f.get("transforms")), f.get("group") or "main"],
+    return json.dumps([f.get("source"), f.get("canonical"), _norm_transforms(f.get("transforms")), f.get("group") or "main",
+                       f.get("when")],
                       sort_keys=True, default=str)
 
 
@@ -561,6 +566,7 @@ class FinishGate:
         self.fetch_failed = False                # a DOWNLOAD or NETWORK failure (a refused index or URL does not count)
         self.last_config: dict | None = None
         self.unreadable_evidence: set[str] = set()   # reason codes from sniff / list_members (code, not the model's word)
+        self.blocking_refusals = 0               # finishes refused for an open BLOCKING issue so far (limit BLOCKING_REFUSALS_ALLOWED)
 
     def note(self, name: str, args: dict, result: ToolResult) -> None:
         if name == "fetch" and not result.is_error and result.status.get("switched"):
@@ -718,7 +724,15 @@ class FinishGate:
         blocking = [i for i in unanswered if i.get("severity", "blocking") == "blocking"]
         advisory = [i for i in unanswered if i.get("severity", "blocking") != "blocking"]
         if blocking:
+            if self.blocking_refusals < BLOCKING_REFUSALS_ALLOWED:
+                self.blocking_refusals += 1
+                listed = "; ".join(f"[{i.get('id')}] {i.get('field')}: {i.get('problem')}" for i in blocking)
+                return Decision(False, f"finish refused ({self.blocking_refusals} of {BLOCKING_REFUSALS_ALLOWED}): the latest critique "
+                                       f"has BLOCKING issue(s) this config neither fixes nor answers: {listed}. Fix the config (then "
+                                       f"`critique` it) or remove the field, or call finish again with `answers` for these ids. "
+                                       f"After {BLOCKING_REFUSALS_ALLOWED} such refusals a finish is accepted as needs_review.",
+                                blocking=True)
             abst = [{"field": i.get("field"), "reason": f"blocking critique issue unanswered: {i.get('problem', '')}"}
                     for i in blocking]
-            return Decision(True, outcome=outcome, abstentions=abst, open_advisory=advisory)
+            return Decision(True, outcome=NEEDS_REVIEW, abstentions=abst, open_advisory=advisory)
         return Decision(True, outcome=outcome, open_advisory=advisory)

@@ -24,12 +24,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import yaml
 
 from src.engine.readers import ALL_FORMATS
-from src.engine.transforms import CATALOGUE
+from src.engine.transforms import CATALOGUE, pattern_error, regex_replace_error, template_error
 
 CONFIG_DIR = Path("configs")
 ONTOLOGY_PATH = Path("firmable_ontology.yaml")
@@ -47,8 +48,9 @@ CLAIM_KIND = {
 RELIABILITY_KINDS = ("identity", "address", "classification", "contact")
 METADATA_DATE_KEYS = ("resource_last_modified", "dataset_modified", "downloaded_at")
 VALUE_ONLY_TRANSFORMS = {"entity_type_from_suffix"}
+P_TRANSFORMS = {"regex_extract", "regex_replace", "template", "map_values", "split", "constant"}   # ARCHITECTURE.md section c: level P
 L1_TRANSFORMS = {"abn", "acn", "parse_date", "map_values", "entity_type_from_suffix",
-                 "state_code", "regex_extract", "postcode"}
+                 "state_code", "regex_extract", "postcode", "regex_replace", "template"}
 
 
 def load_ontology() -> dict:
@@ -63,7 +65,10 @@ def load_ontology() -> dict:
 
 def derivation_level(transforms: list[dict]) -> str:
     """L0 if the value is carried over (cosmetic cleaning only); L1 if we parsed, validated
-    or mapped it deterministically. Computed from the transforms, never claimed by the agent."""
+    or mapped it deterministically; L3 if the value is a fixed one asserted by the config (`constant`).
+    Computed from the transforms, never claimed by the agent."""
+    if any(t["name"] == "constant" for t in transforms):
+        return "L3"
     return "L1" if any(t["name"] in L1_TRANSFORMS for t in transforms) else "L0"
 
 
@@ -131,7 +136,13 @@ def structural_errors(cfg: dict, ontology: dict, headers: list[str] | None, meta
             errs.append(f"{where}: missing source")
             continue
         check_cols(f["source"], where)
-        _check_transforms(f.get("transforms", []), where, errs, is_list_source=isinstance(f["source"], list))
+        n_cols = len(f["source"]) if isinstance(f["source"], list) else 1
+        _check_transforms(f.get("transforms", []), where, errs, is_list_source=isinstance(f["source"], list),
+                          n_cols=n_cols, canonical=f.get("canonical"), ontology=ontology)
+        if "when" in f:
+            bad = when_error(f["when"], headers)
+            if bad:
+                errs.append(f"{where}: {bad}")
         key = (str(f["source"]), f.get("canonical"), f.get("group", "main"))
         if key in seen:
             errs.append(f"{where}: duplicate mapping of the same source column to the same canonical field")
@@ -147,20 +158,63 @@ def structural_errors(cfg: dict, ontology: dict, headers: list[str] | None, meta
     return errs
 
 
-def _check_transforms(transforms, where, errs, is_list_source):
+def when_error(when, headers) -> str | None:
+    """Config-time check of a field's `when`: {"column": c, "equals": [strings]} or {"column": c, "matches": pattern}."""
+    if not isinstance(when, dict) or not isinstance(when.get("column"), str):
+        return "`when` must be an object with a string `column`"
+    keys = set(when) - {"column"}
+    if keys not in ({"equals"}, {"matches"}):
+        return "`when` needs exactly one of `equals` (a list of strings) or `matches` (a regex)"
+    if headers is not None and when["column"] not in headers:
+        return f"`when` column {when['column']!r} does not exist in the file"
+    if "equals" in when and not (isinstance(when["equals"], list) and when["equals"]
+                                 and all(isinstance(x, str) for x in when["equals"])):
+        return "`when.equals` must be a non-empty list of strings"
+    if "matches" in when and pattern_error(when["matches"]):
+        return f"`when.matches`: {pattern_error(when['matches'])}"
+    return None
+
+
+def _check_transforms(transforms, where, errs, is_list_source, n_cols=1, canonical=None, ontology=None):
     ts = normalise_transforms(transforms)
     for j, t in enumerate(ts):
-        if t["name"] not in CATALOGUE:
-            errs.append(f"{where}: transform {t['name']!r} is not on the whitelist {sorted(CATALOGUE)}")
-        elif t["name"] == "join_nonempty" and (j != 0 or not is_list_source):
+        name, arg = t["name"], t["arg"]
+        if name not in CATALOGUE:
+            errs.append(f"{where}: transform {name!r} is not on the whitelist {sorted(CATALOGUE)}")
+        elif name == "join_nonempty" and (j != 0 or not is_list_source):
             errs.append(f"{where}: join_nonempty must be first and used only when source is a list")
-        elif t["name"] in ("split", "regex_extract", "parse_date", "map_values", "join_nonempty") and t["arg"] is None:
-            errs.append(f"{where}: transform {t['name']} needs an argument")
-    if is_list_source and (not ts or ts[0]["name"] != "join_nonempty"):
-        errs.append(f"{where}: a list of source columns needs join_nonempty as its first transform")
+        elif name == "template" and j != 0:
+            errs.append(f"{where}: template must be the first transform")
+        elif name in ("split", "regex_extract", "parse_date", "map_values", "join_nonempty") and arg is None:
+            errs.append(f"{where}: transform {name} needs an argument")
+        elif name == "regex_extract" and pattern_error(arg):
+            errs.append(f"{where}: regex_extract: {pattern_error(arg)}")
+        elif name == "regex_replace" and regex_replace_error(arg):
+            errs.append(f"{where}: {regex_replace_error(arg)}")
+        elif name == "template" and template_error(arg, n_cols):
+            errs.append(f"{where}: {template_error(arg, n_cols)}")
+        elif name == "constant":
+            errs.extend(f"{where}: constant {why}" for why in _constant_errors(ts, arg, is_list_source, n_cols, canonical, ontology))
+    if is_list_source and (not ts or ts[0]["name"] not in ("join_nonempty", "template")):
+        errs.append(f"{where}: a list of source columns needs join_nonempty or template as its first transform")
 
 
-# ---- storage, hashing, approval lock -------------------------------------------------------
+def _constant_errors(ts, arg, is_list_source, n_cols, canonical, ontology) -> list[str]:
+    """`constant` states a value the source does not hold: only address.state / address.country, alone, one anchor column."""
+    out = []
+    if canonical not in ("address.state", "address.country"):
+        out.append("is only allowed for address.state and address.country")
+    if len(ts) != 1:
+        out.append("must be the field's only transform")
+    if is_list_source or n_cols != 1:
+        out.append("needs `source` to be one anchor column (a string)")
+    if not isinstance(arg, str) or not arg:
+        out.append("needs a string argument")
+    elif canonical == "address.state" and ontology and arg not in ontology[canonical].get("values", [arg]):
+        out.append(f"argument {arg!r} is not in the state enum")
+    elif canonical == "address.country" and not re.fullmatch(r"[A-Z]{2}", arg):
+        out.append("argument must be a two-letter country code in capitals")
+    return out
 
 def config_path(source_id: str) -> Path:
     return CONFIG_DIR / f"{source_id}.yaml"
