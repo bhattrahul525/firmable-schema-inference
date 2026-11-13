@@ -1,19 +1,19 @@
 {
   "source_id": "qbcc_licensed_contractors",
-  "extractor_version": "qbcc_licensed_contractors@cfg3.16fbc357+engine0.1.0",
-  "rows_in_file": 206548,
-  "rows_extracted": 5000,
-  "sampling": "every 41.3th row",
-  "observations": 28785,
-  "rejects": 28,
+  "extractor_version": "qbcc_licensed_contractors@cfg1.e9de221e+engine0.1.0",
+  "rows_in_file": 206705,
+  "rows_extracted": 1000,
+  "sampling": "every 206.7th row",
+  "observations": 5760,
+  "rejects": 7,
   "licence": "Creative Commons Attribution 4.0",
   "licence_flag": false,
-  "distinct_source_record_ids": 5000,
+  "distinct_source_record_ids": 1000,
   "field_stats": {
     "entity.legal_name<-Licensee Name": {
-      "rows": 5000,
+      "rows": 1000,
       "blank": 0,
-      "ok": 5000,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -21,88 +21,84 @@
       "reject_reasons": {},
       "reject_examples": []
     },
-    "entity.abn<-ABN": {
-      "rows": 5000,
-      "blank": 2237,
-      "ok": 2740,
+    "entity.acn<-ACN": {
+      "rows": 1000,
+      "blank": 764,
+      "ok": 234,
       "skip": 0,
-      "reject": 23,
-      "parse_rate": 0.9917,
+      "reject": 2,
+      "parse_rate": 0.9915,
       "skip_reasons": {},
       "reject_reasons": {
-        "abn_checksum_failed": 23
+        "acn_checksum_failed": 2
       },
       "reject_examples": [
         {
-          "raw": "82 260 952 641",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "1818"
+          "raw": "679 632 018",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "125264"
         },
         {
-          "raw": "49 923 352 640",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "6899"
-        },
-        {
-          "raw": "60 184 271 003",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "7519"
-        },
-        {
-          "raw": "26 908 412 986",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "19581"
-        },
-        {
-          "raw": "94 438 612 308",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "20490"
+          "raw": "685 121 816",
+          "reason": "acn_checksum_failed",
+          "source_record_id": "195130"
         }
       ]
     },
-    "entity.acn<-ACN": {
-      "rows": 5000,
-      "blank": 3842,
-      "ok": 1153,
+    "entity.abn<-ABN": {
+      "rows": 1000,
+      "blank": 443,
+      "ok": 552,
       "skip": 0,
       "reject": 5,
-      "parse_rate": 0.9957,
+      "parse_rate": 0.991,
       "skip_reasons": {},
       "reject_reasons": {
-        "acn_checksum_failed": 5
+        "abn_checksum_failed": 5
       },
       "reject_examples": [
         {
-          "raw": "310 253 944",
-          "reason": "acn_checksum_failed",
-          "source_record_id": "14418"
+          "raw": "12 269 692 457",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "76895"
         },
         {
-          "raw": "895 281 933",
-          "reason": "acn_checksum_failed",
-          "source_record_id": "51638"
+          "raw": "35 398 851 169",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "83509"
         },
         {
-          "raw": "343 943 793",
-          "reason": "acn_checksum_failed",
-          "source_record_id": "59238"
+          "raw": "89 695 369 677",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "147174"
         },
         {
-          "raw": "168 846 644",
-          "reason": "acn_checksum_failed",
-          "source_record_id": "83322"
+          "raw": "12 895 659 373",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "169292"
         },
         {
-          "raw": "984 939 143",
-          "reason": "acn_checksum_failed",
-          "source_record_id": "103068"
+          "raw": "92 929 484 475",
+          "reason": "abn_checksum_failed",
+          "source_record_id": "180454"
         }
       ]
     },
-    "address.full<-Licensee Business Address": {
-      "rows": 5000,
+    "entity.entity_type<-Licence Type DESC": {
+      "rows": 1000,
       "blank": 0,
-      "ok": 5000,
+      "ok": 1000,
+      "skip": 0,
+      "reject": 0,
+      "parse_rate": 1.0,
+      "skip_reasons": {},
+      "reject_reasons": {},
+      "reject_examples": []
+    },
+    "address.full<-Licensee Business Address": {
+      "rows": 1000,
+      "blank": 0,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -111,22 +107,22 @@
       "reject_examples": []
     },
     "address.state<-Licensee Business Address": {
-      "rows": 5000,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4893,
-      "skip": 107,
+      "ok": 975,
+      "skip": 25,
       "reject": 0,
       "parse_rate": 1.0,
       "skip_reasons": {
-        "regex_no_match": 107
+        "regex_no_match": 25
       },
       "reject_reasons": {},
       "reject_examples": []
     },
     "address.postcode<-Licensee Business Address": {
-      "rows": 5000,
+      "rows": 1000,
       "blank": 0,
-      "ok": 4999,
+      "ok": 999,
       "skip": 1,
       "reject": 0,
       "parse_rate": 1.0,

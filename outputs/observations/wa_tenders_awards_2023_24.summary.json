@@ -1,19 +1,19 @@
 {
   "source_id": "wa_tenders_awards_2023_24",
-  "extractor_version": "wa_tenders_awards_2023_24@cfg3.686e4546+engine0.1.0",
+  "extractor_version": "wa_tenders_awards_2023_24@cfg1.b8ed99d6+engine0.1.0",
   "rows_in_file": 5817,
-  "rows_extracted": 5817,
-  "sampling": "all rows",
-  "observations": 17382,
+  "rows_extracted": 1000,
+  "sampling": "every 5.8th row",
+  "observations": 3000,
   "rejects": 0,
   "licence": "Creative Commons Attribution 3.0 Australia",
   "licence_flag": false,
-  "distinct_source_record_ids": 5817,
+  "distinct_source_record_ids": 1000,
   "field_stats": {
-    "address.full<-Supplier_Address": {
-      "rows": 5817,
+    "entity.legal_name<-Supplier_Name": {
+      "rows": 1000,
       "blank": 0,
-      "ok": 5817,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,
@@ -21,23 +21,10 @@
       "reject_reasons": {},
       "reject_examples": []
     },
-    "address.postcode<-Supplier_Address": {
-      "rows": 5817,
+    "address.full<-Supplier_Address": {
+      "rows": 1000,
       "blank": 0,
-      "ok": 5748,
-      "skip": 69,
-      "reject": 0,
-      "parse_rate": 1.0,
-      "skip_reasons": {
-        "regex_no_match": 69
-      },
-      "reject_reasons": {},
-      "reject_examples": []
-    },
-    "entity.entity_type<-Supplier_Name": {
-      "rows": 5817,
-      "blank": 0,
-      "ok": 5817,
+      "ok": 1000,
       "skip": 0,
       "reject": 0,
       "parse_rate": 1.0,

@@ -1,3 +1,0 @@
-{"source_record_id": "row-mkdb~t95h~93ca", "field": "entity.abn", "source_field": "supplier_abn", "raw_value": "21 074 287 046", "reason": "abn_checksum_failed"}
-{"source_record_id": "row-urc3.ek2s.xupy", "field": "entity.abn", "source_field": "supplier_abn", "raw_value": "21 074 287 046", "reason": "abn_checksum_failed"}
-{"source_record_id": "row-n8vy-a6ws_brfz", "field": "entity.abn", "source_field": "supplier_abn", "raw_value": "64 104 869 132", "reason": "abn_checksum_failed"}

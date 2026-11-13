@@ -1,28 +1,7 @@
-{"source_record_id": "1818", "field": "entity.abn", "source_field": "ABN", "raw_value": "82 260 952 641", "reason": "abn_checksum_failed"}
-{"source_record_id": "6899", "field": "entity.abn", "source_field": "ABN", "raw_value": "49 923 352 640", "reason": "abn_checksum_failed"}
-{"source_record_id": "7519", "field": "entity.abn", "source_field": "ABN", "raw_value": "60 184 271 003", "reason": "abn_checksum_failed"}
-{"source_record_id": "14418", "field": "entity.acn", "source_field": "ACN", "raw_value": "310 253 944", "reason": "acn_checksum_failed"}
-{"source_record_id": "19581", "field": "entity.abn", "source_field": "ABN", "raw_value": "26 908 412 986", "reason": "abn_checksum_failed"}
-{"source_record_id": "20490", "field": "entity.abn", "source_field": "ABN", "raw_value": "94 438 612 308", "reason": "abn_checksum_failed"}
-{"source_record_id": "28959", "field": "entity.abn", "source_field": "ABN", "raw_value": "61 388 218 311", "reason": "abn_checksum_failed"}
-{"source_record_id": "31354", "field": "entity.abn", "source_field": "ABN", "raw_value": "96 166 232 444", "reason": "abn_checksum_failed"}
-{"source_record_id": "44987", "field": "entity.abn", "source_field": "ABN", "raw_value": "53 564 603 793", "reason": "abn_checksum_failed"}
-{"source_record_id": "51638", "field": "entity.acn", "source_field": "ACN", "raw_value": "895 281 933", "reason": "acn_checksum_failed"}
-{"source_record_id": "59238", "field": "entity.acn", "source_field": "ACN", "raw_value": "343 943 793", "reason": "acn_checksum_failed"}
-{"source_record_id": "60560", "field": "entity.abn", "source_field": "ABN", "raw_value": "38 657 694 338", "reason": "abn_checksum_failed"}
-{"source_record_id": "63906", "field": "entity.abn", "source_field": "ABN", "raw_value": "69 166 956 390", "reason": "abn_checksum_failed"}
-{"source_record_id": "73036", "field": "entity.abn", "source_field": "ABN", "raw_value": "78 164 874 414", "reason": "abn_checksum_failed"}
-{"source_record_id": "83322", "field": "entity.acn", "source_field": "ACN", "raw_value": "168 846 644", "reason": "acn_checksum_failed"}
-{"source_record_id": "87618", "field": "entity.abn", "source_field": "ABN", "raw_value": "39 317 959 064", "reason": "abn_checksum_failed"}
-{"source_record_id": "103068", "field": "entity.acn", "source_field": "ACN", "raw_value": "984 939 143", "reason": "acn_checksum_failed"}
-{"source_record_id": "103481", "field": "entity.abn", "source_field": "ABN", "raw_value": "42 638 489 266", "reason": "abn_checksum_failed"}
-{"source_record_id": "103977", "field": "entity.abn", "source_field": "ABN", "raw_value": "26 443 969 544", "reason": "abn_checksum_failed"}
-{"source_record_id": "112239", "field": "entity.abn", "source_field": "ABN", "raw_value": "29 476 914 340", "reason": "abn_checksum_failed"}
-{"source_record_id": "131943", "field": "entity.abn", "source_field": "ABN", "raw_value": "90 928 697 594", "reason": "abn_checksum_failed"}
-{"source_record_id": "141486", "field": "entity.abn", "source_field": "ABN", "raw_value": "64 645 671 763", "reason": "abn_checksum_failed"}
-{"source_record_id": "144047", "field": "entity.abn", "source_field": "ABN", "raw_value": "32 090 940 056", "reason": "abn_checksum_failed"}
-{"source_record_id": "144171", "field": "entity.abn", "source_field": "ABN", "raw_value": "78 364 751 394", "reason": "abn_checksum_failed"}
-{"source_record_id": "158175", "field": "entity.abn", "source_field": "ABN", "raw_value": "73 649 036 534", "reason": "abn_checksum_failed"}
-{"source_record_id": "184489", "field": "entity.abn", "source_field": "ABN", "raw_value": "35 115 612 317", "reason": "abn_checksum_failed"}
-{"source_record_id": "186596", "field": "entity.abn", "source_field": "ABN", "raw_value": "19 616 293 075", "reason": "abn_checksum_failed"}
-{"source_record_id": "192214", "field": "entity.abn", "source_field": "ABN", "raw_value": "87 696 184 854", "reason": "abn_checksum_failed"}
+{"source_record_id": "76895", "field": "entity.abn", "source_field": "ABN", "raw_value": "12 269 692 457", "reason": "abn_checksum_failed"}
+{"source_record_id": "83509", "field": "entity.abn", "source_field": "ABN", "raw_value": "35 398 851 169", "reason": "abn_checksum_failed"}
+{"source_record_id": "125264", "field": "entity.acn", "source_field": "ACN", "raw_value": "679 632 018", "reason": "acn_checksum_failed"}
+{"source_record_id": "147174", "field": "entity.abn", "source_field": "ABN", "raw_value": "89 695 369 677", "reason": "abn_checksum_failed"}
+{"source_record_id": "169292", "field": "entity.abn", "source_field": "ABN", "raw_value": "12 895 659 373", "reason": "abn_checksum_failed"}
+{"source_record_id": "180454", "field": "entity.abn", "source_field": "ABN", "raw_value": "92 929 484 475", "reason": "abn_checksum_failed"}
+{"source_record_id": "195130", "field": "entity.acn", "source_field": "ACN", "raw_value": "685 121 816", "reason": "acn_checksum_failed"}

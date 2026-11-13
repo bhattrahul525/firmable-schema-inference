@@ -1,41 +1,40 @@
 {
   "source_id": "qld_health_contracts_2023_24",
-  "extractor_version": "qld_health_contracts_2023_24@cfg1.38630852+engine0.1.0",
+  "extractor_version": "qld_health_contracts_2023_24@cfg1.7c1020cd+engine0.1.0",
   "rows_in_file": 210,
   "rows_extracted": 210,
   "sampling": "all rows",
-  "observations": 1676,
-  "rejects": 3,
+  "observations": 650,
+  "rejects": 2,
   "licence": "Creative Commons Attribution 4.0",
   "licence_flag": false,
-  "distinct_source_record_ids": 210,
+  "distinct_source_record_ids": 191,
   "field_stats": {
     "entity.legal_name<-Supplier name": {
       "rows": 210,
       "blank": 0,
-      "ok": 416,
-      "skip": 0,
+      "ok": 191,
+      "skip": 19,
       "reject": 0,
       "parse_rate": 1.0,
-      "skip_reasons": {},
+      "skip_reasons": {
+        "when_not_met": 19
+      },
       "reject_reasons": {},
       "reject_examples": []
     },
     "entity.abn<-Supplier ABN": {
       "rows": 210,
       "blank": 1,
-      "ok": 263,
-      "skip": 15,
-      "reject": 5,
-      "parse_rate": 0.9813,
+      "ok": 189,
+      "skip": 18,
+      "reject": 2,
+      "parse_rate": 0.9895,
       "skip_reasons": {
-        "not_digits": 13,
-        "not_11_digits(22)": 2
+        "when_not_met": 18
       },
       "reject_reasons": {
-        "misaligned_split(88_vs_91)": 1,
-        "misaligned_split(42_vs_46)": 1,
-        "abn_checksum_failed": 3
+        "abn_checksum_failed": 2
       },
       "reject_examples": [
         {
@@ -47,73 +46,21 @@
           "raw": "86 604 853 938",
           "reason": "abn_checksum_failed",
           "source_record_id": "h:db932422448bbce2"
-        },
-        {
-          "raw": "38 002 806 117",
-          "reason": "abn_checksum_failed",
-          "source_record_id": "h:ea97e77cba5a496d"
         }
       ]
-    },
-    "entity.entity_type<-Supplier name": {
-      "rows": 210,
-      "blank": 0,
-      "ok": 210,
-      "skip": 0,
-      "reject": 0,
-      "parse_rate": 1.0,
-      "skip_reasons": {},
-      "reject_reasons": {},
-      "reject_examples": []
     },
     "address.full<-Supplier address": {
       "rows": 210,
       "blank": 100,
-      "ok": 217,
-      "skip": 0,
-      "reject": 2,
-      "parse_rate": 0.9909,
-      "skip_reasons": {},
-      "reject_reasons": {
-        "misaligned_split(86_vs_91)": 1,
-        "misaligned_split(12_vs_13)": 1
-      },
-      "reject_examples": []
-    },
-    "address.postcode<-Supplier address": {
-      "rows": 210,
-      "blank": 100,
-      "ok": 151,
-      "skip": 139,
-      "reject": 4,
-      "parse_rate": 0.9742,
+      "ok": 79,
+      "skip": 31,
+      "reject": 0,
+      "parse_rate": 1.0,
       "skip_reasons": {
-        "regex_no_match": 139
+        "when_not_met": 16,
+        "regex_no_match": 15
       },
-      "reject_reasons": {
-        "misaligned_split(5_vs_91)": 1,
-        "misaligned_split(12_vs_13)": 1,
-        "misaligned_split(5_vs_6)": 1,
-        "misaligned_split(3_vs_5)": 1
-      },
-      "reject_examples": []
-    },
-    "address.state<-Supplier address": {
-      "rows": 210,
-      "blank": 100,
-      "ok": 179,
-      "skip": 101,
-      "reject": 4,
-      "parse_rate": 0.9781,
-      "skip_reasons": {
-        "regex_no_match": 101
-      },
-      "reject_reasons": {
-        "misaligned_split(15_vs_91)": 1,
-        "misaligned_split(12_vs_13)": 1,
-        "misaligned_split(5_vs_6)": 1,
-        "misaligned_split(3_vs_5)": 1
-      },
+      "reject_reasons": {},
       "reject_examples": []
     }
   }
