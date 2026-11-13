@@ -2,6 +2,7 @@
 
   python -m src.part3_resolve.handcheck make    -> handcheck/part3_link_check.csv   (fill in 'label')
   python -m src.part3_resolve.handcheck score   -> handcheck/part3_link_result.json
+  python -m src.part3_resolve.handcheck step8score -> reviews/step8_results.md
   python -m src.part3_resolve.handcheck step8   -> handcheck/step8_sheet.csv (blind) + step8_key.csv
 
 Sampling: the 266+ accepted links are mostly repeats of ~40 businesses (a supplier appears on many invoice
@@ -228,5 +229,53 @@ def make_step8() -> None:
     print(f"wrote {STEP8_SHEET} and {STEP8_KEY}: {len(chosen)} rows; per stratum (taken, asked, available):", counts)
 
 
+STEP8_RESULTS = Path("reviews/step8_results.md")
+CAVEATS = ["Labels are non-independent: ABN Lookup shows ASIC business names and the registers are matcher features.",
+           "Samples are small (n per stratum); intervals are wide.",
+           "Some labels were model-assisted (notes marked); the rest are the owner's."]
+
+
+def step8_table(rows: list[dict], by: str) -> list[dict]:
+    """Per group: Y, N, U, n labelled, precision = Y / (Y + N) (U excluded, but reported) with a 95% Wilson interval."""
+    out = []
+    for g in sorted({r[by] for r in rows}):
+        lab = [r["label"] for r in rows if r[by] == g]
+        y, n, u = lab.count("Y"), lab.count("N"), lab.count("U")
+        prec = round(y / (y + n), 3) if y + n else None
+        out.append({by: g, "rows": len(lab), "Y": y, "N": n, "U": u, "precision": prec,
+                    "ci95": wilson(y, y + n) if y + n else None})
+    return out
+
+
+def step8_join() -> tuple[list[dict], list[str]]:
+    """Sheet joined to key on check_id (the sheet is blind and carries no pair id; the key maps check_id -> pair_id).
+    Returns (rows with a valid label, ids of rows with a blank or invalid label)."""
+    key = {r["check_id"]: r for r in csv.DictReader(STEP8_KEY.open(encoding="utf-8-sig"))}
+    rows, bad = [], []
+    for r in csv.DictReader(STEP8_SHEET.open(encoding="utf-8-sig")):
+        lab = r["label"].strip().upper()[:1]
+        if lab not in ("Y", "N", "U"):
+            bad.append(r["check_id"])
+            continue
+        rows.append({**key[r["check_id"]], "label": lab})
+    return rows, bad
+
+
+def step8score() -> None:
+    rows, bad = step8_join()
+    lines = ["# Step 8 hand check: results", "",
+             f"Rows labelled: {len(rows)} of {len(rows) + len(bad)}. Blank or invalid labels: {len(bad)}" + (f" (check_id {', '.join(bad)})" if bad else "") + ".",
+             "Precision = Y / (Y + N); U is excluded from precision but shown. 95% Wilson interval. Not tuned on: no rule or threshold changes from these results.", ""]
+    for title, by in (("Per stratum", "stratum"), ("Per tier", "tier"), ("Per band", "band")):
+        lines += [f"## {title}", "", f"| {by} | rows | Y | N | U | precision | 95% CI |", "|---|---|---|---|---|---|---|"]
+        for t in step8_table(rows, by):
+            lines.append(f"| {t[by]} | {t['rows']} | {t['Y']} | {t['N']} | {t['U']} | "
+                         f"{'n/a' if t['precision'] is None else t['precision']} | {'n/a' if t['ci95'] is None else t['ci95']} |")
+        lines.append("")
+    lines += ["## Caveats", ""] + [f"- {c}" for c in CAVEATS]
+    STEP8_RESULTS.write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
 if __name__ == "__main__":
-    {"make": make, "score": score, "step8": make_step8}[sys.argv[1] if len(sys.argv) > 1 else "make"]()
+    {"make": make, "score": score, "step8": make_step8, "step8score": step8score}[sys.argv[1] if len(sys.argv) > 1 else "make"]()
