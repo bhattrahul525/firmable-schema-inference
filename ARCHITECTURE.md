@@ -345,7 +345,7 @@ XLS-only = 1,192. Zip only: 87 (reachable if the members are readable). XML only
 | Draw | Seed | Shortlist ranks 7-50 | Pool, stratified by format | Injection case |
 |---|---|---|---|---|
 | dev (fix against it) | 1 | 6 | 5 | 1 |
-| final (run once, unchanged) | 2 | 8 (rank 38 excluded) | 7 (one from the no-tabular group) | 1 |
+| final (run once, unchanged) | 2 | 8 (rank 38 excluded) | 7 (one from the no-tabular group; the 7th slot is a second csv) | 1 |
 
 The final draw runs once per model (Haiku and Sonnet) at a recorded commit.
 

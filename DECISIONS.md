@@ -196,3 +196,8 @@ allow-list, handcheck/accepted_conflicts.csv (pair id, reason, date). Mention in
 ## Step 7e2: blank-ABN register bridge rule (2026-11-13)
 - Found by the 7e check: one loose component held two mentions with different ABNs (both bridged by name to one register record with no ABN). m2.0 now refuses every bridge to a blank-ABN register record when the bridged mentions carry different valid ABNs (`register_bridge_different_abns`; a mention with no ABN does not count as different, but is refused too when the others differ, since it would join the two). The flag `bridge_abn_conflict` is stored on each link's features, so the scorer stays pure. Accepted edges are never touched (no accepted edge joins different ABNs).
 - graph.py now checks ALL same_as edges for components with more than one ABN and writes the offenders to outputs/part3/graph_checks.json (0 after the rule).
+
+## Final-review items (2026-11-13)
+- 16. The write-up must state plainly that m2.0 link precision rests on the 18 new step 8 labels (reviews/step8_results.md) plus the few round-1 labels that carried over; the brief asked for 50 at a stated threshold. Loose band: 4 Y / 5 N (0.44).
+- 17. The 7d item "skip a component with more than one ABN" is closed as moot: after 7e2, graph_checks.json shows 0 offenders.
+- Final draw shape: 8 shortlist + 7 pool (5 format classes, one no-tabular, a second csv in a different family). Per-run limit stays $0.50, as in the dev passes; the system prompt tells the model "$1.00" regardless of the cap, so the model's view of its budget differs from the enforced one.

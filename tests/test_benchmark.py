@@ -170,13 +170,16 @@ class TestRunner(unittest.TestCase):
             self.assertEqual(log.read_text().strip(), "hi")
             self.assertEqual(RUN.subprocess_runner([sys.executable, "-c", "raise SystemExit(3)"], 20, log), "exit 3")
 
-    def test_main_runs_the_dev_draw_on_haiku_or_sonnet_only_and_seed_1_only(self):
+    def test_main_runs_haiku_or_sonnet_only_and_refuses_a_taken_run_dir(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "draw.json"
-            p.write_text(json.dumps({"seed": 2, "items": [], "injection": {}}))
-            for argv, msg in ((["--draw", str(p), "--pass", "a", "--baseline", "0"], "dev draw"),
-                              (["--draw", str(p), "--pass", "a", "--baseline", "0", "--model", "claude-opus-5-5"], "Haiku or Sonnet")):
-                with mock.patch.object(sys, "argv", ["run", *argv]):
+            item = {"reference": {}}
+            p.write_text(json.dumps({"seed": 2, "items": [item], "injection": {}}))
+            taken = Path(d) / "runs" / "bench_fin2a_01"
+            taken.mkdir(parents=True)
+            base = ["--draw", str(p), "--pass", "a", "--baseline", "0"]
+            for argv, msg in ((base + ["--model", "claude-opus-5-5"], "Haiku or Sonnet"), (base, "already exists")):
+                with mock.patch.object(sys, "argv", ["run", *argv]), mock.patch.object(RUN.report, "RUNS_DIR", Path(d) / "runs"):
                     with self.assertRaises(SystemExit) as cm:
                         RUN.main()
                 self.assertIn(msg, str(cm.exception))
@@ -403,3 +406,39 @@ class TestRunInjection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FinalShapeAndBaseline(unittest.TestCase):
+    def test_final_draw_is_8_shortlist_plus_7_pool_with_a_second_csv_in_another_family(self):
+        pool, sl = [], {}
+        for i in range(12):                                   # 12 shortlist datasets, ranks 7-18, one family each
+            pool.append({"dataset_id": f"s{i}", "title": f"sl{chr(97+i)}", "organisation": "o", "resources": [{"format": "CSV"}]})
+            sl[f"s{i}"] = 7 + i
+        for cls, fmt in (("a", "CSV"), ("b", "XLSX"), ("c", "XLS"), ("d", "JSON"), ("e", "ZIP"), ("f", "PDF")):
+            for k in range(2):
+                pool.append({"dataset_id": f"p{cls}{k}", "title": f"pool{cls}{chr(97+k)}", "organisation": f"org{k}", "resources": [{"format": fmt}]})
+        d = D.make_draw(2, pool, sl, [], n_shortlist=8, final=True)
+        strata = [i["stratum"] for i in d["items"]]
+        self.assertEqual(len([s for s in strata if s == "ranks 7-50"]), 8)
+        self.assertEqual(len(strata) - 8, 7)
+        self.assertIn("format: no-tabular", strata)
+        csvs = [i for i in d["items"] if i["slot"] == "pool" and i["format_class"] == "csv"]
+        self.assertEqual(len(csvs), 2)
+        self.assertNotEqual(csvs[0]["dataset_id"], csvs[1]["dataset_id"])
+        self.assertNotEqual(csvs[0]["family"], csvs[1]["family"])
+
+    def test_main_computes_the_baseline_from_the_log_when_not_given(self):
+        with tempfile.TemporaryDirectory() as d:
+            log = Path(d) / "llm.jsonl"
+            log.write_text(json.dumps({"round": 2, "cost_usd": 1.25, "step": "s", "source_id": "x"}) + "\n" + json.dumps({"cost_usd": 9, "step": "s", "source_id": "x"}) + "\n")
+            p = Path(d) / "draw.json"
+            p.write_text(json.dumps({"seed": 2, "items": [{"reference": "x"}], "injection": {}}))
+            seen = {}
+            def fake(jobs, **kw):
+                seen.update(kw); raise SystemExit("stop")
+            with mock.patch.object(sys, "argv", ["run", "--draw", str(p), "--pass", "a"]), \
+                    mock.patch.object(RUN.llm, "LOG_PATH", log), mock.patch.object(RUN, "run_items", fake), \
+                    mock.patch.object(RUN.report, "RUNS_DIR", Path(d) / "runs"):
+                with self.assertRaises(SystemExit):
+                    RUN.main()
+            self.assertEqual(seen["baseline"], 1.25)

@@ -95,9 +95,10 @@ def collect(draw: dict, pass_label: str, out_dir: Path, status: dict[str, str], 
 
 def run_injection(draw: dict, pass_label: str, out_dir: Path, *, model: str, per_run_dollars: float, baseline: float,
                   session_limit: float, timeout: float = 900, runner=subprocess_runner, spend=session_spend,
-                  runs_dir: Path = report.RUNS_DIR, raw_dir: Path = report.RAW_DIR) -> dict:
+                  draw_name: str = "dev1", runs_dir: Path = report.RUNS_DIR, raw_dir: Path = report.RAW_DIR) -> dict:
     inj = draw["injection"]
-    ids = {"clean": f"bench_inj{pass_label}_clean", "injected": f"bench_inj{pass_label}_injected"}
+    tag = "" if draw_name == "dev1" else draw_name      # dev ids stay bench_inj<pass>_*; other draws get their own prefix
+    ids = {"clean": f"bench_inj{tag}{pass_label}_clean", "injected": f"bench_inj{tag}{pass_label}_injected"}
     jobs = [{"source_id": ids["clean"], "reference": inj["clean"]}, {"source_id": ids["injected"], "reference": inj["injected"]}]
     run_items(jobs, out_dir=out_dir, model=model, per_run_dollars=per_run_dollars, baseline=baseline, session_limit=session_limit,
               parallel=2, timeout=timeout, runner=runner, spend=spend)
@@ -110,10 +111,11 @@ def run_injection(draw: dict, pass_label: str, out_dir: Path, *, model: str, per
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Run a benchmark draw (dev draw: seed 1, Haiku or Sonnet).")
+    ap = argparse.ArgumentParser(description="Run a benchmark draw (Haiku or Sonnet).")
     ap.add_argument("--draw", required=True)
     ap.add_argument("--pass", dest="pass_label", required=True, help="a, b ... (suffix of the source ids and the output folder)")
-    ap.add_argument("--baseline", type=float, required=True, help="round-2 spend at the start of the session")
+    ap.add_argument("--baseline", type=float, default=None,
+                    help="round-2 spend at the start of the session (default: computed now from logs/llm_calls.jsonl)")
     ap.add_argument("--session-limit", type=float, default=3.0)
     ap.add_argument("--per-run-dollars", type=float, default=0.5)
     ap.add_argument("--model", default=DEFAULT_MODEL, help="claude-haiku-5-5 (default) or claude-sonnet-5-5")
@@ -122,18 +124,22 @@ def main() -> None:
     a = ap.parse_args()
     if a.model not in DEV_MODELS:
         raise SystemExit(f"the dev draw runs on Haiku or Sonnet only ({DEV_MODELS})")
+    if a.baseline is None:
+        a.baseline = llm.spend_summary(llm.LOG_PATH, 2)["total"]["cost_usd"]
     draw_path = Path(a.draw)
     draw = json.loads(draw_path.read_text())
-    if draw["seed"] != 1:
-        raise SystemExit("only the dev draw (seed 1) may be run here")
+    draw_name = "dev1" if draw["seed"] == 1 else f"fin{draw['seed']}"   # keeps final run ids and review sheets apart from dev
     out_dir = draw_path.parent / f"pass_{a.pass_label}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    jobs = [{"source_id": source_id_for("dev1", a.pass_label, i), "reference": it["reference"]} for i, it in enumerate(draw["items"], 1)]
+    jobs = [{"source_id": source_id_for(draw_name, a.pass_label, i), "reference": it["reference"]} for i, it in enumerate(draw["items"], 1)]
+    taken = [j["source_id"] for j in jobs if (report.RUNS_DIR / j["source_id"]).exists()]
+    if taken:
+        raise SystemExit(f"run dir already exists for {taken[:3]}: use a new --pass label")
     kw = dict(out_dir=out_dir, model=a.model, per_run_dollars=a.per_run_dollars, baseline=a.baseline, session_limit=a.session_limit,
               timeout=a.timeout)
     status = run_items(jobs, parallel=a.parallel, **kw)
-    inj = run_injection(draw, a.pass_label, **kw)
-    rows = collect(draw, a.pass_label, out_dir, status)
+    inj = run_injection(draw, a.pass_label, draw_name=draw_name, **kw)
+    rows = collect(draw, a.pass_label, out_dir, status, draw_name=draw_name)
     report.write_tables(rows, out_dir)
     (out_dir / "run_status.json").write_text(json.dumps(status, indent=1))
     print(json.dumps({"run_status": status, "injection": inj["verdict"], "session_spend": round(session_spend(a.baseline), 4)}, indent=1))

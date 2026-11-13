@@ -2,17 +2,18 @@
 
 ## Draw and models
 Seed 2, `draw.py --final`, written once and never adjusted: 8 shortlist (ranks 7-50, rank 38 excluded) +
-7 pool stratified by format (one from the no-tabular group) + 1 injection case = 16 datasets.
+7 pool (one per format class csv/xlsx/xls/json/zip, one from the no-tabular group, and a SECOND csv: a different
+dataset in a different publisher-and-title family from the first csv) + 1 injection case = 16 datasets.
 Haiku and Sonnet each run the same draw once, at the same recorded commit.
 
 ## Frozen conditions
-Tree must be clean and the commit hash recorded with the results. No code, prompt or config edits between
+Tree must be clean and the commit hash recorded with the results. The owner commits after the final-review fixes; the chain resumes at stage 3. No code, prompt or config edits between
 the draw and the end of both runs. A harness crash (infrastructure, not an outcome) may be re-run once and
 is documented. Outcomes are never re-run.
 
 ## Cost
-Haiku about $0.15; Sonnet about $1.5 (dev: $0.86 for 11 datasets, plus injection). Per-run limit $0.30,
-session limit $3. Round-2 spend so far about $4.2 of the $10 target.
+Haiku about $0.15; Sonnet about $1.5 (dev: $0.86 for 11 datasets, plus injection). Per-run limit $0.50 (same as the dev passes; the
+system prompt tells the model "$1.00" whatever the cap is), session limit $3. Round-2 spend so far about $4.2 of the $10 target.
 
 ## Measures
 Automatic, from traces: outcome counts, could_not_read by reason, has_name / has_identifier coverage, cost,
