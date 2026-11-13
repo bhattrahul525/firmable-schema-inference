@@ -29,6 +29,7 @@ def test_blank_abn_rows_are_separate_holders():
 def test_load_mentions_skips_reference(monkeypatch, tmp_path):
     monkeypatch.setattr(F, "OBS_DIR", tmp_path)
     monkeypatch.setattr(F, "reference_sources", lambda: {"reg": {}})
+    monkeypatch.setattr(F, "abn_unverified", lambda sid: False)
     (tmp_path / "src1.jsonl").write_text('{"entity_ref":"a","source_record_id":"1","field":"entity.legal_name","value":"X Pty Ltd"}\n')
     assert [m["source_id"] for m in F.load_mentions(["src1", "reg"])] == ["src1"]  # reg has no file: it is never opened
 

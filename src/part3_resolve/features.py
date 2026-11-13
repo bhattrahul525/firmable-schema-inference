@@ -12,6 +12,8 @@ from pathlib import Path
 
 import yaml
 
+from src.engine.config import config_path, load_config_file
+
 from src.common.names import ATF, SUFFIX_TOKENS, name_core  # noqa: F401  (re-exported; moved in step 7a)
 
 OBS_DIR = Path("outputs/observations")
@@ -74,6 +76,18 @@ def containment(a: str, b: str) -> float:
     return len(ta & tb) / min(len(ta), len(tb)) if ta and tb else 0.0
 
 
+_UNVERIFIED: dict[str, bool] = {}
+
+
+def abn_unverified(sid: str) -> bool:
+    """True if the source's approved config marks an entity.abn field's evidence `unverified` (step 3b). Looked up by
+    source id and canonical field; extract does not carry it onto observations."""
+    if sid not in _UNVERIFIED:
+        cfg = load_config_file(config_path(sid))
+        _UNVERIFIED[sid] = any(f["canonical"] == "entity.abn" and f.get("evidence") == "unverified" for f in cfg["fields"])
+    return _UNVERIFIED[sid]
+
+
 def load_mentions(sources: list[str]) -> list[dict]:
     mentions: dict[str, dict] = {}
     for sid in [x for x in sources if x not in reference_sources()]:
@@ -83,7 +97,7 @@ def load_mentions(sources: list[str]) -> list[dict]:
             m = mentions.setdefault(mid, {
                 "mention_id": mid, "source_id": sid, "source_record_id": o["source_record_id"],
                 "entity_ref": o["entity_ref"], "legal_name": None, "trading_names": [], "abn": None,
-                "acn": None, "state": None, "postcode": None, "locality": None, "address_full": None,
+                "acn": None, "state": None, "postcode": None, "locality": None, "address_full": None, "abn_unverified": abn_unverified(sid),
                 "entity_type": "unknown"})
             f, v = o["field"], o["value"]
             if f == "entity.legal_name":
@@ -107,12 +121,25 @@ def load_mentions(sources: list[str]) -> list[dict]:
     return out
 
 
-def pair_features(a: dict, b: dict, how: str) -> dict:
+def pair_features(a: dict, b: dict, how: str, ctx: dict | None = None) -> dict:
     """Everything a scorer may use about a candidate pair. Stored on the link so it can be
-    re-scored later without re-reading the sources."""
+    re-scored later without re-reading the sources. `ctx` ({"idf": Idf, "bn": BusinessNames}) adds the m2.0 features."""
     shared_trading = bool(set(a["trading_cores"]) & set(b["trading_cores"])) or \
         bool({a["core"]} & set(b["trading_cores"])) or bool({b["core"]} & set(a["trading_cores"]))
+    extra = {}
+    if ctx:
+        idf, bn = ctx["idf"], ctx["bn"]
+        bn_cores = {name_core(n) for n in bn.names_of_abn(a["abn"])} if a["abn"] and a["abn"] == b["abn"] else set()
+        extra = {
+            "name_overlap": round(idf.overlap(a["legal_name"], b["legal_name"]), 3),
+            "generic_name": idf.is_generic(a["legal_name"]) or idf.is_generic(b["legal_name"]),
+            "abn_unverified": a["abn_unverified"] or b["abn_unverified"],
+            # a Business Names name under the shared ABN equals this side's name (confirms ONE side only)
+            "bn_confirms_a": bool(a["core"] and a["core"] in bn_cores),
+            "bn_confirms_b": bool(b["core"] and b["core"] in bn_cores),
+        }
     return {
+        **extra,
         "how": how,  # which blocking rule proposed the pair
         "abn_equal": bool(a["abn"] and a["abn"] == b["abn"]),
         "abn_differ": bool(a["abn"] and b["abn"] and a["abn"] != b["abn"]),

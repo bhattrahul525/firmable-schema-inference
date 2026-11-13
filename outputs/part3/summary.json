@@ -1,34 +1,52 @@
 {
-  "matcher_version": "m1.2",
+  "matcher_version": "m2.0",
   "thresholds": {
     "accept": 0.8,
     "loose": 0.6
   },
   "mentions_by_source": {
-    "asic_credit_licensee": 4313,
-    "qbcc_licensed_contractors": 5000,
-    "qld_health_contracts_2023_24": 433,
-    "wa_tenders_awards_2023_24": 5817,
-    "vic_liquor_licences": 5000,
-    "act_notifiable_invoices": 5000
+    "asic_credit_licensee": 1000,
+    "qbcc_licensed_contractors": 1000,
+    "qld_health_contracts_2023_24": 191,
+    "wa_tenders_awards_2023_24": 1000,
+    "vic_liquor_licences": 1000,
+    "act_notifiable_invoices": 1000
   },
   "links_by_band": {
-    "loose": 119,
-    "accepted": 266
+    "accepted": 562,
+    "loose": 466
   },
   "links_by_tier_and_band": {
-    "T1_abn_equal|accepted": 266,
-    "T3_name_company|loose": 119
+    "T1_abn_equal|accepted": 49,
+    "T1_register_abn|accepted": 511,
+    "T1r_abn_equal_bn_name|accepted": 2,
+    "T3_register_name|loose": 465,
+    "T4_name_postcode|loose": 1
   },
-  "cross_source_entities": 40,
+  "links_by_source_pair": {
+    "act_notifiable_invoices | qbcc_licensed_contractors": 23,
+    "act_notifiable_invoices | qld_health_contracts_2023_24": 25,
+    "act_notifiable_invoices | asic_credit_licensee": 3,
+    "qbcc_licensed_contractors | wa_tenders_awards_2023_24": 1,
+    "asic_business_names | asic_credit_licensee": 270,
+    "asic_business_names | qbcc_licensed_contractors": 23,
+    "asic_business_names | qld_health_contracts_2023_24": 47,
+    "asic_business_names | wa_tenders_awards_2023_24": 50,
+    "asic_business_names | vic_liquor_licences": 358,
+    "act_notifiable_invoices | asic_business_names": 228
+  },
+  "cross_source_entities": 9,
   "queue_by_reason": {
-    "no_name_or_identifier": 5817,
-    "name_match_without_location_evidence": 7,
-    "identifier_match_but_names_conflict": 23,
-    "name_match_but_different_abns": 2,
-    "similar_name_not_exact": 3
+    "name_match_without_location_evidence": 98,
+    "generic_name": 120,
+    "identifier_match_but_names_conflict": 3,
+    "person_name_not_linked_by_name": 143,
+    "similar_name_not_exact": 1,
+    "name_match_but_locations_differ": 1,
+    "name_match_but_different_abns": 88,
+    "name_matches_more_than_one_holder": 13
   },
-  "mentions_with_abn_in_no_accepted_link": 11605,
-  "atf_relationships": 13,
-  "canonical_keys_rekeyed": 1
+  "mentions_with_abn_in_no_accepted_link": 2121,
+  "atf_relationships": 22,
+  "canonical_keys_rekeyed": 0
 }

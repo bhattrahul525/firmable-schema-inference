@@ -20,7 +20,10 @@ from itertools import combinations
 from pathlib import Path
 
 from src.part3_resolve.features import load_mentions, pair_features
-from src.part3_resolve.keys import rekey_conflicting_name_links
+from src.part3_resolve.idf import load_idf
+from src.part3_resolve.registers import REGISTER_ID, bn_record_id, load_business_names, register_links
+from src.common.names import name_core
+from src.part3_resolve.keys import name_key, rekey_conflicting_name_links
 from src.part3_resolve.score import ACCEPT, KEY_RULE_VERSIONS, LOOSE, MATCHER_VERSION, SCORERS, band
 
 SOURCES = ["asic_credit_licensee", "qbcc_licensed_contractors", "qld_health_contracts_2023_24",
@@ -101,12 +104,13 @@ def main() -> None:
     mentions = load_mentions(SOURCES)
     by_id = {m["mention_id"]: m for m in mentions}
     cand, queue = block_pairs(mentions)
+    ctx = {"idf": load_idf(), "bn": load_business_names()}
     scorer = SCORERS[MATCHER_VERSION]
 
     links, pair_queue = [], []
     for (x, y), hows in sorted(cand.items()):
         a, b = by_id[x], by_id[y]
-        f = pair_features(a, b, "+".join(sorted(set(hows))))
+        f = pair_features(a, b, "+".join(sorted(set(hows))), ctx)
         if "fuzzy" in hows and not (f["name_exact"] or f["abn_equal"] or f["acn_equal"] or f["acn_is_abn_suffix"]) \
                 and not (f["name_containment"] >= 0.6 and f["postcode_equal"]):
             continue  # fuzzy block members that are not actually similar are just noise
@@ -118,7 +122,26 @@ def main() -> None:
             pair_queue.append({"kind": "pair", "reason": why, **item})
         else:
             item["band"] = band(conf)
+            if why:
+                item["note"] = why  # e.g. abn_evidence_unverified_cap
             links.append(item)
+
+    # Mention-register pairs (R2). A register record is evidence, never a mention: it joins no cluster.
+    reg_links = []
+    for c in (register_links(mentions, ctx["bn"], ctx["idf"]) if MATCHER_VERSION.startswith("m2") else []):
+        m, row, f = c["mention"], c["bn_row"], c["evidence"]
+        conf, tier, why = scorer(f)
+        item = {"source_a_record": rec(m), "source_b_record": {"source_id": REGISTER_ID, "source_record_id": bn_record_id(row),
+                                                              "entity_ref": None},
+                "link_confidence": conf, "tier": tier, "evidence": f, "matcher_version": MATCHER_VERSION,
+                "thresholds": {"accept": ACCEPT, "loose": LOOSE}}
+        if band(conf) == "refused":
+            pair_queue.append({"kind": "pair", "reason": why, **item})
+        else:
+            item["band"] = band(conf)
+            if why:
+                item["note"] = why
+            reg_links.append(item)
 
     # Clusters come ONLY from accepted links. We do not merge records just because they share an ABN
     # inside one source: QBCC lists individuals under their company's ABN, so ABN alone would pull
@@ -151,6 +174,12 @@ def main() -> None:
         raw = f"{ia}|{ib}|{MATCHER_VERSION}"
         l["link_id"] = hashlib.sha1(raw.encode()).hexdigest()[:12]
     links = [l for l in links if l["band"] in ("accepted", "loose")]
+    for l in reg_links:  # key: the register holder's ABN if it has one, else name + state of the mention
+        ia = f"{l['source_a_record']['source_id']}|{l['source_a_record']['entity_ref']}"
+        holder = l["evidence"]["register_holder_abn"]
+        l["canonical_entity_key"] = f"abn:{holder}" if holder else name_key(name_core(l["evidence"]["name_a"]), l["evidence"]["state_a"])
+        l["link_id"] = hashlib.sha1(f"{ia}|{l['source_b_record']['source_id']}|{l['source_b_record']['source_record_id']}|{MATCHER_VERSION}".encode()).hexdigest()[:12]
+    links += reg_links
     key_changes = rekey_conflicting_name_links(links) if MATCHER_VERSION in KEY_RULE_VERSIONS else []
 
     # records we believed were businesses but cannot link at all (no name and no identifier)
@@ -181,6 +210,7 @@ def main() -> None:
         "mentions_by_source": dict(Counter(m["source_id"] for m in mentions)),
         "links_by_band": dict(Counter(l["band"] for l in links)),
         "links_by_tier_and_band": {f"{t}|{b}": c for (t, b), c in sorted(Counter((l["tier"], l["band"]) for l in links).items())},
+        "links_by_source_pair": dict(Counter(" | ".join(sorted((l["source_a_record"]["source_id"], l["source_b_record"]["source_id"]))) for l in links)),
         "cross_source_entities": len(entities),
         "queue_by_reason": dict(Counter(q["reason"] for q in queue)),
         "mentions_with_abn_in_no_accepted_link": sum(1 for m in mentions if m["abn"] and m["mention_id"] not in linked_ids),

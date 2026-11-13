@@ -22,7 +22,6 @@ from src.common.names import name_core
 from src.engine.config import config_path, load_config_file
 from src.engine.readers import iter_table
 from src.part3_resolve.features import load_mentions
-from src.part3_resolve.run import SOURCES
 
 REGISTER = Path("data/raw/reference/business_names_202611.zip")
 REGISTER_ID = "asic_business_names"
@@ -58,6 +57,8 @@ class Idf:
 
 def mention_counts() -> tuple[Counter, int]:
     """Document frequency over distinct normalised names per source."""
+    from src.part3_resolve.run import SOURCES  # here, not at the top: run.py imports this module
+
     names = set()
     for m in load_mentions(SOURCES):
         for c in [m["core"], *m["trading_cores"]]:

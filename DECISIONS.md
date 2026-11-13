@@ -166,3 +166,23 @@ Owner decisions (final), from reviews/step6_plan.md: 1=B filter keys are ABN + n
 - Holder uniqueness (R4): holders = distinct valid ABNs, each blank-ABN row its own holder; a name with more than one holder is refused. Over the 5,224 distinct mention names (legal + trading, normalised): 961 hit exactly one holder, **14 refused** (more than one holder).
 - State / postcode derived from `address.full` (L1, only where the source gave none; a state is never inferred from a postcode): 86 mentions gain a state, 1,056 a postcode (mostly the WA tender addresses, which end in a bare postcode). This changes matcher inputs (postcode/state evidence) only when Part 3 is re-run in 7b2.
 - **GENERIC_MIN_WEIGHT = 14.02**, set before any labels were viewed. Summed IDF weight of the normalised name (suffix words dropped) over the 5,224 distinct mention names: min 5.56, p5 14.02, p10 14.66, median 23.23. So about 5% of mention names count as generic. The weights depend on the IDF corpus, so the threshold is a version-stamped constant: rebuild the cache and the weights move.
+
+## Step 7b2: matcher m2.0 (2026-11-13)
+- **NAME_AGREE_MIN = 0.6**, hand-set, never tuned against labels: two names agree when their rarity-weighted overlap (idf.py) is at least 0.6, or they share an exact trading name, or their normalised names are equal.
+- Tiers: T1 0.98 (equal ABN/ACN, names agree), T1r 0.95 (equal ABN, names differ, one name is a Registered Business Names name under that ABN; **the register confirms one side only**, weaker than the design), T2 0.88, T3 register name bridge 0.65 (loose, never promoted, T3c off), T4 exact name + postcode / state 0.70, + both companies 0.65 (loose, not promoted). Register ABN match with agreeing names = T1_register_abn 0.98. An ABN whose config evidence is `unverified` caps a link at 0.79 (none triggered in this run).
+- Refusals: identifier match with names in conflict, name matching more than one holder, generic name (GENERIC_MIN_WEIGHT 14.02), different ABNs, person-like names without an equal ABN.
+- Register records have stable ids `bn:<state of registration>:<BN_STATE_NUM>` (hash fallback when the number is blank) and never join a cluster.
+- m1.x T3 name-only tiers became m2.0 T4 (the rekey guard now covers T3 and T4). The old m1.0 "name too short" rule is replaced by the IDF generic-name rule.
+- Result of the first m2.0 run is in outputs/part3/summary.json. R8 label check found a demotion (see the 7b2 report): STOPPED for a planning decision.
+
+
+Check 8 (Cantel Australia -> Steris Australia, labelled Y) is refused by m2.0: equal ABN, names share only
+a generic word, and no Business Names name under that ABN confirms the rename (Companies and ABR are cut).
+Accepted as the cost of the reduction: renames with no register name history are refused. Recall loss, not
+a precision error. The label is not edited. The rescore gate (7c) reports such pairs through a hand-written
+allow-list, handcheck/accepted_conflicts.csv (pair id, reason, date). Mention in the write-up.
+## Step 7c: graph and rescore gate (2026-11-13)
+- Graph (`src/part3_resolve/graph.py`, outputs/part3/graph_nodes.jsonl + graph_edges.jsonl): nodes mention / register / person / entity (entities are derived components of ACCEPTED same_as edges, recomputed each build). Edges `same_as` (the m2.0 link table) and `nominee_of`. `edge_id` = hash of type + endpoints, NOT the matcher version, so a re-score keeps the id and `previous` records the earlier tier/band (read from the graph file being replaced).
+- `nominee_of`: a person-like mention with an ABN that is shared with a company-like mention (the QBCC pattern), one edge per distinct company name under that ABN. Hand-set relationship score 0.70 (loose, not calibrated). A person-like mention with NO ABN gets no nominee edge (nothing to anchor it to). renamed_to and trustee_for not built.
+- Labels are keyed by `pair_id` (record level; final label = `my_label` in part3_verify.csv, else `label` in part3_link_check.csv). `handcheck/accepted_conflicts.csv` (hand-written) holds the check-8 pair.
+- Rescore gate: refuses to write the rescored links when a human Y would be demoted or an N promoted, unless the pair is allow-listed (then reported). Old links lacking the features a matcher needs are counted as `not_rescoreable`. Consequence: the 420 round-1 (m1.2) links cannot be re-scored to m2.0; only m2.0 links can be rescored by later versions.
