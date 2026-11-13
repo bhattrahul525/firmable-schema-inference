@@ -155,3 +155,8 @@ Owner decisions (final), from reviews/step4a_plan.md section 9:
 4. **`when` per field = A**, `when_not_met` is a skip, no ordering between fields.
 5. **Literal text in `template` / `repl` = A**, separators and group references only.
 Build notes: the uncompilable-pattern crash in `regex_extract` is fixed in the shared helper (`run_regex`). `repl` is checked by one substitution on an empty string (verified: a bad group reference raises even with no match). Small choices: `P_TRANSFORMS` lives in `engine/config.py`; round-1 `llm_steps.py` keeps the original 12 names through `ROUND1_CATALOGUE`; `_evidence_specs` tuples carry `when` as a fifth element.
+
+## Step 6B: Business Names row filter (2026-11-13)
+Owner decisions (final), from reviews/step6_plan.md: 1=B filter keys are ABN + name key; 2=B T3c disabled (a second Business Names hit is not independent), T3 kept, no-ABN links hand-judged; 3=A agent onboarding; 4=A trimmed result committed with attribution. Companies register, T1r and T3c are designed, not built; offline fallback is Business Names only and outputs must say Companies and ABR features are absent.
+- `keep_where` (column, equals) is an explicit row-filter condition; `BN_STATUS == Registered` is applied there and is NOT mapped to entity.status. The approved-style config has no `keep_where` key (configs are agent-written, never hand-edited), so it is passed as `--keep-where`; the filter also reads a `keep_where:` from the config if an agent ever writes one.
+- Name key = the matcher's `name_core` (legal and trading names of every mention), no state: the register's state is where the name is registered, not the holder's address. Result: 12,145 of 3,312,255 rows kept in ~17 s (`docs/runbook.md`).
