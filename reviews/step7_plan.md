@@ -52,3 +52,9 @@ R8 Rescore conflict (m2.0 would demote a round-1 Y or promote an N): stop, "This
    decision". Never edit labels.
 CHECK at the start of 7b (read-only): (a) how many round-1 labels survive re-extraction; (b) whether
 postcode/state are derived from address.full; (c) whether extract carries field evidence state to mentions.
+
+Check 8 (Cantel Australia -> Steris Australia, labelled Y) is refused by m2.0: equal ABN, names share only
+a generic word, and no Business Names name under that ABN confirms the rename (Companies and ABR are cut).
+Accepted as the cost of the reduction: renames with no register name history are refused. Recall loss, not
+a precision error. The label is not edited. The rescore gate (7c) reports such pairs through a hand-written
+allow-list, handcheck/accepted_conflicts.csv (pair id, reason, date). Mention in the write-up.
