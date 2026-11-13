@@ -28,3 +28,5 @@ logs/agent_runs/*/split.json
 logs/agent_runs/*/table_state.json
 # token-count cache built from the full Business Names register (regenerable, step 7a)
 data/cache/
+chain/out/
+chain/STOP.txt
