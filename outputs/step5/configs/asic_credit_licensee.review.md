@@ -7,11 +7,11 @@
 ## How this ended
 
 - Outcome **validated_config**.
-- 8 model turns, 8 tool calls, $0.0094, 39.18s (download and human waits excluded). Trace: `logs/agent_runs/asic_credit_licensee/trace.jsonl`.
+- 10 model turns, 10 tool calls, $0.0099, 42.67s (download and human waits excluded). Trace: `logs/agent_runs/asic_credit_licensee/trace.jsonl`.
 
 ## Reader and record settings
 
-- reader: `{"format": "tsv", "encoding": "utf-8-sig", "skip_rows": 0, "header_rows": 1}`
+- reader: `{"format": "csv", "delimiter": "\t", "encoding": "utf-8-sig", "skip_rows": 0, "header_rows": 1}`
 - layout: column names from raw row 1; data starts at raw row 2.
 - `record_id`: from `CRED_LIC_NUM` — 0 duplicate / blank keys of 4313 rows (whole file)
 - `observed_at`: from metadata `resource_last_modified` (one value, applies to every row)
@@ -37,36 +37,34 @@ First 12 raw rows of the file (numbered as skip_rows counts them; never held out
 | # | Source column | → Canonical field | Transforms | Level | Evidence | Mapping conf. (model) | Parse rate (held-out) | **Field conf.** |
 |---|---|---|---|---|---|---|---|---|
 | 1 | `CRED_LIC_NAME` | `entity.legal_name` | clean_whitespace | W | held_out | 0.70 | 100.0% | **0.70** |
-| 2 | `CRED_LIC_NAME` | `entity.entity_type` | entity_type_from_suffix | W | held_out | 0.60 | 100.0% | **0.60** |
-| 3 | `CRED_LIC_ABN_ACN` | `entity.abn` | abn | W | held_out | 0.85 | 100.0% | **0.85** |
-| 4 | `CRED_LIC_ABN_ACN` | `entity.acn` | acn | W | held_out | 0.80 | 100.0% | **0.80** |
-| 5 | `CRED_LIC_BN` | `entity.trading_name` | clean_whitespace | W | held_out | 0.60 | 100.0% | **0.60** |
-| 6 | `CRED_LIC_LOCALITY` | `address.locality` | clean_whitespace | W | held_out | 0.90 | 100.0% | **0.90** |
-| 7 | `CRED_LIC_STATE` | `address.state` | state_code | W | held_out | 0.90 | 100.0% | **0.90** |
-| 8 | `CRED_LIC_PCODE` | `address.postcode` | postcode | W | held_out | 0.90 | 100.0% | **0.90** |
+| 2 | `CRED_LIC_ABN_ACN` | `entity.abn` | abn [when {"column": "CRED_LIC_ABN_ACN", "matches": "^\\d{11}$"}] | P | held_out | 0.90 | 100.0% | **0.90** |
+| 3 | `CRED_LIC_ABN_ACN` | `entity.acn` | acn [when {"column": "CRED_LIC_ABN_ACN", "matches": "^\\d{9}$"}] | P | held_out | 0.85 | 100.0% | **0.85** |
+| 4 | `CRED_LIC_BN` | `entity.trading_name` | clean_whitespace | W | held_out | 0.60 | 100.0% | **0.60** |
+| 5 | `CRED_LIC_LOCALITY` | `address.locality` | clean_whitespace | W | held_out | 0.90 | 100.0% | **0.90** |
+| 6 | `CRED_LIC_STATE` | `address.state` | state_code | W | held_out | 0.90 | 100.0% | **0.90** |
+| 7 | `CRED_LIC_PCODE` | `address.postcode` | postcode | W | held_out | 0.90 | 100.0% | **0.90** |
 
 The model's reasons per field (its words, not verified):
 
-1. `entity.legal_name` ← `CRED_LIC_NAME`: Register of credit licence holders; the row subject is the licensee holding the licence (rule 5b), but the header does not itself label it as the licensee name, so confidence is capped at 0.7.
-2. `entity.entity_type` ← `CRED_LIC_NAME`: No explicit entity type column; suffix rule on the licensee name.
-3. `entity.abn` ← `CRED_LIC_ABN_ACN`: Column mixes 11-digit ABNs and 9-digit ACNs; the split is by digit length, with checksum validation via the abn transform.
-4. `entity.acn` ← `CRED_LIC_ABN_ACN`: Split by digit length: 9-digit values are ACNs, checksum validated via the acn transform.
-5. `entity.trading_name` ← `CRED_LIC_BN`: Business name column, a name traded under; not the registered name.
-6. `address.locality` ← `CRED_LIC_LOCALITY`: Locality column.
-7. `address.state` ← `CRED_LIC_STATE`: State column.
-8. `address.postcode` ← `CRED_LIC_PCODE`: Postcode column.
+1. `entity.legal_name` ← `CRED_LIC_NAME`: Regulator register (ASIC credit licences); the row's subject is the licence holder listed by name. No explicit 'registered' label, so confidence capped under rule 5b.
+2. `entity.abn` ← `CRED_LIC_ABN_ACN`: 11-digit values are ABNs (checksum validated).
+3. `entity.acn` ← `CRED_LIC_ABN_ACN`: 9-digit values are ACNs (checksum validated).
+4. `entity.trading_name` ← `CRED_LIC_BN`: Business name column, a name traded under; not the registered name.
+5. `address.locality` ← `CRED_LIC_LOCALITY`: Locality of the licensee.
+6. `address.state` ← `CRED_LIC_STATE`: State of the licensee.
+7. `address.postcode` ← `CRED_LIC_PCODE`: Postcode of the licensee.
 
 ## Left unmapped (not guessed)
 
-- `CRED_LIC_STATUS`: Credit licence status (APPR/SUSP) describes the licence, not the entity's own status; no licence-status field in the ontology subset. Left out to avoid a wrong entity.status claim.
-- `REGISTER_NAME`: Constant register label, carries no claim about the entity.
-- `CRED_LIC_AFSL_NUM`: AFSL number duplicates the licence number in most rows; no canonical field for it.
+- `REGISTER_NAME`: Constant register label 'Credit Licence'.
 - `CRED_LIC_END_DT`: Empty in all rows.
+- `CRED_LIC_STATUS`: Licence approval status (APPR/SUSP) describes the credit licence, not the entity; not mapped to entity.status.
 - `CRED_LIC_STATUS_HISTORY`: Free-text status history; no canonical field.
+- `CRED_LIC_AFSL_NUM`: Duplicate of CRED_LIC_NUM; no AFSL field in ontology.
+- `CRED_LIC_EDRS`: External dispute resolution scheme; no canonical field.
 - `CRED_LIC_LAT`: Geocode; no canonical field.
 - `CRED_LIC_LNG`: Geocode; no canonical field.
-- `CRED_LIC_EDRS`: External dispute resolution scheme; no canonical field.
-- `CRED_LIC_AUTHORISATIONS`: Licence authorisation text; no canonical field.
+- `CRED_LIC_AUTHORISATIONS`: Long licence authorisation text; no canonical field.
 
 ## Needs a transform the engine does not have
 
@@ -75,18 +73,17 @@ The model's reasons per field (its words, not verified):
 ## Checks
 
 - Duplicate record ids in held-out rows: {'rows': 4313, 'key': ['CRED_LIC_NUM'], 'duplicate_rows': 0, 'blank_key_rows': 0}
-- Critique: The main concern is entity.status: it maps a credit licence status (APPR/SUSP) onto the entity's own status, which the source does not support. The ABN/ACN split, the 5b legal_name mapping, and the trading name and address mappings are broadly sound but need confidence values and a few clarifications. The valid_from mapping from CRED_LIC_START_DT is acceptable because that column records when the licence started.
-  - [blocking] `entity.status<-CRED_LIC_STATUS`: The source column CRED_LIC_STATUS holds the status of the credit licence (APPR = approved, SUSP = suspended), but the mapping writes it to entity.status as the status of the entity. Rows such as FIRST MORTGAGE MANAGED INVESTMENTS LIMITED therefore get the claim that the company is 'active', which the source does not state. (suggested: Remove the entity.status mapping, or record the licence status under a field that means licence status if the ontology has one. If it is kept, the reason must say it is licence status and not entity status.)
-  - [advisory] `entity.abn / entity.acn`: CRED_LIC_ABN_ACN mixes 11-digit ABNs and 9-digit ACNs, and both fields read the same column. The config relies on the abn and acn transforms to split them by length, which is acceptable, but no mapping_confidence or note records that the split is by length alone. (suggested: Add a mapping_confidence and a reason that states the split is by digit length and checksum. No `when` clause is needed unless another column says which rows hold an ABN or ACN.)
-  - [advisory] `entity.legal_name<-CRED_LIC_NAME`: The name is mapped to legal_name under rule 5b, which needs the source to label the name as the licensee or holder. The header CRED_LIC_NAME does not say so by itself, and the config has no mapping_confidence. Under 5b that means confidence should be 0.7 or lower unless the register's label is cited. (suggested: Add a mapping_confidence for the legal_name mapping. Cite the register's own wording (for example, the licensee column definition) to support the 5b mapping, or lower the confidence to 0.7 or below.)
-  - [advisory] `entity.status<-CRED_LIC_STATUS`: The map_values table covers only APPR and SUSP. The profile shows only APPR, so other licence status codes, such as cancelled or expired, are unmapped and will be handled silently. (suggested: Confirm the full set of CRED_LIC_STATUS values in the profile and map each one, or leave unseen values unmapped with an explicit note.)
-  - [advisory] `record_id`: record_id uses CRED_LIC_NUM but the config does not say it was checked for uniqueness (check_unique) or what happens if it is not unique. (suggested: Record a check_unique result for CRED_LIC_NUM, or use hash_row if uniqueness cannot be confirmed.)
-  - [advisory] `config (source reliability and confidence)`: The config has no mapping_confidence per field and no source_reliability with its basis, although rules 14 and 16 require them. (suggested: Add mapping_confidence for each field and a source_reliability value per claim kind, with source_reliability_basis explaining the judgement.)
+- Critique: The name, ABN/ACN split, locality, state and postcode mappings follow the rules. The main problem is that the licence approval status is written to the entity's own status, which the register does not support. Several confidence values and the status value coverage also need to be added or confirmed.
+  - [blocking] `entity.status<-CRED_LIC_STATUS`: CRED_LIC_STATUS records the status of the credit licence (APPR = approved licence, SUSP = suspended licence), but the mapping writes it to entity.status, which describes the entity itself. The source does not state that the company is active or suspended; a licence can be suspended while the entity is still trading, and the reverse is also possible. (suggested: Remove the entity.status mapping for this column, or map it to a licence-status claim if the ontology has one. If the ontology must keep entity.status here, record the licence status only as an advisory caveat and do not state it as the entity's status.)
+  - [advisory] `entity.status<-CRED_LIC_STATUS`: The map_values transform covers only APPR and SUSP. Rule 8 requires every raw value visible in the profile to be considered, and the config does not show whether other codes (for example cancelled or expired) exist in the column or were deliberately left unmapped. (suggested: Confirm the full set of CRED_LIC_STATUS values in the profile and state explicitly how any remaining codes are handled.)
+  - [advisory] `entity.legal_name<-CRED_LIC_NAME`: The mapping is justified under rule 5b, since this is a regulator's register and the row's subject is the licence holder. The config gives no mapping_confidence, and rule 5b requires 0.7 or lower without an explicit label. The column header CRED_LIC_NAME does not itself say 'licensee' or 'registered name'. (suggested: Set mapping_confidence to 0.7 or lower for entity.legal_name, citing the register-holder basis, or add an explicit confidence value.)
+  - [advisory] `entity.trading_name<-CRED_LIC_BN`: CRED_LIC_BN is a business name, so trading_name is the right target. The config gives no mapping_confidence, and rule 5 caps non-registered name columns at 0.6 or lower. (suggested: Add mapping_confidence of 0.6 or lower to this field.)
+  - [advisory] `record_id`: record_id is CRED_LIC_NUM, but the config does not show that it was checked for uniqueness. Rule 15 requires check_unique or hash_row. (suggested: Confirm CRED_LIC_NUM is unique across rows, or fall back to hash_row=true.)
+  - [advisory] `valid_from`: valid_from uses CRED_LIC_START_DT, which is the licence start date. That fits rule 10 for the licence, but it is applied to every observation in the row, including name and address claims, which the licence start date does not describe. (suggested: Note in the config that valid_from relates to the licence, or restrict it to the licence-related observations.)
 
 ## Examples (raw → value, held-out rows)
 
 - `entity.legal_name<-CRED_LIC_NAME`: `FIRST MORTGAGE MANAGED INVESTMENTS LIMITED` → `FIRST MORTGAGE MANAGED INVESTMENTS LIMITED`; `AIA AUSTRALIA LIMITED` → `AIA AUSTRALIA LIMITED`; `PERPETUAL TRUSTEE COMPANY LIMITED` → `PERPETUAL TRUSTEE COMPANY LIMITED`
-- `entity.entity_type<-CRED_LIC_NAME`: `FIRST MORTGAGE MANAGED INVESTMENTS LIMITED` → `company`; `AIA AUSTRALIA LIMITED` → `company`; `PERPETUAL TRUSTEE COMPANY LIMITED` → `company`
 - `entity.abn<-CRED_LIC_ABN_ACN`: `39089507899` → `39089507899`; `79004837861` → `79004837861`; `42000001007` → `42000001007`
 - `address.locality<-CRED_LIC_LOCALITY`: `BURLEIGH HEADS` → `BURLEIGH HEADS`; `MELBOURNE` → `MELBOURNE`; `SYDNEY` → `SYDNEY`
 - `address.state<-CRED_LIC_STATE`: `QLD` → `QLD`; `VIC` → `VIC`; `NSW` → `NSW`

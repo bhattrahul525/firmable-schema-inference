@@ -1,11 +1,11 @@
-what_it_is: Queensland Health (System Procurement) register of current contracts valued over $10,000 for the 2023-24
-  period, one row per contract with supplier details.
-one_row_is: one contract disclosed by a QLD Health agency, with its supplier(s)
+what_it_is: 'Queensland Health contract disclosure report 2023-24: publicly disclosed government contracts with
+  their supplier(s).'
+one_row_is: one disclosed government contract with its supplier(s), as listed by QLD Health agencies
 reader:
   format: csv
   encoding: cp1252
-  header_rows: 1
   skip_rows: 0
+  header_rows: 1
 record_id:
   hash_row: true
 observed_at:
@@ -14,16 +14,18 @@ fields:
 - source: Supplier name
   canonical: entity.legal_name
   transforms:
+  - name: split
+    arg: ;
   - name: clean_whitespace
     arg: null
   group: main
-  mapping_confidence: 0.85
-  reason: Column is the supplier name on the contract; supplier is the contracted entity. Only mapped where a single
-    supplier is listed (see when).
+  mapping_confidence: 0.7
+  reason: Column is named Supplier name on a government contract disclosure; the supplier is the contracted entity.
+    Only mapped on rows with a single supplier ABN so names and ABNs stay aligned.
   when:
     column: Supplier ABN
-    matches: ^\s*\d{2} ?\d{3} ?\d{3} ?\d{3}\s*$
-  field_confidence: 0.85
+    matches: ^\s*\d{2}\s?\d{3}\s?\d{3}\s?\d{3}\s*$
+  field_confidence: 0.7
   evidence: held_out
   transform_level: P
   validation:
@@ -38,15 +40,14 @@ fields:
 - source: Supplier ABN
   canonical: entity.abn
   transforms:
-  - name: regex_replace
-    arg:
-      pattern: ' '
-      repl: ''
   - name: abn
     arg: null
   group: main
   mapping_confidence: 0.9
-  reason: Supplier ABN column; spaces removed and checksum validated. Multi-supplier cells are skipped by the transform.
+  reason: Supplier ABN column; checksum validated. Only single-ABN rows so it aligns with the supplier name.
+  when:
+    column: Supplier ABN
+    matches: ^\s*\d{2}\s?\d{3}\s?\d{3}\s?\d{3}\s*$
   field_confidence: 0.9
   evidence: held_out
   transform_level: P
@@ -68,11 +69,11 @@ fields:
     arg: null
   group: main
   mapping_confidence: 0.7
-  reason: Supplier address for the supplier; only single-supplier rows; placeholder values without letters (e.g.
-    '0') are skipped.
+  reason: Supplier address column; only on single-ABN rows so it belongs to the same supplier. Placeholder values
+    without letters (e.g. '0') are dropped.
   when:
     column: Supplier ABN
-    matches: ^\s*\d{2} ?\d{3} ?\d{3} ?\d{3}\s*$
+    matches: ^\s*\d{2}\s?\d{3}\s?\d{3}\s?\d{3}\s*$
   field_confidence: 0.7
   evidence: held_out
   transform_level: P
@@ -86,20 +87,20 @@ fields:
     evidence: held_out
     whole_file: null
 unmapped:
-- source: Agency (Dept or Stat Body)
-  reason: government buyer, not the supplier entity
-- source: Agency address
-  reason: address of the government buyer, not the supplier
 - source: _id
-  reason: blank in the source
+  reason: empty column
+- source: Agency (Dept or Stat Body)
+  reason: government buyer, not the supplier
+- source: Agency address
+  reason: government buyer address
 - source: Contract description/name
-  reason: contract description; no ontology field
+  reason: contract description, no entity field
 - source: Award contract date
-  reason: date of the contract event, not when the entity's status began
+  reason: date of a transaction, not when the entity's registration started
 - source: Contract value
-  reason: contract value; no ontology field
+  reason: contract value, no ontology field
 - source: Variation to contract (Yes/No)
-  reason: contract attribute; no ontology field
+  reason: contract attribute
 - source: Specific confidentiality provision used
   reason: contract attribute
 - source: Procurement method
@@ -119,23 +120,27 @@ unmapped:
 - source: Contract performance management
   reason: contract attribute
 - source: Contract reference number
-  reason: contract identifier, not unique enough to be record id
+  reason: contract identifier, not an entity identifier
 - source: Contract category group
-  reason: contract category; no ontology field
+  reason: contract attribute
 - source: Parent contract number/SOA
   reason: contract identifier
 - source: Commence date
-  reason: contract date, not entity registration
+  reason: contract start date, a transaction date not entity status
 - source: Finish date
-  reason: contract date, not entity status
-needs_transform: []
+  reason: contract end date, a transaction date not entity status
+needs_transform:
+- source: Supplier ABN
+  why: Multi-supplier rows (several ';'-separated names and ABNs) are excluded; aligned split of name, ABN and address
+    needs a grouped split the config cannot yet guarantee because comma-separated names also occur.
 source_reliability:
-  identity: 0.7
-  address: 0.6
-  classification: 0.5
+  identity: 0.6
+  address: 0.5
+  classification: 0.3
   contact: 0.3
-source_reliability_basis: Government procurement disclosure register; names and ABNs are supplier-supplied with
-  some formatting errors and a checksum failure, so moderate trust.
+source_reliability_basis: Government contract disclosure register, self-reported by agencies; supplier names and
+  ABNs are unverified and inconsistently formatted (mixed delimiters, a misspelt agency name), so identity claims
+  are moderate.
 meaning_check_responses: []
 source_id: qld_health_contracts_2023_24
 config_version: 1
@@ -143,69 +148,53 @@ validation_summary:
   held_out_rows: 105
   observations_in_held_out: 327
   unanswered_meaning_warnings: []
-  abstentions:
-  - field: entity.legal_name / entity.abn / address.full (multi-supplier rows)
-    reason: 'Cells listing several suppliers are deliberately not mapped: supplier and ABN lists use mixed separators
-      ('', '' and ''; '') so positional alignment is unreliable. These rows (about 6%) yield no supplier observations.
-      Advisory critique suggested split; not applied to avoid misaligned suppliers.'
+  abstentions: []
   critique_issues:
-  - id: c-a4e9753e
+  - id: c-2ab382f3
     field: address.full<-Supplier address
-    problem: For the ADITS NQ PTY LTD row the Supplier address cell is the placeholder "0", and the mapping emits
-      it as address.full = "0". The row's Supplier ABN is a single 11-digit ABN, so the `when` clause passes and
-      the placeholder is mapped as a real address. The source does not support an address here.
+    problem: On the ADITS NQ PTY LTD row the Supplier address is the placeholder value "0", which the engine emitted
+      as address.full = "0". The source does not state an address, so this claims an address the source does not
+      support. The Supplier ABN on that row is single and unspaced, so the when-clause matches and the placeholder
+      passes through.
     severity: blocking
-    suggested_fix: Add a rule that rejects non-address placeholder values such as "0" (for example a regex requiring
-      at least one letter, or a value exclusion list), or treat "0" as null, and re-check the rows where this column
-      holds placeholders.
-  - id: c-a26924a6
-    field: entity.abn<-Supplier ABN
-    problem: The multi-supplier rows (for example the Cleanaway/Ace Waste row and the ALPENGLOW row) produce no
-      entity observations at all. Rule 12 says aligned columns should be split on ';' within one group so items
-      line up by position. The config instead skips these rows entirely, so their suppliers are lost.
-    severity: advisory
-    suggested_fix: Add split on ';' to Supplier name, Supplier ABN and Supplier address in a shared group, so each
-      supplier is emitted as its own entity observation, with the `when` restriction removed or applied per item.
-  - id: c-edb78fe3
-    field: address.state
-    problem: The Supplier address cells often contain a state (for example "Newcastle West, NSW, 2302" or "Chapel
-      Hill QLD 4069"), but the config maps only address.full. The state and postcode are not parsed out, though
-      they are present in the source text.
-    severity: advisory
-    suggested_fix: Consider a parse step that extracts the state and postcode from the Supplier address into address.state
-      and address.postcode, with a note that this is L1 parsing and that the field_confidence should reflect it.
-  - id: c-872478a0
+    suggested_fix: Add a transform or when-condition that drops placeholder values such as "0" (or any value without
+      letters) before mapping to address.full. Do not map a bare "0" as an address.
+  - id: c-4954f0a3
     field: entity.legal_name<-Supplier name
-    problem: Multi-supplier cells (for example the Cleanaway/Ace Waste and ALPENGLOW rows) produce no entity observations
-      at all. Rule 12 asks for split on every aligned column in one group so that items line up by position. The
-      config skips these rows instead, so the listed suppliers and their ABNs are lost even though the source holds
-      them.
+    problem: Names such as "Core Connect" and "MAX STOCK'S" read like trading names rather than registered names.
+      The supplier column supports legal_name as the contracted supplier, but the names may not be the registered
+      entity names.
     severity: advisory
-    suggested_fix: Add split (';') to Supplier name, Supplier ABN and Supplier address in one shared group, with
-      the when condition applied per item, so each supplier in a multi-supplier cell is emitted. Alternatively,
-      record in the config why these rows are deliberately excluded.
-  - id: c-05f767af
+    suggested_fix: Keep legal_name for the supplier column, but set mapping_confidence at or below 0.8 for these
+      rows, or cross-check the ABN against a registry before treating the name as registered.
+  - id: c-a4fd3b4b
+    field: address.full<-Supplier address
+    problem: Supplier addresses such as "Level 13, 2 Park Street Sydney, NSW 2000" contain a state and postcode
+      that could be parsed into address.state and address.postcode. Only the full string is mapped.
+    severity: advisory
+    suggested_fix: Optionally parse state and postcode from the address with a deterministic regex transform, and
+      map them to address.state and address.postcode.
+  - id: c-de28502f
+    field: entity.legal_name<-Supplier name
+    problem: The split on ';' is never exercised because the when-condition only admits rows with a single Supplier
+      ABN, and multi-supplier rows (e.g. the Cleanaway and ALPENGLOW rows) are dropped entirely. The split transform
+      is therefore inert in this config.
+    severity: advisory
+    suggested_fix: Keep the when-condition only if the multi-supplier rows are deliberately excluded and documented.
+      Otherwise, split Supplier name, Supplier ABN (abn transform) and Supplier address on ';' in one group so the
+      items line up by position, per rule 12.
+  - id: c-1e5c883c
     field: entity.abn<-Supplier ABN
-    problem: The reason says the abn transform skips multi-supplier cells, but the transform is applied to the whole
-      cell after spaces are stripped. The skip is therefore a property of the engine's behaviour, not something
-      the config enforces. The config does not state this clearly, and no when condition guards this field the way
-      it guards the name and address fields.
+    problem: Multi-ABN rows yield zero observations, so every supplier in those rows is lost, not only the ones
+      the when-condition excludes. The config records the reason but gives no path to recover the suppliers.
     severity: advisory
-    suggested_fix: Add the same single-ABN when condition used on Supplier name to entity.abn<-Supplier ABN, so
-      that the guard is explicit in the config rather than resting on transform behaviour.
-  - id: c-8be2d1b2
-    field: observation envelope
-    problem: The config does not show the envelope fields that are required by the ontology (licence, source_reliability,
-      extractor_version, source_id). The sample output shows observed_at only. The licence in particular has no
-      value in the config, and the source is a government contracts dataset whose licence is not stated here.
-    severity: advisory
-    suggested_fix: Confirm that licence is taken from the CKAN metadata (or recorded as 'unknown' and flagged),
-      and that source_reliability and extractor_version are set and documented, with a basis for the reliability
-      judgement.
+    suggested_fix: Add a split-based mapping for multi-ABN rows in the same group as the names and addresses, or
+      record these rows as needing a transform so the gap is visible downstream.
+  outcome: validated_config
 generated_by:
   agent: round2-tool-agent
   agent_version: 2.1.0
   engine_version: 0.1.0
   model: claude-haiku-5-5
-  code_version: e6626bda1af5
-  generated_at: '2026-11-13T00:26:26+00:00'
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T01:12:45+00:00'

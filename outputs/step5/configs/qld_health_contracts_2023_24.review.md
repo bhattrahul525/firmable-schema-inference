@@ -7,11 +7,12 @@
 ## How this ended
 
 - Outcome **validated_config**.
-- 11 model turns, 11 tool calls, $0.0136, 63.38s (download and human waits excluded). Trace: `logs/agent_runs/qld_health_contracts_2023_24/trace.jsonl`.
+- 11 model turns, 11 tool calls, $0.0146, 77.14s (download and human waits excluded). Trace: `logs/agent_runs/qld_health_contracts_2023_24/trace.jsonl`.
+- Evidence the agent gave at finish (its words): validate call 2: 0 hard failures, 210 rows, 327 observations on held-out rows, legal_name and address parse 100%, ABN parse 98.96%. Critique: 0 blocking issues remaining.
 
 ## Reader and record settings
 
-- reader: `{"format": "csv", "encoding": "cp1252", "header_rows": 1, "skip_rows": 0}`
+- reader: `{"format": "csv", "encoding": "cp1252", "skip_rows": 0, "header_rows": 1}`
 - layout: column names from raw row 1; data starts at raw row 2.
 - `record_id`: hash_row (no source column)
 - `observed_at`: from metadata `resource_last_modified` (one value, applies to every row)
@@ -35,25 +36,25 @@ First 12 raw rows of the file (numbered as skip_rows counts them; never held out
 
 | # | Source column | → Canonical field | Transforms | Level | Evidence | Mapping conf. (model) | Parse rate (held-out) | **Field conf.** |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `Supplier name` | `entity.legal_name` | clean_whitespace [when {"column": "Supplier ABN", "matches": "^\\s*\\d{2} ?\\d{3} ?\\d{3} ?\\d{3}\\s*$"}] | P | held_out | 0.85 | 100.0% | **0.85** |
-| 2 | `Supplier ABN` | `entity.abn` | regex_replace({'pattern': ' ', 'repl': ''}) → abn | P | held_out | 0.90 | 99.0% | **0.90** |
-| 3 | `Supplier address` | `address.full` | regex_extract(^(.*[A-Za-z].*)$) → clean_whitespace [when {"column": "Supplier ABN", "matches": "^\\s*\\d{2} ?\\d{3} ?\\d{3} ?\\d{3}\\s*$"}] | P | held_out | 0.70 | 100.0% | **0.70** |
+| 1 | `Supplier name` | `entity.legal_name` | split(;) → clean_whitespace [when {"column": "Supplier ABN", "matches": "^\\s*\\d{2}\\s?\\d{3}\\s?\\d{3}\\s?\\d{3}\\s*$"}] | P | held_out | 0.70 | 100.0% | **0.70** |
+| 2 | `Supplier ABN` | `entity.abn` | abn [when {"column": "Supplier ABN", "matches": "^\\s*\\d{2}\\s?\\d{3}\\s?\\d{3}\\s?\\d{3}\\s*$"}] | P | held_out | 0.90 | 99.0% | **0.90** |
+| 3 | `Supplier address` | `address.full` | regex_extract(^(.*[A-Za-z].*)$) → clean_whitespace [when {"column": "Supplier ABN", "matches": "^\\s*\\d{2}\\s?\\d{3}\\s?\\d{3}\\s?\\d{3}\\s*$"}] | P | held_out | 0.70 | 100.0% | **0.70** |
 
 The model's reasons per field (its words, not verified):
 
-1. `entity.legal_name` ← `Supplier name`: Column is the supplier name on the contract; supplier is the contracted entity. Only mapped where a single supplier is listed (see when).
-2. `entity.abn` ← `Supplier ABN`: Supplier ABN column; spaces removed and checksum validated. Multi-supplier cells are skipped by the transform.
-3. `address.full` ← `Supplier address`: Supplier address for the supplier; only single-supplier rows; placeholder values without letters (e.g. '0') are skipped.
+1. `entity.legal_name` ← `Supplier name`: Column is named Supplier name on a government contract disclosure; the supplier is the contracted entity. Only mapped on rows with a single supplier ABN so names and ABNs stay aligned.
+2. `entity.abn` ← `Supplier ABN`: Supplier ABN column; checksum validated. Only single-ABN rows so it aligns with the supplier name.
+3. `address.full` ← `Supplier address`: Supplier address column; only on single-ABN rows so it belongs to the same supplier. Placeholder values without letters (e.g. '0') are dropped.
 
 ## Left unmapped (not guessed)
 
-- `Agency (Dept or Stat Body)`: government buyer, not the supplier entity
-- `Agency address`: address of the government buyer, not the supplier
-- `_id`: blank in the source
-- `Contract description/name`: contract description; no ontology field
-- `Award contract date`: date of the contract event, not when the entity's status began
-- `Contract value`: contract value; no ontology field
-- `Variation to contract (Yes/No)`: contract attribute; no ontology field
+- `_id`: empty column
+- `Agency (Dept or Stat Body)`: government buyer, not the supplier
+- `Agency address`: government buyer address
+- `Contract description/name`: contract description, no entity field
+- `Award contract date`: date of a transaction, not when the entity's registration started
+- `Contract value`: contract value, no ontology field
+- `Variation to contract (Yes/No)`: contract attribute
 - `Specific confidentiality provision used`: contract attribute
 - `Procurement method`: contract attribute
 - `Justification (if limited tender)`: contract attribute
@@ -63,31 +64,26 @@ The model's reasons per field (its words, not verified):
 - `Deliverables`: contract attribute
 - `Contract milestones`: contract attribute
 - `Contract performance management`: contract attribute
-- `Contract reference number`: contract identifier, not unique enough to be record id
-- `Contract category group`: contract category; no ontology field
+- `Contract reference number`: contract identifier, not an entity identifier
+- `Contract category group`: contract attribute
 - `Parent contract number/SOA`: contract identifier
-- `Commence date`: contract date, not entity registration
-- `Finish date`: contract date, not entity status
+- `Commence date`: contract start date, a transaction date not entity status
+- `Finish date`: contract end date, a transaction date not entity status
 
 ## Needs a transform the engine does not have
 
-- none
-
-## Abstentions (fields removed, with reasons)
-
-- `entity.legal_name / entity.abn / address.full (multi-supplier rows)`: Cells listing several suppliers are deliberately not mapped: supplier and ABN lists use mixed separators (', ' and '; ') so positional alignment is unreliable. These rows (about 6%) yield no supplier observations. Advisory critique suggested split; not applied to avoid misaligned suppliers.
+- `Supplier ABN`: Multi-supplier rows (several ';'-separated names and ABNs) are excluded; aligned split of name, ABN and address needs a grouped split the config cannot yet guarantee because comma-separated names also occur.
 
 ## Checks
 
 - Duplicate record ids in held-out rows: {'rows': 210, 'key': 'hash_row', 'duplicate_rows': 0, 'blank_key_rows': 0}
-- Critique: The mapping is mostly sound: supplier name and ABN are mapped to the contracted supplier, agency fields are correctly excluded as government buyer, and contract dates are correctly left unmapped. One blocking issue: a placeholder "0" in the supplier address is emitted as a real address for the ADITS NQ row. Advisory points cover the lost multi-supplier rows and the unparsed state and postcode.
-  - [blocking] `address.full<-Supplier address`: For the ADITS NQ PTY LTD row the Supplier address cell is the placeholder "0", and the mapping emits it as address.full = "0". The row's Supplier ABN is a single 11-digit ABN, so the `when` clause passes and the placeholder is mapped as a real address. The source does not support an address here. (suggested: Add a rule that rejects non-address placeholder values such as "0" (for example a regex requiring at least one letter, or a value exclusion list), or treat "0" as null, and re-check the rows where this column holds placeholders.)
-  - [advisory] `entity.abn<-Supplier ABN`: The multi-supplier rows (for example the Cleanaway/Ace Waste row and the ALPENGLOW row) produce no entity observations at all. Rule 12 says aligned columns should be split on ';' within one group so items line up by position. The config instead skips these rows entirely, so their suppliers are lost. (suggested: Add split on ';' to Supplier name, Supplier ABN and Supplier address in a shared group, so each supplier is emitted as its own entity observation, with the `when` restriction removed or applied per item.)
-  - [advisory] `address.state`: The Supplier address cells often contain a state (for example "Newcastle West, NSW, 2302" or "Chapel Hill QLD 4069"), but the config maps only address.full. The state and postcode are not parsed out, though they are present in the source text. (suggested: Consider a parse step that extracts the state and postcode from the Supplier address into address.state and address.postcode, with a note that this is L1 parsing and that the field_confidence should reflect it.)
-- Critique: No blocking meaning errors found. The legal name, ABN and address mappings follow the stated rules for single-supplier rows, the contract dates and other contract attributes are correctly left unmapped, and the government agency is correctly excluded. The remaining points are completeness issues: multi-supplier cells are dropped rather than split in a group, the ABN guard is implicit, and the envelope metadata is not visible in the config.
-  - [advisory] `entity.legal_name<-Supplier name`: Multi-supplier cells (for example the Cleanaway/Ace Waste and ALPENGLOW rows) produce no entity observations at all. Rule 12 asks for split on every aligned column in one group so that items line up by position. The config skips these rows instead, so the listed suppliers and their ABNs are lost even though the source holds them. (suggested: Add split (';') to Supplier name, Supplier ABN and Supplier address in one shared group, with the when condition applied per item, so each supplier in a multi-supplier cell is emitted. Alternatively, record in the config why these rows are deliberately excluded.)
-  - [advisory] `entity.abn<-Supplier ABN`: The reason says the abn transform skips multi-supplier cells, but the transform is applied to the whole cell after spaces are stripped. The skip is therefore a property of the engine's behaviour, not something the config enforces. The config does not state this clearly, and no when condition guards this field the way it guards the name and address fields. (suggested: Add the same single-ABN when condition used on Supplier name to entity.abn<-Supplier ABN, so that the guard is explicit in the config rather than resting on transform behaviour.)
-  - [advisory] `observation envelope`: The config does not show the envelope fields that are required by the ontology (licence, source_reliability, extractor_version, source_id). The sample output shows observed_at only. The licence in particular has no value in the config, and the source is a government contracts dataset whose licence is not stated here. (suggested: Confirm that licence is taken from the CKAN metadata (or recorded as 'unknown' and flagged), and that source_reliability and extractor_version are set and documented, with a basis for the reliability judgement.)
+- Critique: The mapping is largely sound: the single-ABN when-clause correctly excludes multi-supplier cells, agency and contract columns are correctly left unmapped, and entity_type stays unknown. The main defect is the placeholder "0" in Supplier address being emitted as a real address (blocking). The remaining points are advisory caveats on name type and address parsing.
+  - [blocking] `address.full<-Supplier address`: On the ADITS NQ PTY LTD row the Supplier address is the placeholder value "0", which the engine emitted as address.full = "0". The source does not state an address, so this claims an address the source does not support. The Supplier ABN on that row is single and unspaced, so the when-clause matches and the placeholder passes through. (suggested: Add a transform or when-condition that drops placeholder values such as "0" (or any value without letters) before mapping to address.full. Do not map a bare "0" as an address.)
+  - [advisory] `entity.legal_name<-Supplier name`: Names such as "Core Connect" and "MAX STOCK'S" read like trading names rather than registered names. The supplier column supports legal_name as the contracted supplier, but the names may not be the registered entity names. (suggested: Keep legal_name for the supplier column, but set mapping_confidence at or below 0.8 for these rows, or cross-check the ABN against a registry before treating the name as registered.)
+  - [advisory] `address.full<-Supplier address`: Supplier addresses such as "Level 13, 2 Park Street Sydney, NSW 2000" contain a state and postcode that could be parsed into address.state and address.postcode. Only the full string is mapped. (suggested: Optionally parse state and postcode from the address with a deterministic regex transform, and map them to address.state and address.postcode.)
+- Critique: No blocking meaning errors found in the shown examples: supplier name, ABN and address are mapped from the supplier columns, the government buyer and contract attributes are correctly unmapped, and placeholder addresses such as '0' are dropped. The remaining issues are advisory: the split on supplier names is inert because of the single-ABN condition, and multi-supplier rows produce no observations at all.
+  - [advisory] `entity.legal_name<-Supplier name`: The split on ';' is never exercised because the when-condition only admits rows with a single Supplier ABN, and multi-supplier rows (e.g. the Cleanaway and ALPENGLOW rows) are dropped entirely. The split transform is therefore inert in this config. (suggested: Keep the when-condition only if the multi-supplier rows are deliberately excluded and documented. Otherwise, split Supplier name, Supplier ABN (abn transform) and Supplier address on ';' in one group so the items line up by position, per rule 12.)
+  - [advisory] `entity.abn<-Supplier ABN`: Multi-ABN rows yield zero observations, so every supplier in those rows is lost, not only the ones the when-condition excludes. The config records the reason but gives no path to recover the suppliers. (suggested: Add a split-based mapping for multi-ABN rows in the same group as the names and addresses, or record these rows as needing a transform so the gap is visible downstream.)
 
 ## Examples (raw → value, held-out rows)
 

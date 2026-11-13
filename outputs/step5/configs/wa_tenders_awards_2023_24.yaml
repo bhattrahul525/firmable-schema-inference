@@ -1,18 +1,13 @@
-what_it_is: Western Australian government tender contract award records for 2023-24 from Tenders WA, one row per
-  awarded contract with supplier details.
-one_row_is: one contract award made by a WA public authority to a supplier
+what_it_is: WA government tender contract award records 2023-24 listing the awarded supplier, supplier address and
+  contract details, published by WA tenders.
+one_row_is: 'one contract award line: a public authority''s tender reference and one awarded supplier'
 reader:
   format: csv
   encoding: utf-8-sig
   skip_rows: 0
   header_rows: 1
 record_id:
-  from:
-  - Reference_Number
-  - Supplier_Name
-  - Public_Authority
-  - Award_Date
-  - Title
+  hash_row: true
 observed_at:
   from_metadata: resource_last_modified
 fields:
@@ -22,19 +17,17 @@ fields:
   - name: clean_whitespace
     arg: null
   group: main
-  when:
-    column: Supplier_Name
-    matches: ^[^(]*$
-  mapping_confidence: 0.85
-  reason: Supplier_Name without a parenthesised part is the contracted supplier's name as the agency entered it.
-  field_confidence: 0.85
+  mapping_confidence: 0.8
+  reason: Column is the awarded supplier's name in a tender award register; it is the supplier's name as the source
+    records it. Parenthetical text is left as published.
+  field_confidence: 0.8
   evidence: held_out
-  transform_level: P
+  transform_level: W
   validation:
     held_out_rows: 300
     blank: 0
-    ok: 122
-    skipped_not_applicable: 178
+    ok: 300
+    skipped_not_applicable: 0
     rejected: 0
     parse_rate: 1.0
     evidence: held_out
@@ -46,7 +39,7 @@ fields:
     arg: null
   group: main
   mapping_confidence: 0.85
-  reason: Supplier_Address is the supplier's address (Supplier_ prefix), not the buyer's address.
+  reason: Supplier address column, same row as Supplier_Name.
   field_confidence: 0.85
   evidence: held_out
   transform_level: W
@@ -61,187 +54,136 @@ fields:
     whole_file: null
 unmapped:
 - source: Public_Authority
-  reason: government buyer; the entity is the supplier
+  reason: government buyer; not the supplier entity
 - source: Public_Authority_Address
-  reason: address of the government buyer, not the entity
+  reason: address of the government buyer, not the supplier
 - source: Title
-  reason: contract title, not an entity attribute
+  reason: contract description
+- source: Reference_Number
+  reason: tender reference
 - source: Description
   reason: contract description
 - source: Type_of_Work
-  reason: procurement category of the contract
+  reason: procurement type
 - source: Procurement_Method
-  reason: procurement method of the contract
+  reason: procurement process attribute
 - source: Associated_With_Tender
-  reason: tender cross-reference
+  reason: related tender text
 - source: UNSPSC_Code_1
-  reason: product classification of the contract, not an entity industry code
+  reason: contract goods/services code, not supplier ANZSIC
 - source: UNSPSC_Title_1
-  reason: product classification of the contract
+  reason: contract classification
 - source: UNSPSC_Percent_1
-  reason: contract classification share
+  reason: share of contract
 - source: UNSPSC_Code_2
   reason: contract classification
 - source: UNSPSC_Title_2
   reason: contract classification
 - source: UNSPSC_Percent_2
-  reason: contract classification share
+  reason: share of contract
 - source: UNSPSC_Code_3
   reason: contract classification
 - source: UNSPSC_Title_3
   reason: contract classification
 - source: UNSPSC_Percent_3
-  reason: contract classification share
+  reason: share of contract
 - source: Gascoyne
-  reason: contract region flag
+  reason: delivery region flag
 - source: Goldfields_Esperance
-  reason: contract region flag
+  reason: delivery region flag
 - source: Great_Southern
-  reason: contract region flag
+  reason: delivery region flag
 - source: Kimberley
-  reason: contract region flag
+  reason: delivery region flag
 - source: Mid_West
-  reason: contract region flag
+  reason: delivery region flag
 - source: Peel
-  reason: contract region flag
+  reason: delivery region flag
 - source: Perth_Metropolitan
-  reason: contract region flag
+  reason: delivery region flag
 - source: Pilbara
-  reason: contract region flag
+  reason: delivery region flag
 - source: South_West
-  reason: contract region flag
+  reason: delivery region flag
 - source: Wheatbelt
-  reason: contract region flag
+  reason: delivery region flag
 - source: State_Wide
-  reason: contract region flag
+  reason: delivery region flag
 - source: Interstate
-  reason: contract region flag
+  reason: delivery region flag
 - source: International
-  reason: contract region flag
+  reason: delivery region flag
 - source: Number_of_Submissions
   reason: tender statistic
 - source: Panel_Contract
-  reason: contract flag
+  reason: contract attribute
 - source: Contract_Term
-  reason: contract term
+  reason: contract attribute
 - source: Closing_Date
-  reason: tender event date, not an entity status date
+  reason: tender event date
 - source: Award_Date
-  reason: contract award event date; not when the supplier's registration or status began
+  reason: contract event date
 - source: Commencement_Date
-  reason: contract date, not entity validity
+  reason: contract term date
 - source: Initial_Expiry_Date
-  reason: contract date
+  reason: contract term date
 - source: Final_Expiry_Date
-  reason: contract date
+  reason: contract term date
 - source: Original_Contract_Value
-  reason: contract value, not an entity attribute
+  reason: contract value
 - source: Original_Contract_Value_Type
   reason: contract value type
 - source: CUA_Number
   reason: common use arrangement reference
-needs_transform:
-- source: Supplier_Name
-  why: For cells of form 'Outer name (Registered name)' the parenthesised part should be legal_name and the outer
-    part trading_name; the engine has no conditional split-by-pattern extraction into two canonical fields yet.
-    Parenthesised rows currently get no legal_name.
+needs_transform: []
 source_reliability:
-  identity: 0.6
+  identity: 0.7
   address: 0.6
   classification: 0.3
-  contact: 0.3
-source_reliability_basis: Government tender award register maintained by agencies; supplier names are as entered
-  by each agency, so accuracy varies and is not independently checked.
+  contact: 0.4
+source_reliability_basis: Official WA government tender award publication; supplier names as reported by agencies,
+  not checked against registers; no ABN supplied.
 meaning_check_responses: []
 source_id: wa_tenders_awards_2023_24
 config_version: 1
 validation_summary:
   held_out_rows: 300
-  observations_in_held_out: 722
+  observations_in_held_out: 900
   unanswered_meaning_warnings: []
-  abstentions:
-  - field: entity.legal_name<-Supplier_Name (parenthesised rows)
-    reason: Cells of the form 'Outer name (Registered name)' cannot be split into legal_name and trading_name by
-      the current transforms without mapping two canonical fields from one column; left unmapped and listed in needs_transform.
+  abstentions: []
   critique_issues:
-  - id: c-4449c1ab
+  - id: c-354f4f86
     field: entity.legal_name<-Supplier_Name
-    problem: 'Supplier_Name cells often hold two names: an outer name and a parenthesised registered name, e.g.
-      ''My Home Care (MyHomecare Pty Ltd)'', ''Programmed Property Services (Programmed Property Services Pty Ltd)''
-      and ''DFP Recruitment Services (DFP Recruitment Services Pty Ltd ATF The DFP Business Trust)''. The whole
-      cell is mapped as legal_name, which claims the outer trading-style name is part of the registered name. The
-      source does not support that. The outer name belongs in entity.trading_name at most, and the registered name
-      is only the parenthesised part.'
-    severity: blocking
-    suggested_fix: 'Split the cell on the parentheses: map the parenthesised registered name to entity.legal_name
-      and the outer name to entity.trading_name, or add a split/extract transform if one exists. If no such transform
-      exists, list the column under needs_transform rather than mapping the whole string as legal_name. Keep mapping_confidence
-      at or below 0.7 until this is done.'
-  - id: c-a849951c
+    problem: Several Supplier_Name values pair a trading-style name with a parenthetical registered-style name,
+      e.g. 'Programmed Property Services (Programmed Property Services Pty Ltd)', 'My Home Care (MyHomecare Pty
+      Ltd)' and 'Talent International (Talent International Pty Ltd)'. The whole string is mapped to legal_name,
+      so the outer name is presented as the registered name. The source does not say which part is registered.
+    severity: advisory
+    suggested_fix: Keep the mapping (the column is the awarded supplier's name, which rule 5 allows), but record
+      a caveat that the value may combine a trading name and a registered name. If the split is needed later, add
+      a transform that splits the parenthetical, or map the outer part to trading_name at 0.6 or lower after such
+      a transform exists (needs_transform).
+  - id: c-dbd49edd
+    field: entity.legal_name<-Supplier_Name
+    problem: Some values are abbreviated or carry a trustee designation rather than a plain registered name, e.g.
+      'Progenesis Holdings P/L' and 'DFP Recruitment Services (DFP Recruitment Services Pty Ltd ATF The DFP Business
+      Trust)'. 'ATF' means the company acts as trustee, so the trust is not the supplier itself.
+    severity: advisory
+    suggested_fix: Keep the mapping as published, since the source does not give a registered form. Add a note that
+      'P/L' is an abbreviation and that 'ATF' indicates a trustee capacity, and do not infer entity_type from these
+      strings.
+  - id: c-bd51232c
     field: address.full<-Supplier_Address
-    problem: One row reads 'Level 5, 25 Walters Drive, Osborne Park, OSBORNE PARK, 6017', with the locality repeated.
-      Clean_whitespace does not remove this duplication, so the address is kept as the source has it.
+    problem: The raw value 'Level 5, 25 Walters Drive, Osborne Park, OSBORNE PARK, 6017' repeats the locality, and
+      clean_whitespace does not address this. The mapping keeps the duplication as published.
     severity: advisory
-    suggested_fix: Leave as is, since rule 1 forbids cleaning beyond the transforms. Optionally note the duplicated
-      locality as a data-quality caveat.
-  - id: c-819f879a
-    field: record_id
-    problem: Reference_Number is not unique across agencies in general, and the record_id list names five columns
-      without showing that the combination is checked as unique. Several rows share generic values, so the key may
-      not reliably trace back to the exact raw row.
-    severity: advisory
-    suggested_fix: Confirm with check_unique that the combined key is unique across the file, or fall back to hash_row=true.
-  - id: c-0c59f91a
-    field: observation.licence / observation.source_id
-    problem: The config does not show the envelope fields source_id or licence. These are required on every observation.
-    severity: advisory
-    suggested_fix: Add source_id as a stable dataset identifier and take the licence from the CKAN metadata, recording
-      'unknown' with a flag if none is given.
-  - id: c-bcf603b4
-    field: entity.legal_name<-Supplier_Name
-    problem: The when-clause restricts legal_name to rows without parentheses, so every parenthesised supplier row
-      (e.g. 'Programmed Property Services (Programmed Property Services Pty Ltd)', 'My Home Care (MyHomecare Pty
-      Ltd)') gets no legal_name observation at all. The registered name in the brackets is lost, and the outer name
-      is not kept as trading_name either. This is a coverage gap rather than a wrong claim, and the needs_transform
-      entry already records it.
-    severity: advisory
-    suggested_fix: Until a conditional split exists, consider a provisional trading_name mapping of the outer part
-      at confidence 0.6 or lower, and track the parenthesised registered name as a pending needs_transform item.
-  - id: c-82b102da
-    field: entity.legal_name<-Supplier_Name
-    problem: Supplier_Name appears both as a mapped source (entity.legal_name<-Supplier_Name) and in the unmapped
-      list with the reason that parenthesised rows are not mapped. The column is therefore accounted for twice in
-      contradictory ways.
-    severity: advisory
-    suggested_fix: Remove Supplier_Name from unmapped and describe the partial coverage in the field's reason or
-      in needs_transform.
-  - id: c-73887b0f
-    field: record_id
-    problem: record_id is a composite of five columns, including Title and Public_Authority, with no check_unique
-      evidence shown. Reference_Number looks like the natural key, but the config does not show it is unique on
-      its own.
-    severity: advisory
-    suggested_fix: Confirm uniqueness of Reference_Number with check_unique; if it holds, use it alone, otherwise
-      state the composite key's uniqueness check.
-  - id: c-1b1da414
-    field: entity.trading_name
-    problem: The config has no trading_name mapping, although the parenthesised cells (e.g. 'West to West Indigenous',
-      'Talent International', 'Datacom Systems') hold a trading-style outer name in the Supplier_Name column that
-      the rules allow to map to trading_name at 0.6 or lower.
-    severity: advisory
-    suggested_fix: Consider mapping the outer part of parenthesised Supplier_Name cells to entity.trading_name at
-      confidence 0.6 or lower, using split/regex on the same column.
-  - id: c-9c9bfa90
-    field: entity.legal_name<-Supplier_Name mapping_confidence
-    problem: No mapping_confidence is shown for the legal_name or address.full fields. Rule 14 requires one per
-      mapped field, and the review cannot check whether 0.9 or above is justified.
-    severity: advisory
-    suggested_fix: 'State mapping_confidence per field: legal_name from ''Supplier_Name'' (supplier name, non-parenthesised
-      rows) and address.full from ''Supplier_Address'' (supplier-prefixed column).'
+    suggested_fix: This is acceptable under the rule against cleaning beyond the transforms. Note the duplicated
+      locality as a known quirk. Do not remove it unless a transform for that exists.
+  outcome: validated_config
 generated_by:
   agent: round2-tool-agent
   agent_version: 2.1.0
   engine_version: 0.1.0
   model: claude-haiku-5-5
-  code_version: e6626bda1af5
-  generated_at: '2026-11-13T00:27:03+00:00'
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T01:13:33+00:00'

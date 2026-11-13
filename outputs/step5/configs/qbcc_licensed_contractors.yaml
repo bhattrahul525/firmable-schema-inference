@@ -1,6 +1,6 @@
-what_it_is: Queensland Building and Construction Commission (QBCC) register of current (active and suspended) licensed
-  builders and contractors, one row per licence-class.
-one_row_is: one licence-class authorisation held by a licensee (licensee repeats across rows)
+what_it_is: Queensland Building and Construction Commission register of licensed contractors (licensees and their
+  licence classes).
+one_row_is: one licence class held by a licensee (a licensee with several classes appears on several rows)
 reader:
   format: csv
   encoding: utf-8
@@ -18,9 +18,9 @@ fields:
   - name: clean_whitespace
     arg: null
   group: main
-  mapping_confidence: 0.8
-  reason: Register kept by licensing body; Licensee Name is the holder of the QBCC licence (rule 5b).
-  field_confidence: 0.8
+  mapping_confidence: 0.85
+  reason: Regulator register; the row's subject is the licence holder (Licensee Name).
+  field_confidence: 0.85
   evidence: held_out
   transform_level: W
   validation:
@@ -32,35 +32,15 @@ fields:
     parse_rate: 1.0
     evidence: held_out
     whole_file: null
-- source: ABN
-  canonical: entity.abn
-  transforms:
-  - name: abn
-    arg: null
-  group: main
-  mapping_confidence: 0.95
-  reason: ABN column, 11 digits, checksum validated.
-  field_confidence: 0.95
-  evidence: held_out
-  transform_level: W
-  validation:
-    held_out_rows: 300
-    blank: 139
-    ok: 161
-    skipped_not_applicable: 0
-    rejected: 0
-    parse_rate: 1.0
-    evidence: held_out
-    whole_file: null
 - source: ACN
   canonical: entity.acn
   transforms:
   - name: acn
     arg: null
   group: main
-  mapping_confidence: 0.95
-  reason: ACN column, 9 digits, checksum validated.
-  field_confidence: 0.95
+  mapping_confidence: 0.9
+  reason: ACN column, checksum validated.
+  field_confidence: 0.9
   evidence: held_out
   transform_level: W
   validation:
@@ -72,6 +52,48 @@ fields:
     parse_rate: 0.9844
     evidence: held_out
     whole_file: null
+- source: ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ABN column, checksum validated.
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 139
+    ok: 161
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Licence Type DESC
+  canonical: entity.entity_type
+  transforms:
+  - name: map_values
+    arg:
+      Company: company
+      Individual: unknown
+  group: main
+  mapping_confidence: 0.8
+  reason: 'Explicit licence-holder type column: Company vs Individual.'
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
 - source: Licensee Business Address
   canonical: address.full
   transforms:
@@ -79,7 +101,7 @@ fields:
     arg: null
   group: main
   mapping_confidence: 0.9
-  reason: Business address of the licensee.
+  reason: Business address of licensee.
   field_confidence: 0.9
   evidence: held_out
   transform_level: W
@@ -96,124 +118,104 @@ fields:
   canonical: address.state
   transforms:
   - name: regex_extract
-    arg: (?i)\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\b
+    arg: \b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+\d{4}\s*$
   - name: state_code
     arg: null
   group: main
   mapping_confidence: 0.85
-  reason: State abbreviation preceding the postcode in the address text, case-insensitive.
+  reason: State abbreviation before the postcode at the end of the address.
   field_confidence: 0.85
   evidence: held_out
   transform_level: P
   validation:
     held_out_rows: 300
     blank: 0
-    ok: 296
-    skipped_not_applicable: 4
+    ok: 295
+    skipped_not_applicable: 5
     rejected: 0
     parse_rate: 1.0
     evidence: held_out
     whole_file: null
-- source: Licence Type DESC
-  canonical: entity.entity_type
+- source: Licensee Business Address
+  canonical: address.postcode
   transforms:
-  - name: map_values
-    arg:
-      Company: company
-      Individual: unknown
+  - name: regex_extract
+    arg: (\d{4})\s*$
+  - name: postcode
+    arg: null
   group: main
-  mapping_confidence: 0.8
-  reason: 'Explicit licence type column: Company vs Individual. Individual is deliberately mapped to unknown because
-    the ontology has no individual value and sole_trader must not be inferred from a person-like name.'
-  field_confidence: 0.8
+  mapping_confidence: 0.85
+  reason: Four-digit postcode at the end of the address.
+  field_confidence: 0.85
   evidence: held_out
   transform_level: P
   validation:
     held_out_rows: 300
     blank: 0
-    ok: 300
-    skipped_not_applicable: 0
+    ok: 298
+    skipped_not_applicable: 2
     rejected: 0
     parse_rate: 1.0
     evidence: held_out
     whole_file: null
 unmapped:
-- source: id
-  reason: 'used as record_id (check_unique: 206,405 distinct, no blanks)'
 - source: Licence Number
-  reason: QBCC licence number, not an entity identifier
+  reason: Licence number, not an entity identifier.
 - source: Licence Type CODE
-  reason: code duplicate of Licence Type DESC
+  reason: Code duplicate of Licence Type DESC.
 - source: Financial Category DESC
-  reason: licensing financial category, not an ontology field
+  reason: Licence financial category, not an entity field in ontology.
 - source: Financial Category CODE
-  reason: licensing financial category code
+  reason: Code for financial category.
 - source: Licence Grade
-  reason: licence grade/class, no ontology field
+  reason: Licence grade, no ontology field.
 - source: Licence Class Type
-  reason: licence scope of work (trade class), a licence scope rather than an ANZSIC industry code; not mapped to
-    industry_code
+  reason: Licence class of work; not an ANZSIC industry code, so not mapped.
 needs_transform: []
 source_reliability:
-  identity: 0.9
+  identity: 0.85
   address: 0.8
   classification: 0.7
   contact: 0.5
-source_reliability_basis: Official state regulator register of licensees; names and ABN/ACN are as held by QBCC;
-  addresses are self-reported licensing addresses.
+source_reliability_basis: Official state regulator licence register, updated periodically; names and ABN/ACN as
+  held by the regulator.
 meaning_check_responses: []
 source_id: qbcc_licensed_contractors
 config_version: 1
 validation_summary:
   held_out_rows: 300
-  observations_in_held_out: 1420
+  observations_in_held_out: 1717
   unanswered_meaning_warnings: []
   abstentions: []
   critique_issues:
-  - id: c-af437acf
+  - id: c-02975ddc
     field: address.state<-Licensee Business Address
-    problem: The regex_extract is case-sensitive and only matches uppercase state codes. Row 81888 has 'Qld 4700',
-      so no address.state observation is produced for it even though the state is stated in the source.
+    problem: The state regex is case-sensitive and only matches uppercase abbreviations, so for row 81888 ('18 Penlington
+      Street Allenstown Qld 4700') no address.state observation is produced even though the source states Queensland.
+      The postcode still maps, so the gap is incompleteness, not a wrong value.
     severity: advisory
-    suggested_fix: Make the pattern case-insensitive (e.g. a (?i) flag or equivalent) so lowercase or mixed-case
-      state abbreviations are captured, then keep state_code to normalise them.
-  - id: c-9aa9dfc3
-    field: record_id
-    problem: record_id is taken from the 'id' column, but the mapping does not state a uniqueness check. The config
-      gives no evidence that 'id' is unique across rows.
-    severity: advisory
-    suggested_fix: Confirm 'id' is unique with check_unique, or fall back to a hash_row or composite key if it is
-      not.
-  - id: c-e07d9bf1
-    field: entity.entity_type<-Licence Type DESC
-    problem: Mapping Individual to unknown is a defensible conservative choice, but it discards a meaningful source
-      value. The source states the holder is an individual, which is not the same as the entity type being unknown.
-    severity: advisory
-    suggested_fix: Keep the mapping if the team prefers conservatism, but document in the config reason that Individual
-      is deliberately mapped to unknown, since the ontology has no individual value and sole_trader must not be
-      inferred from a person-like name.
-  - id: c-3eb826aa
+    suggested_fix: Make the regex case-insensitive (e.g. prefix with (?i)) and keep state_code to normalise to uppercase,
+      then re-check row 81888.
+  - id: c-22d0bd3d
     field: industry_code
-    problem: Licence Class Type (e.g. 'Builder - Medium Rise', 'Carpentry', 'Painting and Decorating') describes
-      the licensed scope of work and could arguably populate industry_code as the source's own description. It is
-      currently unmapped with the reason 'no ontology field', which is slightly inaccurate because industry_code
-      exists in the ontology.
+    problem: Licence Class Type holds work-class descriptions such as 'Painting and Decorating', 'Carpentry' and
+      'Builder - Medium Rise'. It is unmapped on the grounds that it is not ANZSIC, but rule 9 says to map the source's
+      own code or description as it is, without translating it to ANZSIC. The ontology's industry_code note says
+      to record the raw source value too. The exclusion may be too strict.
     severity: advisory
-    suggested_fix: Consider mapping Licence Class Type to entity.industry_code as the raw description (rule 9),
-      with a note that it is a licence scope rather than an ANZSIC classification, or keep it unmapped and correct
-      the reason to state that it is a licence scope, not an industry code.
-  - id: c-dbb6c742
-    field: entity.legal_name<-Licensee Name
-    problem: The register is a licensing body's list of licence holders, so Licensee Name is the holder under rule
-      5b. The config does not record a mapping_confidence or a note that this relies on 5b, so the label basis is
-      not visible to reviewers.
+    suggested_fix: Consider mapping Licence Class Type to entity.industry_code as the raw description, with a caveat
+      that it is a licence class and not an ANZSIC code; otherwise keep it unmapped with the reason stated more
+      precisely.
+  - id: c-c2eeb118
+    field: record_id
+    problem: The config uses the id column for record_id but does not state that it was checked for uniqueness.
+      The rule requires check_unique or hash_row.
     severity: advisory
-    suggested_fix: Record mapping_confidence at or below 0.7 with a reason that cites rule 5b and the holder-of-licence
-      label, or add an explicit statement in the reason that the register lists Licensee Name as the holder.
+    suggested_fix: Confirm id is unique across the file (check_unique) before relying on it as source_record_id.
 generated_by:
   agent: round2-tool-agent
   agent_version: 2.1.0
   engine_version: 0.1.0
   model: claude-haiku-5-5
   code_version: e6626bda1af5
-  generated_at: '2026-11-13T00:25:38+00:00'
+  generated_at: '2026-11-13T01:03:54+00:00'
