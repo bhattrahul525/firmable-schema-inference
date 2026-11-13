@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.14
+Version: 2.15
 Last updated: 2026-11-13
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -271,12 +271,13 @@ table joins are out of scope.
 1. **Recovered names.** Re-onboard the six sources with levels P and G (WA bracket names, QLD comma lists).
 2. **Rarity-weighted names.** Token IDF over all mentions and register names; "Australia" and "Group" count for
    almost nothing.
-3. **ASIC registers, onboarded by the agent like any source** (both CC BY 3.0 AU, measured). Companies: 79 MB zip /
-   401 MB CSV, carries ACN, ABN, type, status, registration date and former-name rows. Business Names: 72 MB zip /
-   247 MB CSV, business name to holder ABN. A generic engine row filter keeps only rows whose ABN, ACN or name key
-   appears in our mentions. For the six, the trimmed result is committed with attribution. For a NEW source,
-   `resolve` re-runs the row filter over the full registers on disk (`data/raw/reference/`); the time on the 401 MB
-   file is measured at build step 6 and recorded in the runbook (not yet known).
+3. **ASIC Business Names register, onboarded by the agent like any source** (CC BY 3.0 AU; 72 MB zip / 247 MB CSV,
+   business name to holder ABN). A generic engine row filter (`src/engine/row_filter.py`) streams it and keeps rows
+   that pass an explicit `keep_where` (BN_STATUS = Registered) AND whose ABN or name key (`name_core`) appears in our
+   mentions. The trimmed result is committed in `data/reference/` with attribution; for a NEW source `resolve` re-runs
+   the filter on the full file on disk (time in `docs/runbook.md`). **Companies register (ACN/type/status/former
+   names), T1r and T3c: designed, not built (cut at step 6); T3c is disabled, T3 stays. Offline fallback is Business
+   Names only; outputs say Companies and ABR features are absent.**
 4. **ABR lookup (stretch, not on the critical path).** Only for ABNs in candidate links and profiles, git-ignored
    cache, terms saved to `docs/abr_terms.txt`; the method name is read from the live WSDL, not from memory.
 
@@ -294,9 +295,9 @@ matcher version is bumped and the promotion plus its evidence is recorded in DEC
 | Tier | Evidence | Confidence |
 |---|---|---|
 | T1 | Equal ABN or ACN, names agree by rarity-weighted overlap | 0.98 |
-| T1r | Equal identifier, names differ, a register or ABR name history confirms both names | 0.95 |
+| T1r (not built) | Equal identifier, names differ, a register or ABR name history confirms both names | 0.95 |
 | T2 | ACN inside ABN, names agree | 0.88 |
-| T3c | No-ABN record bridges to exactly one registered current holder AND a second independent hit agrees (licensee to Companies, trading name to Business Names, same ABN) | 0.70, loose until promoted (0.88 after) |
+| T3c (disabled, not built) | No-ABN record bridges to exactly one registered current holder AND a second independent hit agrees (licensee to Companies, trading name to Business Names, same ABN) | 0.70, loose until promoted (0.88 after) |
 | T3 | Single uncorroborated register hit on a unique registered current name | 0.65 (loose) |
 | T4 | Exact name plus postcode / plus state / both companies with no location | 0.70 loose until promoted (0.85 after) / 0.70 / 0.65 |
 
@@ -385,7 +386,7 @@ Sonnet $0.077 to $0.097. The injection pair passes in every pass since the verdi
 | Their machine, internet | Onboarding with their key and model access | Register-confirmed profiles need the registers on disk (151 MB of zips, plus the filter pass); without them the new dataset links by identifier and name only; sandbox weaker on macOS/Windows |
 | Their machine, no internet | Tests and committed outputs | A walkthrough only |
 
-The register row-filter time on the 401 MB file is recorded here once measured (build step 6).
+The Business Names row-filter time (247 MB) is in `docs/runbook.md`.
 
 ## g. Demo path
 
@@ -489,3 +490,4 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-13 | 2.12 | Step 3b (reviews/step3b_plan.md) built: (C) three evidence states per mapped field / envelope setting (`held_out`/`training`/`unverified`), capped at 0.8/0.5, computed by code, not a model statement; (B) the first 12 raw rows of a file are never held out, `read_table` returns them as `raw_top`, a too-small file gets no held-out split; (A) `skip_rows_after_header` reader option; (E) the packet shows the raw top rows and the layout in code's words, plus a `header_like_first_row` warning; no model-written column labels; (D) `valid_from`/`valid_to` get the same stats/reject tracking as a field, shown in the packet and the critic's config summary, abstained by deleting the key, and mapped only from the entity's own registration/licence/status date (reverses one round-1 config's practice, effective only on re-onboarding at step 5); (F) a register exception added to rule 5 (prompt wording only; a code cap on the confidence and header word lists are deferred); (G) `llm.chat` requests `display: "summarized"` thinking (confirmed live on both models, no extra token cost), shown in the replay line. DEFERRED, not built: the F code cap, an ABN-evidence rule for Part-3 linking (item C) | Planning session (reviews/step3b_plan.md) found: a run's held-out split hid the real header from the agent; a sparse ABN column passed validation with no evidence; `valid_from`/`valid_to` were invisible to the critic and the packet; an individual-register name rule conflicted with rule 5; the trace's thinking text was empty because display was never requested |
 | 2026-11-13 | 2.13 | Step 4a (reviews/step4a_plan.md) built: `regex_replace`, `template`, `constant` and the per-field `when` condition; regex safety (200 chars, compile check, 1 s per-value timer, switch-off after 20, `bad_pattern` instead of a crash); literal text in `template` / `repl` is separators only; template with a blank part is rejected; `constant` capped at 0.5 (was 0.6) with evidence `asserted`; `try_transform` takes `when`; rule 19; scope: all four items are 4a (section i), step 4 keeps level G | Owner decisions 1-5 on the 4a plan |
 | 2026-11-13 | 2.14 | Blocking-issue finish gate: a finish with an open BLOCKING critique issue is refused with the issue text (2 per run, not counted toward "refused twice in a row"); the next is accepted as outcome `needs_review` (fields abstained by code, `validation_summary.outcome` stored); `approve` refuses `needs_review` unless `--allow-needs-review` | Step 5 re-runs ended `validated_config` with blocking issues still in the config |
+| 2026-11-13 | 2.15 | Step 6 reduced scope: only the Business Names register; row filter built with explicit `keep_where`; Companies register, T1r, T3c designed-not-built (T3c disabled); offline fallback = Business Names only | Companies register cut (cut order item 4); owner decisions 1=B, 2=B, 3=A, 4=A on reviews/step6_plan.md |
