@@ -1,0 +1,255 @@
+what_it_is: ASIC register of approved SMSF auditors (individual auditors, with registration status, conditions and
+  capacities).
+one_row_is: 'one register line for an approved SMSF auditor: a registration number with one condition, capacity
+  or attribute.'
+reader:
+  format: csv
+  encoding: utf-8-sig
+  delimiter: "\t"
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: SMSF_PERSON_ABN
+  canonical: entity.abn
+  transforms:
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Column holds the auditor's own 11-digit ABN, checksum validated; blank for most rows.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.95
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 248
+    ok: 52
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: 'Under rule 5b: name of the individual who holds the ASIC SMSF auditor approval. No explicit registered-name
+    label. Restricted to rows with their own ABN because rule 18 only treats individuals with a business identifier
+    as entities.'
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 52
+    skipped_not_applicable: 248
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_STATUS
+  canonical: entity.status
+  transforms:
+  - name: map_values
+    arg:
+      Registered: active
+      Suspended: suspended
+  group: main
+  mapping_confidence: 0.85
+  reason: Registration status of the auditor on the register.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 52
+    skipped_not_applicable: 248
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_REG_DT
+  canonical: entity.date_registered
+  transforms:
+  - name: parse_date
+    arg:
+    - '%d/%m/%Y'
+  group: main
+  mapping_confidence: 0.8
+  reason: Date the auditor was registered on the register.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 52
+    skipped_not_applicable: 248
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_LOCALITY
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Locality of the auditor.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 1
+    ok: 52
+    skipped_not_applicable: 247
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_POST_CODE
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: Postcode of the auditor.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 1
+    ok: 52
+    skipped_not_applicable: 247
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: SMSF_STATE
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: State of the auditor.
+  when:
+    column: SMSF_PERSON_ABN
+    matches: ^\d{11}$
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 1
+    ok: 52
+    skipped_not_applicable: 247
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: REGISTER_NAME
+  reason: Constant 'SMSF Auditor'.
+- source: SMSF_NUM
+  reason: ASIC auditor registration number, not an ABN/ACN; no ontology field.
+- source: SMSF_SUSP_START_DT
+  reason: Suspension dates apply to suspension events, not to the entity's registration start.
+- source: SMSF_SUSP_END_DT
+  reason: Suspension end date; not a registration start/end.
+- source: SMSF_ATTRIBUTE_TYPE
+  reason: Register line type (Condition/Capacity).
+- source: SMSF_CAPACITY
+  reason: Auditor capacity detail; no ontology field.
+- source: SMSF_CONDITION_NUMBER
+  reason: Condition identifier; no ontology field.
+- source: SMSF_CAPACITY_FIRM_NAME
+  reason: Audit firm name the auditor is a partner of; not the registered name of the holder.
+- source: SMSF_CAPACITY_START_DT
+  reason: Capacity start date; event not entity start.
+- source: SMSF_CONDITION
+  reason: Condition text; no ontology field.
+- source: SMSF_CONDITION_DTL
+  reason: Condition detail text; no ontology field.
+- source: SMSF_CONDITION_START_DT
+  reason: Condition start date; not entity start.
+needs_transform: []
+source_reliability:
+  identity: 0.85
+  address: 0.8
+  classification: 0.7
+  contact: 0.5
+source_reliability_basis: ASIC is the regulator holding the SMSF auditor register; identity and status are authoritative
+  for this register, though rows are per condition and the snapshot may lag.
+meaning_check_responses: []
+source_id: bench_fin2h_01
+config_version: 1
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 416
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-78b5105b
+    field: entity.legal_name<-SMSF_NAME
+    problem: Under rule 5b the name is the register holder's name, but the config gives no mapping_confidence. Without
+      an explicit registered-name label, rule 5b caps confidence at 0.7 or lower, and the config does not show that
+      cap.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.7 or lower for entity.legal_name<-SMSF_NAME and state in the reason
+      that the name is the approval holder's name under rule 5b.
+  - id: c-4b3f94d6
+    field: entity.legal_name<-SMSF_NAME
+    problem: The `when` clause restricts the legal name to rows with a valid 11-digit SMSF_PERSON_ABN. The register
+      subject is the auditor whether or not an ABN is present, so auditors without an ABN lose their name with no
+      stated reason.
+    severity: advisory
+    suggested_fix: Either justify the ABN restriction in the reason or map the name on every row that has a SMSF_NAME,
+      keeping the abn field restricted to ABN rows.
+  - id: c-6d3bc31c
+    field: record_id
+    problem: Each auditor has one row per condition or capacity line, and the entity-level columns repeat on each.
+      The Yibo Wang example yields two rows with identical entity observations (abn, legal_name, status, date_registered,
+      address), so the same claim is emitted more than once.
+    severity: advisory
+    suggested_fix: Consider deduplicating entity-level observations on SMSF_NUM or SMSF_PERSON_ABN, or document
+      that repeated rows are intentional, so the same claim is not counted twice.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:25:03+00:00'

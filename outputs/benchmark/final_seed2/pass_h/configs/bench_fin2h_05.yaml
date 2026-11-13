@@ -1,0 +1,168 @@
+what_it_is: Queensland Office of the Information Commissioner contract disclosure report (contracts over $10K) for
+  2026/27, one row per contract awarded.
+one_row_is: one contract award by the OIC to a supplier
+reader:
+  format: xlsx
+  sheet: upload template
+  header_rows: 1
+  encoding: utf-8-sig
+  skip_rows: 0
+record_id:
+  from:
+  - Contract reference number
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Supplier name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Column is the contract supplier's name; in a contract disclosure the supplier is the registered counterparty.
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+- source: Supplier ABN
+  canonical: entity.abn
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: Supplier ABN with spaces, checksum-validated.
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+- source: Supplier address
+  canonical: address.full
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: Supplier's postal/business address.
+  field_confidence: 0.5
+  evidence: unverified
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: unverified
+    whole_file:
+      populated: 4
+      judged: 4
+      ok: 4
+      rejected: 0
+unmapped:
+- source: Agency name
+  reason: government buyer, not the supplier (rule 4)
+- source: Agency address
+  reason: government buyer address, not the supplier
+- source: Contract category group
+  reason: procurement category, not an industry code
+- source: Parent contract/Head agremeent/Common-use supply arrangement number
+  reason: procurement arrangement reference
+- source: Contract description/name
+  reason: contract description; no entity field
+- source: Award contract date
+  reason: date of the contract award event, not when the supplier's registration became true (rule 10)
+- source: Contract value
+  reason: transaction value; no ontology field
+- source: Variation to contract (Yes/No)
+  reason: contract attribute; no ontology field
+- source: Specific confidentiality provision used
+  reason: contract attribute; no ontology field
+- source: Procurement method
+  reason: contract attribute
+- source: Reason for use of limited tendering
+  reason: contract attribute
+- source: Form of contract
+  reason: contract attribute
+- source: Number of offers sought
+  reason: contract attribute
+- source: Evaluation criteria and weightings
+  reason: contract attribute
+- source: Deliverables
+  reason: contract attribute
+- source: Contract milestones
+  reason: contract attribute
+- source: Contract performance management
+  reason: contract attribute
+- source: Additional details
+  reason: contract attribute
+- source: Consultancy (Yes/No)
+  reason: contract attribute; no ontology field
+needs_transform: []
+source_reliability:
+  identity: 0.8
+  address: 0.6
+  classification: 0.3
+  contact: 0.3
+source_reliability_basis: Official Queensland government disclosure of contracts by the agency; names and ABNs are
+  supplier-provided, addresses are less controlled.
+meaning_check_responses: []
+source_id: bench_fin2h_05
+config_version: 1
+validation_summary:
+  held_out_rows: 0
+  observations_in_held_out: 0
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-3d1d967c
+    field: record_id
+    problem: The record_id is built from 'Contract reference number', but the sample shows the same reference (CTR26-01)
+      on three identical raw rows. Rule 15 requires a column that uniquely identifies each row (check_unique), and
+      this one does not hold on these examples, so the source_record_id would collide.
+    severity: advisory
+    suggested_fix: Run check_unique on 'Contract reference number' across the full file. If duplicates exist, use
+      a composite key (for example reference number plus supplier ABN) or hash_row=true, and document the choice.
+  - id: c-b4348d5e
+    field: observation
+    problem: The config does not state a licence, source_reliability, or source_reliability_basis. The envelope
+      requires licence, and the sample rows carry no dataset licence information.
+    severity: advisory
+    suggested_fix: Take the licence from the dataset metadata (CKAN). If none is clear, record 'unknown' and flag
+      it. Add a source_reliability judgement for entity claims with a short basis.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:25:50+00:00'

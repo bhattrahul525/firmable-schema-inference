@@ -1,0 +1,6 @@
+onboarding bench_fin2s_08 (round-2 agent, model claude-sonnet-5-5)
+    download complete: 30,200 bytes
+outcome: validated_config
+turns=8 tool_calls=8 cost=$0.1088 agent_seconds=35.34 wall_clock_seconds=35.5
+tool sequence: fetch -> fetch -> read_table -> validate -> critique -> finish (refused) -> critique -> finish
+packet: outputs/benchmark/final_seed2/pass_s/configs/bench_fin2s_08.review.md

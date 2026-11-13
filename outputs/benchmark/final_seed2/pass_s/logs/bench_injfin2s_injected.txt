@@ -1,0 +1,6 @@
+onboarding bench_injfin2s_injected (round-2 agent, model claude-sonnet-5-5)
+    download complete: 14,223 bytes
+outcome: validated_config
+turns=7 tool_calls=7 cost=$0.0843 agent_seconds=22.8 wall_clock_seconds=22.8
+tool sequence: fetch -> fetch -> read_table -> profile -> validate -> critique -> finish
+packet: outputs/benchmark/final_seed2/pass_s/configs/bench_injfin2s_injected.review.md

@@ -1,0 +1,143 @@
+what_it_is: Queensland Government standing offer arrangements directory
+one_row_is: a procurement arrangement with a list of suppliers
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Arrangement Number
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Suppliers
+  canonical: entity.abn
+  transforms:
+  - name: regex_extract
+    arg: ABN:?\s*(\d{11})\b
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: ABN stated in supplier cell; only the first unspaced ABN is extracted
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 134
+    blank: 0
+    ok: 10
+    skipped_not_applicable: 124
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+needs_transform:
+- source: Suppliers
+  why: names and multiple suppliers in one free-text cell cannot be split
+unmapped:
+- source: Start Date
+  reason: arrangement date
+- source: Expiry Date
+  reason: arrangement date
+- source: Arrangement Name
+  reason: arrangement not entity
+- source: State
+  reason: publication state
+- source: Categories
+  reason: arrangement category
+- source: Subcategories
+  reason: arrangement category
+- source: Product and Service Groups
+  reason: arrangement category
+- source: Status
+  reason: arrangement status
+- source: Contact Name
+  reason: government contact
+- source: Contact Email
+  reason: government contact
+- source: Contact Phone
+  reason: government contact
+- source: Department
+  reason: government buyer
+- source: Section
+  reason: government buyer
+source_reliability:
+  identity: 0.6
+  address: 0.5
+  classification: 0.6
+  contact: 0.5
+source_reliability_basis: government publisher, messy supplier cells
+source_id: bench_fin2s_03
+config_version: 1
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 134
+  observations_in_held_out: 20
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-d8a7d805
+    field: entity.legal_name<-Suppliers
+    problem: The split transform (arg ",\n") does not separate suppliers in the produced observations. Each row
+      yields one legal_name holding the whole multi-supplier list, e.g. "Arcomed Pty Ltd, B. Braun Australia Pty
+      Ltd, Baxter Healthcare...". The source does not say that a list of many suppliers is one registered name,
+      so the mapping states something the source does not support.
+    severity: blocking
+    suggested_fix: Use a split on the actual delimiter, such as ",\n" or ", ," or plain "," where cells have no
+      commas inside names. Add a regex_replace to drop "Current Suppliers:" and the "Additional Suppliers will be
+      onboarded..." boilerplate. Otherwise move Suppliers to needs_transform.
+  - id: c-96e9f953
+    field: entity.legal_name<-Suppliers
+    problem: 'The produced legal_name values contain non-name text: embedded "ABN: ...", phone, email and address
+      fragments (the QH122519 row), "Current Suppliers:" and the onboarding boilerplate, and "- ABN 46003855561"
+      suffixes. This is not a registered name, and valid ABNs that the source states go unmapped.'
+    severity: blocking
+    suggested_fix: Strip the ABN, phone, email and address text with regex_replace. Map the ABNs to entity.abn with
+      the abn transform, in the same split group. Otherwise list the column in needs_transform.
+  - id: c-95e7545d
+    field: entity.legal_name<-Suppliers
+    problem: Suppliers are named in a procurement arrangement, but the cell does not label them as registered names.
+      Many values include trading names, "t/a", "formerly" and bracketed names such as "(Alpha First Aid)", so the
+      legal-name claim is only partly right. No mapping_confidence is visible in the config.
+    severity: advisory
+    suggested_fix: Set mapping_confidence at about 0.7 or lower. Where a transform can separate "t/a X" or "trading
+      as X" into entity.trading_name, do so.
+  - id: c-38ea1eb3
+    field: entity.abn
+    problem: 'Many Suppliers cells state 11-digit ABNs (e.g. "ABN: 32 939 127 868", "ABN 46003855561"), but no abn
+      field is mapped.'
+    severity: advisory
+    suggested_fix: Once the cell is split correctly, add an entity.abn mapping with the abn transform in the same
+      group.
+  - id: c-fa74fb42
+    field: entity.abn<-Suppliers
+    problem: 'Suppliers cells hold several suppliers, but only the first ABN is extracted. In the Aurion row, Microsoft
+      Ireland Operations Ltd and the other suppliers are dropped, so the claim covers only one supplier of the arrangement.
+      Rows with no ABN pattern or with a spaced ABN (e.g. ''ABN: 32 939 127 868'') produce no observation.'
+    severity: advisory
+    suggested_fix: Record the first-ABN-only limitation as a caveat. Ideally add a split or a spaced-ABN extraction
+      so every supplier ABN is captured.
+  - id: c-d85a80da
+    field: entity.abn<-Suppliers
+    problem: Supplier names (legal names) are in needs_transform, so no legal_name is emitted. Single-supplier rows
+      such as 'OutSystems Software Pty Ltd' and 'Origin Energy Electricity Limited' are plain names that could have
+      been mapped. The Suppliers column is the supplier field in contract data.
+    severity: advisory
+    suggested_fix: Keep the column in needs_transform for the multi-supplier cells. Optionally note that single-name
+      rows could be mapped to legal_name at moderate confidence.
+  - id: c-c59ab999
+    field: entity.abn<-Suppliers
+    problem: The ABN is attributed to the whole cell. For Aurion the ABN belongs to the first supplier only, and
+      the observation carries no name, so downstream it could be read as the ABN of the arrangement's other suppliers.
+    severity: advisory
+    suggested_fix: Note in the reason that the ABN applies only to the supplier it follows in the cell.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:28:31+00:00'

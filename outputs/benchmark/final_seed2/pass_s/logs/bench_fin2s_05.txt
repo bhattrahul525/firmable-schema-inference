@@ -1,0 +1,8 @@
+/Users/rahulbhatt/Projects/firmable-schema-inference/.venv/lib/python3.13/site-packages/openpyxl/worksheet/_reader.py:329: UserWarning: Data Validation extension is not supported and will be removed
+  warn(msg)
+onboarding bench_fin2s_05 (round-2 agent, model claude-sonnet-5-5)
+    download complete: 40,427 bytes
+outcome: validated_config
+turns=6 tool_calls=6 cost=$0.0826 agent_seconds=22.25 wall_clock_seconds=22.4
+tool sequence: fetch -> fetch -> read_table -> validate -> critique -> finish
+packet: outputs/benchmark/final_seed2/pass_s/configs/bench_fin2s_05.review.md

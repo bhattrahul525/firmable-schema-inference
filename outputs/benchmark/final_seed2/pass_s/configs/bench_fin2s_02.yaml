@@ -1,0 +1,425 @@
+what_it_is: SA community services directory 2021
+one_row_is: a community organisation
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Org_name
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: organisation name in directory
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 0
+    ok: 300
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Organisati_ABN
+  canonical: entity.abn
+  transforms:
+  - name: regex_replace
+    arg:
+      pattern: \s
+      repl: ''
+  - name: abn
+    arg: null
+  group: main
+  mapping_confidence: 0.9
+  reason: ABN column
+  field_confidence: 0.9
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 300
+    blank: 129
+    ok: 167
+    skipped_not_applicable: 1
+    rejected: 3
+    parse_rate: 0.9824
+    evidence: held_out
+    whole_file: null
+- source: Website_1
+  canonical: entity.website
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.8
+  reason: website
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 55
+    ok: 245
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Suburb
+  canonical: address.locality
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: street suburb
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 15
+    ok: 285
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: State
+  canonical: address.state
+  transforms:
+  - name: state_code
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: street state
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 5
+    ok: 295
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+- source: Postal_Code
+  canonical: address.postcode
+  transforms:
+  - name: postcode
+    arg: null
+  group: main
+  mapping_confidence: 0.85
+  reason: street postcode
+  field_confidence: 0.85
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 300
+    blank: 18
+    ok: 282
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: ID_19
+  reason: not unique
+- source: Other columns
+  reason: contact, access, hours, postal address and descriptive columns not mapped
+- source: Branch_Address_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Contact
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Country
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Country__2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Directory_Directory_Entry_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Directory_Directory_Entry_2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Directory_Directory_Entry_3
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Email_StreetAddress_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Email_StreetAddress_2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Email_StreetAddress_3
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Geo_Code_1_StreetAddress_
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Geo_Code_2_StreetAddress_
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_AGM
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Access
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Access_toilets
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Disability_parking
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Eligibility
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Fees
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Hours
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Meetings
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Services
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Tag_Line
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Venue_hire
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisati_Wheelchair_access
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Organisation_Last_updated
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Parent_Body
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Phone_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Phone_1_comment
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Phone_3
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Postal_Address_Line_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Postal_Address_Line_2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Postal_Code__2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Primary_Category
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: State__2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Street_Address_Line_1
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Street_Address_Line_2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Suburb__2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Website_2
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+- source: Website_3
+  reason: 'abstained by the harness (failed validation or an unanswered critique issue): the agent did not account
+    for this column'
+source_reliability:
+  identity: 0.6
+  address: 0.7
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: community-maintained directory
+source_id: bench_fin2s_02
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 300
+  observations_in_held_out: 1874
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: column:Branch_Address_1
+    reason: failed validation when the harness ended the run
+  - field: column:Contact
+    reason: failed validation when the harness ended the run
+  - field: column:Country
+    reason: failed validation when the harness ended the run
+  - field: column:Country__2
+    reason: failed validation when the harness ended the run
+  - field: column:Directory_Directory_Entry_1
+    reason: failed validation when the harness ended the run
+  - field: column:Directory_Directory_Entry_2
+    reason: failed validation when the harness ended the run
+  - field: column:Directory_Directory_Entry_3
+    reason: failed validation when the harness ended the run
+  - field: column:Email_StreetAddress_1
+    reason: failed validation when the harness ended the run
+  - field: column:Email_StreetAddress_2
+    reason: failed validation when the harness ended the run
+  - field: column:Email_StreetAddress_3
+    reason: failed validation when the harness ended the run
+  - field: column:Geo_Code_1_StreetAddress_
+    reason: failed validation when the harness ended the run
+  - field: column:Geo_Code_2_StreetAddress_
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_AGM
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Access
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Access_toilets
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Disability_parking
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Eligibility
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Fees
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Hours
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Meetings
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Services
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Tag_Line
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Venue_hire
+    reason: failed validation when the harness ended the run
+  - field: column:Organisati_Wheelchair_access
+    reason: failed validation when the harness ended the run
+  - field: column:Organisation_Last_updated
+    reason: failed validation when the harness ended the run
+  - field: column:Parent_Body
+    reason: failed validation when the harness ended the run
+  - field: column:Phone_1
+    reason: failed validation when the harness ended the run
+  - field: column:Phone_1_comment
+    reason: failed validation when the harness ended the run
+  - field: column:Phone_3
+    reason: failed validation when the harness ended the run
+  - field: column:Postal_Address_Line_1
+    reason: failed validation when the harness ended the run
+  - field: column:Postal_Address_Line_2
+    reason: failed validation when the harness ended the run
+  - field: column:Postal_Code__2
+    reason: failed validation when the harness ended the run
+  - field: column:Primary_Category
+    reason: failed validation when the harness ended the run
+  - field: column:State__2
+    reason: failed validation when the harness ended the run
+  - field: column:Street_Address_Line_1
+    reason: failed validation when the harness ended the run
+  - field: column:Street_Address_Line_2
+    reason: failed validation when the harness ended the run
+  - field: column:Suburb__2
+    reason: failed validation when the harness ended the run
+  - field: column:Website_2
+    reason: failed validation when the harness ended the run
+  - field: column:Website_3
+    reason: failed validation when the harness ended the run
+  critique_issues:
+  - id: c-79057634
+    field: entity.legal_name<-Org_name
+    problem: 'Org_name comes from a community directory, not a regulator register, and nothing in the data says
+      it is the registered name. Many values are not registered entities: ''RSPCA Op Shop - Brighton'' (a shop),
+      ''Port Elliot Rotary Market'' (an event), ''Ryan Mitchell Swim Centre'' (a council facility), ''Multiple Sclerosis
+      Society Peer Support Group - Southern'', and a Centacare service program. Their parent bodies are in Parent_Body.
+      Rule 5 says any other name column maps to trading_name at 0.6 or lower, not legal_name.'
+    severity: blocking
+    suggested_fix: Map Org_name to entity.trading_name with mapping_confidence of 0.6 or lower. Do not map it to
+      legal_name.
+  - id: c-b6676c2f
+    field: entity.abn<-Organisati_ABN
+    problem: The ABN is mapped correctly with the abn transform, but where the row is a facility of a parent body
+      (e.g. Eldercare Evanston Park, ABN 63758127271, parent Eldercare Inc.), the ABN may belong to the parent rather
+      than the named row.
+    severity: advisory
+    suggested_fix: Keep the mapping and lower mapping_confidence slightly.
+  - id: c-6844234e
+    field: address.state<-State
+    problem: In the Centacare row the street State and Suburb are blank, and the row has only a postal address (State__2,
+      Suburb__2). Postal_Code (5608) is therefore mapped without a street suburb or state, which leaves the address
+      incomplete.
+    severity: advisory
+    suggested_fix: Accept the gap, or note that postal fields are not mapped.
+  - id: c-b5c22b8a
+    field: unmapped
+    problem: The 'Other columns' entry is too vague for rule 3. Organisation_Last_updated is a per-row statement
+      date that could support observed_at. Parent_Body, the contact columns and the category columns are all lumped
+      together.
+    severity: advisory
+    suggested_fix: List each column with its own reason. Consider using Organisation_Last_updated as the per-row
+      observed_at, parsed with parse_date.
+  - id: c-e3dd43a3
+    field: entity.legal_name<-Org_name
+    problem: Org_name is a community directory listing name, not labelled as the registered name, and the dataset
+      is not a regulator register. Many values are not registered entities but venues, shops, programs or sub-units
+      (e.g. 'RSPCA Op Shop - Brighton', 'Port Elliot Rotary Market', 'Ryan Mitchell Swim Centre', 'Centacare ...
+      Homelessness Service (Youth Focus)'). Under rule 5 these should be trading_name at 0.6 or lower, or legal_name
+      at 0.7 or lower.
+    severity: advisory
+    suggested_fix: Keep the mapping but set mapping_confidence to 0.6 or lower, or map to entity.trading_name. Note
+      that the names are directory listing names.
+  - id: c-c2391f36
+    field: entity.abn<-Organisati_ABN
+    problem: The ABN is the ABN of the organisation that owns the listing, not necessarily of the named venue or
+      sub-unit. For example, Eldercare Evanston Park carries an ABN that probably belongs to the parent, Eldercare
+      Inc. The ABN mapping is correct and follows the abn transform rule.
+    severity: advisory
+    suggested_fix: Keep the abn mapping with moderate confidence. Optionally note that ABN may belong to a parent
+      body.
+  - id: c-7bce06c7
+    field: address.locality<-Suburb
+    problem: Suburb may not reflect a street address. In the MS Society example the Suburb value 'Onkaparinga' is
+      a council area rather than a suburb. The Street_Address_Line columns are unmapped, so no address.full is produced.
+    severity: advisory
+    suggested_fix: Optionally map the Street_Address_Line_1 and Street_Address_Line_2 columns to address.full or
+      leave them unmapped with a reason. Lower the confidence for locality.
+  - id: c-73addd84
+    field: unmapped
+    problem: Many columns are listed as 'abstained by the harness', so they are not properly accounted for with
+      real reasons. Parent_Body, Primary_Category, Organisation_Last_updated and Website_2/3 are examples. The Primary_Category
+      and Directory columns could be industry_code under rule 9.
+    severity: advisory
+    suggested_fix: Give each column a real reason, or map Primary_Category as industry_code with raw source value.
+      Organisation_Last_updated is not a valid_from date, since it is a listing update.
+  outcome: partial_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:28:33+00:00'

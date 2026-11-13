@@ -1,0 +1,125 @@
+what_it_is: 'Australian Government ICT contract usage guidelines: across-government ICT panel and software arrangements
+  with supplier names, dates and contract values (2015 extract).'
+one_row_is: one ICT contract or panel arrangement line listing a supplier under a segment guideline
+reader:
+  format: csv
+  encoding: cp1252
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Contract
+  canonical: entity.trading_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.5
+  reason: Short supplier name in the Contract column; not stated as the registered name, so mapped as trading_name
+    at low confidence. Generic category and panel/deed/arrangement labels are excluded.
+  when:
+    column: Contract
+    matches: ^(?!.*(Software Suppliers|Panel|Deed|Agreement|Arrangement|Suppliers)).+
+  field_confidence: 0.5
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 38
+    blank: 0
+    ok: 30
+    skipped_not_applicable: 8
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Segment
+  reason: ICT segment category, not an entity attribute
+- source: Guideline
+  reason: Guideline text about purchasing rules
+- source: CDContractSummary
+  reason: Contract title text mixing supplier name with product description; not cleanly a registered name
+- source: Commencement Date
+  reason: Date of the contract arrangement, not when the entity's registration or status began
+- source: OriginalExpiryDate
+  reason: Contract term date, not entity status
+- source: Completion Date
+  reason: Contract term date, not entity status
+- source: ExtnComments
+  reason: Free-text contract extension comments
+- source: Contract Value
+  reason: Contract financial value, not an entity attribute
+needs_transform: []
+source_reliability:
+  identity: 0.5
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: Government published guideline extract; supplier names are short contract labels rather
+  than registry-verified identities, no ABN present.
+meaning_check_responses: []
+source_id: bench_fin2h_08
+config_version: 1
+validation_summary:
+  held_out_rows: 38
+  observations_in_held_out: 60
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-5f42c81c
+    field: entity.trading_name<-Contract
+    problem: In the eProjects row, the Contract column holds 'eProjects Panel', which the CDContractSummary ('eProjects
+      Panel Deed of Agreement Version 1') and the Guideline show is a panel or deed arrangement, not a supplier.
+      The mapping states that 'eProjects Panel' is a trading name of the entity the row is about (the supplier),
+      which the source does not support.
+    severity: blocking
+    suggested_fix: Exclude panel, deed and arrangement names from the Contract mapping, for example with a when-regex
+      that also excludes values containing 'Panel', or leave the row unmapped for this field.
+  - id: c-60ac8a76
+    field: entity.trading_name<-Contract
+    problem: Excluding only the literal 'Software Suppliers' drops supplier identity for the Adobe and Attachmate
+      rows, where the supplier appears only in CDContractSummary. The mapping does not recover it.
+    severity: advisory
+    suggested_fix: Consider a richer rule for generic Contract values, or record the supplier name from CDContractSummary
+      as a low-confidence trading name only where the leading organisation name is clear.
+  - id: c-4c17c843
+    field: entity.legal_name<-CDContractSummary
+    problem: CDContractSummary often begins with a full company name ending in 'Pty Ltd' (e.g. 'Hewlett-Packard
+      Australia Pty Ltd'), which may be the registered name. The config leaves it unmapped, and the source does
+      not label it as registered, so this is a judgement call rather than an error.
+    severity: advisory
+    suggested_fix: Keep it unmapped unless the dataset documents that the leading name is the registered supplier
+      name. If it is later parsed, extract only the leading company name and map it at low confidence.
+  - id: c-9f014a5c
+    field: entity.trading_name<-Contract
+    problem: 'The Contract column holds short supplier names such as Hewlett-Packard, Dell, Microsoft, AAPT and
+      Nextgen Networks, which the source does not label as registered names. Mapping them to trading_name at low
+      confidence follows rule 5, so this is not blocking. The exclusion regex is broad, though: it drops any row
+      whose Contract value contains ''Agreement'', ''Panel'', ''Deed'', ''Arrangement'' or ''Suppliers'', which
+      would also drop a genuine supplier name containing one of those words.'
+    severity: advisory
+    suggested_fix: Keep trading_name at 0.6 or lower. Consider anchoring the exclusion on the generic labels only
+      (for example exact matches for 'Software Suppliers' and 'eProjects Panel') so that real supplier names are
+      not silently skipped.
+  - id: c-0a0c339d
+    field: entity.legal_name
+    problem: The CDContractSummary column often begins with a full corporate name such as 'Hewlett-Packard Australia
+      Pty Ltd', 'Dell Australia Pty Ltd' and 'Nextgen Networks Pty Limited', which looks like a registered supplier
+      name. It is unmapped because the source does not label it as the registered name, which is a defensible choice
+      under rule 2. The 'Pty Ltd' suffix does show the name is a company name, so a candidate legal_name could be
+      recorded later at low confidence.
+    severity: advisory
+    suggested_fix: Leave CDContractSummary unmapped for now, or record a low-confidence legal_name candidate only
+      after a deterministic extraction of the leading company name before the product description. Document the
+      extraction rule if you do this.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:26:39+00:00'

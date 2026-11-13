@@ -1,0 +1,102 @@
+what_it_is: Queensland register of temporary emissions licences
+one_row_is: a TEL version held by an organisation
+reader:
+  format: xlsx
+  header_rows: 1
+record_id:
+  hash_row: true
+observed_at:
+  from_metadata: resource_last_modified
+valid_from:
+  source: Commenced Date
+  transforms:
+  - name: parse_date
+    arg:
+    - '%Y-%m-%d %H:%M:%S'
+    - '%Y-%m-%dT%H:%M:%S'
+valid_to:
+  source: End Date
+  transforms:
+  - name: parse_date
+    arg:
+    - '%Y-%m-%d %H:%M:%S'
+    - '%Y-%m-%dT%H:%M:%S'
+fields:
+- source: TEL Holder(s)
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: Holder of licence on regulator register
+  field_confidence: 0.7
+  evidence: held_out
+  transform_level: W
+  validation:
+    held_out_rows: 106
+    blank: 0
+    ok: 106
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: TEL Reference
+  reason: licence number, not an entity identifier
+- source: Issued Date
+  reason: issue event date
+- source: Status
+  reason: licence status, not entity status
+- source: Activities
+  reason: ERA activities, not industry code
+- source: Locations
+  reason: lot/permit descriptors, not addresses
+source_reliability:
+  identity: 0.8
+  address: 0.3
+  classification: 0.5
+  contact: 0.1
+source_reliability_basis: Government regulator register
+source_id: bench_fin2s_07
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 106
+  observations_in_held_out: 212
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-1e222e8a
+    field: entity.status<-Status
+    problem: Status (e.g. 'Expired') is left unmapped as licence status. Rule 8 says to map status only with map_values
+      on visible raw values, and 'Expired' is a licence state, not entity status, so leaving it unmapped is defensible.
+      The licence lifecycle is not captured anywhere.
+    severity: advisory
+    suggested_fix: Keep Status unmapped. Optionally note that licence expiry is covered by valid_to where End Date
+      is present.
+  - id: c-0db5111c
+    field: valid_from<-Commenced Date
+    problem: Commenced Date and End Date are only filled on a few rows (e.g. the TEL1008... rows), so most rows
+      have null valid_from/valid_to. For rows with 'Expired' status and only an Issued Date, the licence start is
+      not captured. This is incompleteness, not an error.
+    severity: advisory
+    suggested_fix: Leave as is. Issued Date should stay unmapped because it is an issue event date, not a start
+      date for the holder's licence.
+  - id: c-150a1fd9
+    field: entity.legal_name<-TEL Holder(s)
+    problem: The mapping follows rule 5b (regulator register, licence holder), but no source column explicitly labels
+      the value as the registered name, so confidence should be 0.7 or lower. Some holders are such as 'Queensland
+      Urban Utilities' and may not be exact registered names. The mapping does not state a mapping_confidence.
+    severity: advisory
+    suggested_fix: Set mapping_confidence to 0.7 or lower for legal_name under rule 5b.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:29:10+00:00'

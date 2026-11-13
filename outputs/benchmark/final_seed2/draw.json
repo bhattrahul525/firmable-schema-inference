@@ -1,0 +1,297 @@
+{
+ "frame": {
+  "class_counts_measured_vs_architecture": {
+   "core(csv|xlsx|json)": {
+    "architecture": 1140,
+    "measured": 1140
+   },
+   "no-resources": {
+    "architecture": 268,
+    "measured": 249
+   },
+   "no-tabular": {
+    "architecture": 856,
+    "measured": 875
+   },
+   "xls": {
+    "architecture": 52,
+    "measured": 52
+   },
+   "xml": {
+    "architecture": 37,
+    "measured": 37
+   },
+   "zip": {
+    "architecture": 87,
+    "measured": 87
+   }
+  },
+  "class_counts_pool": {
+   "csv": 788,
+   "json": 67,
+   "no-resources": 249,
+   "no-tabular": 875,
+   "xls": 52,
+   "xlsx": 285,
+   "xml": 37,
+   "zip": 87
+  },
+  "eligible": 2431,
+  "excluded": [
+   "datagovau:asic-credit-licensee",
+   "qld:qbcc-licensed-contractors-register",
+   "qld:system_procurement_contract-disclosure-report",
+   "datagovau:tenders-wa-contract-award-details-2023-24-financial-year",
+   "vic:victorian-liquor-licences-by-location",
+   "datagovau:kzmf-7uhp",
+   "nsw:find-by-lia-band"
+  ],
+  "excluded_missing_from_pool": [],
+  "pool_size": 2440,
+  "siblings_flagged_and_excluded": [
+   "datagovau:tenders-wa-awarded-contract-details-2022-23-financial-year",
+   "datagovau:tenders-wa-contract-award-details-2021-22-financial-year"
+  ]
+ },
+ "injection": {
+  "clean": "tests/fixtures/injection/clean.csv",
+  "injected": "tests/fixtures/injection/injected.csv",
+  "slot": "injection"
+ },
+ "items": [
+  {
+   "dataset_id": "datagovau:asic-smsf",
+   "family": "australian securities and investments commission (asic)|asic self managed super fund auditor dataset",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "PDF",
+    "XLSX"
+   ],
+   "organisation": "Australian Securities and Investments Commission (ASIC)",
+   "rank": 12,
+   "reference": "datagovau:asic-smsf",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "ASIC \u2013 Self-Managed Super Fund Auditor Dataset"
+  },
+  {
+   "dataset_id": "sa:sacommunitydirectory",
+   "family": "sa community (connecting up inc)|sa community directory",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "DOC",
+    "JSON",
+    "XLSX"
+   ],
+   "organisation": "SA Community (Connecting Up Inc)",
+   "rank": 15,
+   "reference": "sa:sacommunitydirectory",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "SA Community Directory"
+  },
+  {
+   "dataset_id": "qld:queensland-government-arrangements-directory-supplier-procurement-arrangements",
+   "family": "housing and public works|queensland government arrangements directory supplier procurement arrangements",
+   "format_class": "csv",
+   "formats": [
+    "CSV"
+   ],
+   "organisation": "Housing and Public Works",
+   "rank": 24,
+   "reference": "qld:queensland-government-arrangements-directory-supplier-procurement-arrangements",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Queensland government arrangements directory\u2014supplier procurement arrangements"
+  },
+  {
+   "dataset_id": "qld:dcdss-contract-disclosure-1-july-2020-31-december-2020",
+   "family": "legacy datasets (not updated)|dcdss contract disclosure",
+   "format_class": "csv",
+   "formats": [
+    "CSV"
+   ],
+   "organisation": "Legacy datasets (not updated)",
+   "rank": 40,
+   "reference": "qld:dcdss-contract-disclosure-1-july-2020-31-december-2020",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "DCDSS Contract Disclosure 1 July 2020 - 31 December 2020"
+  },
+  {
+   "dataset_id": "qld:consultancies-and-contractors-office-of-the-information-commissioner",
+   "family": "office of the information commissioner|consultancies contractors and contracts over k oic",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "HTML",
+    "XLS",
+    "XLSX"
+   ],
+   "organisation": "Office of the Information Commissioner",
+   "rank": 42,
+   "reference": "qld:consultancies-and-contractors-office-of-the-information-commissioner",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Consultancies, contractors and Contracts over 10K  - OIC"
+  },
+  {
+   "dataset_id": "datagovau:asic-banned-disqualified-org",
+   "family": "australian securities and investments commission (asic)|asic banned and disqualified organisations dataset",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "PDF",
+    "TSV",
+    "XLSX"
+   ],
+   "organisation": "Australian Securities and Investments Commission (ASIC)",
+   "rank": 43,
+   "reference": "datagovau:asic-banned-disqualified-org",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "ASIC - Banned and Disqualified Organisations Dataset"
+  },
+  {
+   "dataset_id": "qld:temporary-emissions-licences-tel",
+   "family": "environment, tourism, science and innovation|temporary emissions licences tel",
+   "format_class": "xlsx",
+   "formats": [
+    "XLSX"
+   ],
+   "organisation": "Environment, Tourism, Science and Innovation",
+   "rank": 48,
+   "reference": "qld:temporary-emissions-licences-tel",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "Temporary emissions licences (TEL)"
+  },
+  {
+   "dataset_id": "sa:ict-contract-usage-guidelines",
+   "family": "department of the premier and cabinet|ict contract usage guidelines",
+   "format_class": "csv",
+   "formats": [
+    "CSV"
+   ],
+   "organisation": "Department of the Premier and Cabinet",
+   "rank": 49,
+   "reference": "sa:ict-contract-usage-guidelines",
+   "slot": "shortlist",
+   "stratum": "ranks 7-50",
+   "title": "ICT Contract Usage Guidelines"
+  },
+  {
+   "dataset_id": "sa:2020-21-number-of-food-businesses-in-sa-per-risk-classification",
+   "family": "sa health|number of food businesses in sa per risk classification",
+   "format_class": "csv",
+   "formats": [
+    "CSV"
+   ],
+   "organisation": "SA Health",
+   "rank": null,
+   "reference": "sa:2020-21-number-of-food-businesses-in-sa-per-risk-classification",
+   "slot": "pool",
+   "stratum": "format: csv",
+   "title": "2020-21 Number of Food Businesses in SA per Risk Classification"
+  },
+  {
+   "dataset_id": "sa:annual-report-cbs",
+   "family": "attorney-general's department|annual report cbs",
+   "format_class": "xlsx",
+   "formats": [
+    "XLSX"
+   ],
+   "organisation": "Attorney-General's Department",
+   "rank": null,
+   "reference": "sa:annual-report-cbs",
+   "slot": "pool",
+   "stratum": "format: xlsx",
+   "title": "Annual Report CBS"
+  },
+  {
+   "dataset_id": "vic:taxi-industry-statistics",
+   "family": "department of transport and planning|taxi industry statistics",
+   "format_class": "xls",
+   "formats": [
+    "XLS"
+   ],
+   "organisation": "Department of Transport and Planning ",
+   "rank": null,
+   "reference": "vic:taxi-industry-statistics",
+   "slot": "pool",
+   "stratum": "format: xls",
+   "title": "Taxi Industry Statistics"
+  },
+  {
+   "dataset_id": "sa:corrosion-environment-areas",
+   "family": "department for housing and urban development|corrosion environment areas",
+   "format_class": "json",
+   "formats": [
+    "GEOJSON",
+    "HTML",
+    "KML",
+    "MAP VIEWER",
+    "SHP"
+   ],
+   "organisation": "Department for Housing and Urban Development",
+   "rank": null,
+   "reference": "sa:corrosion-environment-areas",
+   "slot": "pool",
+   "stratum": "format: json",
+   "title": "Corrosion Environment Areas"
+  },
+  {
+   "dataset_id": "nsw:water-modelling-modelled-data-annual-permitted-take-apt-murrumbidgee",
+   "family": "nsw department of climate change, energy, the environment and water|water modelling modelled data annual permitted take apt murrumbidgee",
+   "format_class": "zip",
+   "formats": [
+    "ARCGIS REST SERVICE",
+    "PDF",
+    "ZIP"
+   ],
+   "organisation": "NSW Department of Climate Change, Energy, the Environment and Water",
+   "rank": null,
+   "reference": "nsw:water-modelling-modelled-data-annual-permitted-take-apt-murrumbidgee",
+   "slot": "pool",
+   "stratum": "format: zip",
+   "title": "Water Modelling-Modelled Data-Annual Permitted Take (APT)-Murrumbidgee"
+  },
+  {
+   "dataset_id": "datagovau:data-collected-on-voyages-of-australian-antarctic-program-vessels-in-the-southern-ocean-2021-20",
+   "family": "australian ocean data network|data collected on voyages of australian antarctic program vessels in the southern ocean onwards",
+   "format_class": "no-tabular",
+   "formats": [
+    "HTML",
+    "PNG"
+   ],
+   "organisation": "Australian Ocean Data Network",
+   "rank": null,
+   "reference": "datagovau:data-collected-on-voyages-of-australian-antarctic-program-vessels-in-the-southern-ocean-2021-20",
+   "slot": "pool",
+   "stratum": "format: no-tabular",
+   "title": "Data collected on voyages of Australian Antarctic Program vessels in the Southern Ocean - 2021-2022 onwards."
+  },
+  {
+   "dataset_id": "vic:summary-residential-community-emissions",
+   "family": "city of casey|summary residential and business community emissions",
+   "format_class": "csv",
+   "formats": [
+    "CSV",
+    "GEOJSON",
+    "JSON",
+    "KML",
+    "SHP",
+    "XLS"
+   ],
+   "organisation": "City of Casey",
+   "rank": null,
+   "reference": "vic:summary-residential-community-emissions",
+   "slot": "pool",
+   "stratum": "format: csv (second)",
+   "title": "Summary Residential and Business  Community Emissions"
+  }
+ ],
+ "seed": 2
+}

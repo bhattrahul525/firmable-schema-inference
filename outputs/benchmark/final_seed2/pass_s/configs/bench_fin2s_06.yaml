@@ -1,0 +1,113 @@
+what_it_is: ASIC register of banned and disqualified organisations
+one_row_is: a banned organisation
+reader:
+  format: tsv
+  header_rows: 1
+record_id:
+  from:
+  - BD_ORG_ACN
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: BD_ORG_ACN
+  canonical: entity.acn
+  transforms:
+  - name: acn
+    arg: null
+  group: main
+  mapping_confidence: 0.95
+  reason: ACN column
+  field_confidence: 0.8
+  evidence: training
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: training
+    whole_file:
+      populated: 15
+      judged: 15
+      ok: 15
+      rejected: 0
+- source: BD_ORG_NAME
+  canonical: entity.legal_name
+  transforms:
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.7
+  reason: organisation named on ASIC register with ACN
+  field_confidence: 0.7
+  evidence: training
+  transform_level: W
+  validation:
+    held_out_rows: 0
+    blank: 0
+    ok: 0
+    skipped_not_applicable: 0
+    rejected: 0
+    parse_rate: null
+    evidence: training
+    whole_file:
+      populated: 15
+      judged: 15
+      ok: 15
+      rejected: 0
+unmapped:
+- source: REGISTER_NAME
+  reason: constant register title
+- source: BD_ORG_TYPE
+  reason: type of ban, not entity type
+- source: BD_ORG_URL
+  reason: link to register, not website of entity
+- source: BD_ORG_START_DT
+  reason: ban start date, not registration
+- source: BD_ORG_END_DT
+  reason: ban end date
+- source: BD_ORG_COMMENT
+  reason: free comment
+source_reliability:
+  identity: 0.9
+  address: 0.5
+  classification: 0.5
+  contact: 0.5
+source_reliability_basis: ASIC regulator register
+source_id: bench_fin2s_06
+config_version: 1
+needs_transform: []
+meaning_check_responses: []
+validation_summary:
+  held_out_rows: 0
+  observations_in_held_out: 0
+  unanswered_meaning_warnings: []
+  abstentions: []
+  critique_issues:
+  - id: c-3164888d
+    field: valid_from
+    problem: BD_ORG_START_DT states when the ban began, which is when the entity's own status on the register started.
+      Rule 10 permits valid_from from a column saying when a status started. The mapping leaves it null, so useful
+      temporal information is lost.
+    severity: advisory
+    suggested_fix: Optionally map valid_from from BD_ORG_START_DT with parse_date format %d/%m/%Y, and valid_to
+      from BD_ORG_END_DT. Handle non-date values like 'Permanent banning' and blanks, for example by leaving valid_to
+      null.
+  - id: c-b3ce6bdb
+    field: entity.legal_name<-BD_ORG_NAME
+    problem: Some names embed a former name, e.g. 'KNIGHTSBRIDGE FINANCE PTY LTD (Formerly CLIFTON PARTNERS FINANCE
+      PTY LTD)'. The legal_name claim therefore contains extra text beyond the registered name. This follows the
+      register-holder rule, but the value is not a clean legal name.
+    severity: advisory
+    suggested_fix: Keep the mapping, but note the caveat. Optionally use regex_replace to strip the '(Formerly ...)'
+      text, or leave it as a raw claim. Consider mapping_confidence of about 0.8.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-sonnet-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:28:56+00:00'

@@ -1,0 +1,154 @@
+what_it_is: Queensland Government directory of current standing offer procurement arrangements, with embedded supplier
+  details per arrangement.
+one_row_is: one procurement standing offer arrangement and its listed suppliers
+reader:
+  format: csv
+  encoding: utf-8-sig
+  skip_rows: 0
+  header_rows: 1
+record_id:
+  from:
+  - Arrangement Number
+observed_at:
+  from_metadata: resource_last_modified
+fields:
+- source: Suppliers
+  canonical: entity.legal_name
+  transforms:
+  - name: split
+    arg: '
+
+      '
+  - name: regex_extract
+    arg: ^\s*([^,\n]+?(?:Pty Ltd|Pty\. Ltd\.?|Limited|Ltd))\s*,?\s*$
+  - name: clean_whitespace
+    arg: null
+  group: main
+  mapping_confidence: 0.6
+  reason: Supplier cell lists supplier names; only newline-separated lines ending in a company legal suffix are
+    taken, other lines (ABN, phone, address) are skipped. Partial coverage by design.
+  field_confidence: 0.6
+  evidence: held_out
+  transform_level: P
+  validation:
+    held_out_rows: 134
+    blank: 0
+    ok: 17
+    skipped_not_applicable: 117
+    rejected: 0
+    parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
+unmapped:
+- source: Arrangement Name
+  reason: names the arrangement (a category of goods/services), not a supplier entity
+- source: State
+  reason: holds publication status (Published), not a geographic state
+- source: Categories
+  reason: procurement category, not an industry code; recorded only as a procurement classification
+- source: Subcategories
+  reason: procurement subcategory
+- source: Product and Service Groups
+  reason: procurement product groups
+- source: Start Date
+  reason: arrangement start date, not the supplier's own registration date
+- source: Expiry Date
+  reason: arrangement expiry date, not the supplier's own status end
+- source: Status
+  reason: arrangement status, not supplier entity status
+- source: Contact Name
+  reason: government contact person
+- source: Contact Email
+  reason: government contact
+- source: Contact Phone
+  reason: government contact
+- source: Department
+  reason: government buyer
+- source: Section
+  reason: government buyer unit
+needs_transform:
+- source: Suppliers
+  why: Supplier ABNs and addresses are present but not aligned by position to names; an aligned-split transform
+    is needed. Comma-separated supplier lists are also not captured.
+source_reliability:
+  identity: 0.6
+  address: 0.5
+  classification: 0.6
+  contact: 0.4
+source_reliability_basis: Government procurement register; supplier details are typed free text with truncation
+  and inconsistent separators.
+meaning_check_responses: []
+source_id: bench_fin2h_03
+config_version: 1
+validation_summary:
+  held_out_rows: 134
+  observations_in_held_out: 34
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: entity.abn<-Suppliers
+    reason: Supplier ABNs are not aligned to supplier names in the free-text cell; no aligned-split transform exists.
+  - field: entity.legal_name<-Suppliers (comma-separated and non-company names)
+    reason: Coverage is deliberately limited to newline-separated company names with Pty Ltd/Limited/Ltd suffixes;
+      other supplier names are not captured.
+  critique_issues:
+  - id: c-8b8978b1
+    field: entity.legal_name<-Suppliers
+    problem: The split is on newline, but the sample Suppliers cells separate suppliers with commas (e.g. 'Adsorb
+      Pty Ltd, APT Project Solutions Pty Ltd, ...', '- Sonoray Pty Ltd, - Medilink Pty Ltd'). The regex excludes
+      commas, so these multi-supplier cells produce no observations at all, and the mapping does not say so.
+    severity: advisory
+    suggested_fix: Confirm the real delimiter in the Suppliers column. If it is ', ' or a bullet/dash-separated
+      list, split on that delimiter, or document that comma-separated cells are unmapped. Record the coverage gap
+      explicitly.
+  - id: c-1d3bd1e3
+    field: entity.legal_name<-Suppliers
+    problem: Dash and bullet prefixes ('- Sonoray Pty Ltd', '• Axis Health Pty Ltd') are not stripped. The capture
+      group would keep the leading '- ' or '• ' if a line did match, so the legal name would carry list punctuation.
+    severity: advisory
+    suggested_fix: Add a regex_replace step that removes leading list markers (-, •) before regex_extract, using
+      only removal, not addition.
+  - id: c-72fd9f4b
+    field: entity.legal_name<-Suppliers
+    problem: Cells are truncated with an ellipsis ('…'), e.g. 'Assa Abloy Entrance Systems Australia Pty L…' and
+      'Dalcr…'. The last supplier name is cut off, so a name ending in a suffix can be missed or partially captured.
+      The stated 'partial coverage by design' does not cover this case.
+    severity: advisory
+    suggested_fix: Note that the source truncates the cell, and treat observations from truncated final items as
+      incomplete or skip them.
+  - id: c-52c5b862
+    field: entity.legal_name<-Suppliers
+    problem: Suppliers without a company suffix are silently dropped, e.g. 'CS Energy' and 'AcademyGlobal, UQ Skills'.
+      Some are probably real legal entities, and 'Limited' and 'Ltd' are the only suffixes covered.
+    severity: advisory
+    suggested_fix: Accept this as deliberate partial coverage, and list which legal forms are excluded (e.g. Pty.
+      Ltd variants, Inc., trusts, universities) so the gap is visible.
+  - id: c-66e5f1de
+    field: entity.abn
+    problem: The config has a needs_transform note saying per-supplier ABNs are not aligned by position, but no
+      abn field is mapped and no aligned-split transform exists. The ABN information in the source is therefore
+      not captured at all.
+    severity: advisory
+    suggested_fix: Keep this in needs_transform, and record that supplier ABNs are present in the source but unusable
+      until an aligned-split transform is available.
+  - id: c-097d0e8a
+    field: record_id
+    problem: Arrangement Number is used as the record key without a check_unique confirmation. Values like 'QH 152'
+      and 'OIR 045_2223' contain spaces and inconsistent formats, so uniqueness is not established.
+    severity: advisory
+    suggested_fix: Run check_unique on Arrangement Number, and use hash_row=true if duplicates appear.
+  - id: c-0b8245a4
+    field: industry_code
+    problem: Categories and Subcategories are listed as unmapped as procurement categories. This is defensible,
+      but they are the only descriptive classification in the source, and the reason given does not explain why
+      they cannot be recorded even as raw description.
+    severity: advisory
+    suggested_fix: Consider whether Categories should be recorded as a raw industry description, with a note that
+      it is a procurement category and not ANZSIC, or keep it unmapped with that reason stated.
+  outcome: validated_config
+generated_by:
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
+  model: claude-haiku-5-5
+  code_version: 2327b1e6dc73
+  generated_at: '2026-11-13T08:25:15+00:00'
