@@ -408,9 +408,11 @@ class TestCritiqueMerge(Base):
         answers = [{"issue_id": "i2", "action": "answered", "note": "fine"}]       # only the SECOND round's issue
         res = self.run_loop([tool_turn("validate", {"config": CFG}, id="v"), tool_turn("critique", {"config": CFG}, id="c1"),
                              tool_turn("critique", {"config": CFG}, id="c2"),
-                             tool_turn("finish", {"outcome": "validated_config", "config": CFG, "answers": answers}, id="f")],
+                             tool_turn("finish", {"outcome": "validated_config", "config": CFG, "answers": answers}, id="f1"),
+                             tool_turn("finish", {"outcome": "validated_config", "config": CFG, "answers": answers}, id="f2"),
+                             tool_turn("finish", {"outcome": "validated_config", "config": CFG, "answers": answers}, id="f3")],
                             tools=tools)
-        self.assertEqual(res.outcome, "validated_config")                  # accepted; i1 (round 1) is still open -> its field goes
+        self.assertEqual(res.outcome, "needs_review")                      # two blocking refusals, then accepted; i1 is open -> its field goes
         self.assertEqual([a["field"] for a in res.abstentions], ["b"])
 
 
@@ -645,13 +647,15 @@ class TestForcedEnds(Base):
         cfg = {"fields": ["a", "b"], "bad": [], "issues": [issue]}
         self.hooks = self.no_op_abstain_hooks()
         script = [tool_turn("validate", {"config": cfg}, id="v"), tool_turn("critique", {"config": cfg}, id="c"),
+                  tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f0a"),   # blocking refusals 1 and 2
+                  tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f0b"),
                   tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f1"),
                   tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f2"),
                   tool_turn("profile", {}, id="never")]
         res = self.run_loop(script)
-        self.assertIn("left validation failing", self.tool_results(3)[0]["content"])   # rule 4: re-validated, refused
+        self.assertIn("left validation failing", self.tool_results(5)[0]["content"])   # rule 4: re-validated, refused
         self.assertEqual(res.forced_by, "finish refused 2 times in a row")
-        self.assertEqual(len(self.chat.calls), 4)                           # no third refusal, no fifth model turn
+        self.assertEqual(len(self.chat.calls), 6)                           # no third refusal, no seventh model turn
 
     def test_a_forced_end_runs_one_critique_and_abstains_its_fields(self):  # rule 3
         issue = {"id": "i1", "field": "b", "problem": "names look swapped"}

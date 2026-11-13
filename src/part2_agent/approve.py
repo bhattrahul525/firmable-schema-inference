@@ -25,12 +25,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("source_id")
     ap.add_argument("--reviewer", default="rahul")
+    ap.add_argument("--allow-needs-review", action="store_true",
+                    help="approve a config whose run ended as needs_review (open BLOCKING critique issues)")
     a = ap.parse_args()
     sid = a.source_id
     cp = config_path(sid)
     if not cp.exists():
         raise SystemExit(f"no config for {sid}; run onboard first")
     cfg = load_config_file(cp)
+    if cfg.get("validation_summary", {}).get("outcome") == "needs_review" and not a.allow_needs_review:
+        raise SystemExit(f"{sid} ended as needs_review (open blocking critique issues, see its review packet). "
+                         f"Pass --allow-needs-review to approve it anyway.")
     apath = approval_path(sid)
     approval = json.loads(apath.read_text()) if apath.exists() else {"rounds": []}
 

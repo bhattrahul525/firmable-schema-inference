@@ -498,6 +498,8 @@ class AgentRun:
                 result, text, why = self._refuse(decision.reason)
                 if decision.format:
                     result.status = {"format_refusal": True}
+                if decision.blocking:
+                    result.status = {"blocking_refusal": True}
                 return result, text, why
             return ToolResult(status={"accepted": True, "outcome": decision.outcome, "abstentions": decision.abstentions,
                                       "open_advisory": [i.get("id") for i in decision.open_advisory],
@@ -593,6 +595,8 @@ class AgentRun:
                 self.format_refusals += 1
                 return (rendered + f" (format refusal {self.format_refusals} of {FORMAT_REFUSALS_ALLOWED}: it does not "
                         f"count toward ending the run)"), True, None
+            if result.status.get("blocking_refusal"):   # the gate caps these at 2 itself; they never end the run
+                return rendered + " (blocking refusal: it does not count toward ending the run)", True, None
             return self._refused_finish(rendered)
         decision = result.status
         config, outcome = args.get("config"), decision["outcome"]

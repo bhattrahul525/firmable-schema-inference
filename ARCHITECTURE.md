@@ -1,7 +1,7 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.13
+Version: 2.14
 Last updated: 2026-11-13
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
@@ -101,11 +101,14 @@ spend never changes the round-1 figures quoted in the first submission.
   support) or `advisory` (everything else; the critic is told to choose advisory when unsure, and that a mapping which follows a written mapping rule is not blocking because of a caveat about some values). At a forced end only fields
   with a blocking issue are abstained; fields that pass validate with only advisory issues stay and the issues go in the
   packet. An issue with no severity counts as blocking. The same rule holds at an ordinary `finish`: every BLOCKING issue must
-  be fixed or answered in `answers` or its field is abstained by code (the finish is still accepted: `validated_config`); unanswered ADVISORY issues
+  be fixed or answered in `answers`, or the finish is REFUSED with the issue text (2 such refusals per run; they do not count toward
+  "refused twice in a row"). The next finish is then accepted with outcome `needs_review` and the field abstained by code;
+  `approve` refuses a `needs_review` config unless `--allow-needs-review` is passed (the outcome is stored in
+  `validation_summary.outcome`). Unanswered ADVISORY issues
   leave the field in place and are listed in the packet and in the finish event's `open_advisory`. After code abstains fields the
   harness re-validates (code) but does not re-critique: removing fields cannot add an error.
-- **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate (fields
-  left out are in `unmapped` or `abstentions`, including fields code abstained for an unanswered blocking issue). `partial_config`
+- **Outcomes are defined by who ended the run.** `validated_config` = the agent's own `finish` was accepted by the gate with no blocking issue open (fields
+  left out are in `unmapped` or `abstentions`). `needs_review` = the gate accepted a finish only after refusing it twice for open blocking issues (the fields are abstained). `partial_config`
   = the HARNESS ended the run (turns, dollars, time, repeated refusals) and at least one field passed validate. `incomplete` =
   the harness ended it and no field did, or no config existed. The model can declare only `validated_config`,
   `no_business_entities` and `could_not_read`. How much a config covers is a separate measure (benchmark columns
@@ -485,3 +488,4 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-12 | 2.11 | Rule 18 amended to section d (a person-like name WITH ITS OWN valid ABN may be an entity; `no_business_entities` is for rows that are neither organisations nor such individuals), wording shared with this document and guarded by a test; name rule next to rule 5 (an unlabelled name column maps to `trading_name` at 0.6 or lower, never left unmapped for that); validate warns on a mapped placeholder header (`_blank_N`, `Unnamed`); step 4a open item recorded (conditional mapping for a mixed identifier column) | Dev draw d: the first wording of rule 18 sent a file of individual sole traders to `no_business_entities` |
 | 2026-11-13 | 2.12 | Step 3b (reviews/step3b_plan.md) built: (C) three evidence states per mapped field / envelope setting (`held_out`/`training`/`unverified`), capped at 0.8/0.5, computed by code, not a model statement; (B) the first 12 raw rows of a file are never held out, `read_table` returns them as `raw_top`, a too-small file gets no held-out split; (A) `skip_rows_after_header` reader option; (E) the packet shows the raw top rows and the layout in code's words, plus a `header_like_first_row` warning; no model-written column labels; (D) `valid_from`/`valid_to` get the same stats/reject tracking as a field, shown in the packet and the critic's config summary, abstained by deleting the key, and mapped only from the entity's own registration/licence/status date (reverses one round-1 config's practice, effective only on re-onboarding at step 5); (F) a register exception added to rule 5 (prompt wording only; a code cap on the confidence and header word lists are deferred); (G) `llm.chat` requests `display: "summarized"` thinking (confirmed live on both models, no extra token cost), shown in the replay line. DEFERRED, not built: the F code cap, an ABN-evidence rule for Part-3 linking (item C) | Planning session (reviews/step3b_plan.md) found: a run's held-out split hid the real header from the agent; a sparse ABN column passed validation with no evidence; `valid_from`/`valid_to` were invisible to the critic and the packet; an individual-register name rule conflicted with rule 5; the trace's thinking text was empty because display was never requested |
 | 2026-11-13 | 2.13 | Step 4a (reviews/step4a_plan.md) built: `regex_replace`, `template`, `constant` and the per-field `when` condition; regex safety (200 chars, compile check, 1 s per-value timer, switch-off after 20, `bad_pattern` instead of a crash); literal text in `template` / `repl` is separators only; template with a blank part is rejected; `constant` capped at 0.5 (was 0.6) with evidence `asserted`; `try_transform` takes `when`; rule 19; scope: all four items are 4a (section i), step 4 keeps level G | Owner decisions 1-5 on the 4a plan |
+| 2026-11-13 | 2.14 | Blocking-issue finish gate: a finish with an open BLOCKING critique issue is refused with the issue text (2 per run, not counted toward "refused twice in a row"); the next is accepted as outcome `needs_review` (fields abstained by code, `validation_summary.outcome` stored); `approve` refuses `needs_review` unless `--allow-needs-review` | Step 5 re-runs ended `validated_config` with blocking issues still in the config |

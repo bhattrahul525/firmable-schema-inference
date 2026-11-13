@@ -31,6 +31,19 @@ class TestApproveAgentConfig(unittest.TestCase):
         approval, sha = self.run_approve([""])
         self.assertEqual((approval["status"], approval["config_sha256"]), ("approved", sha))
 
+    def test_a_needs_review_config_is_refused_unless_the_override_flag_is_passed(self):
+        cfg = agent_cfg()
+        cfg["validation_summary"] = {"outcome": "needs_review"}
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(engine_config, "CONFIG_DIR", Path(d)):
+            engine_config.write_config(cfg, engine_config.config_path("s"))
+            with mock.patch("sys.argv", ["approve", "s"]), self.assertRaises(SystemExit) as e:
+                approve.main()
+            self.assertIn("--allow-needs-review", str(e.exception))
+            self.assertFalse(engine_config.approval_path("s").exists())
+            with mock.patch("sys.argv", ["approve", "s", "--allow-needs-review"]), mock.patch("builtins.input", side_effect=[""]):
+                approve.main()
+            self.assertEqual(json.loads(engine_config.approval_path("s").read_text())["status"], "approved")
+
     def test_a_wrong_field_rejects_and_stores_no_hash(self):
         approval, _ = self.run_approve(["1", "wrong column", ""])
         self.assertEqual((approval["status"], approval["config_sha256"]), ("rejected", None))

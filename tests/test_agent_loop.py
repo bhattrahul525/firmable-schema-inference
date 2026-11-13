@@ -199,8 +199,9 @@ class TestFinishGate(Base):
         issue = {"id": "i1", "field": "b", "problem": "legal and trading name look swapped"}
         cfg = {"fields": ["a", "b"], "bad": [], "issues": [issue]}
         base = [tool_turn("validate", {"config": cfg}, id="v"), tool_turn("critique", {"config": cfg}, id="c")]
-        res = self.run_loop(base + [tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id="f")])
-        self.assertEqual(res.outcome, "validated_config")                    # the agent's own finish was accepted
+        fin = lambda i: tool_turn("finish", {"outcome": "validated_config", "config": cfg}, id=i)
+        res = self.run_loop(base + [fin("f1"), fin("f2"), fin("f3")])         # two blocking refusals, then accepted
+        self.assertEqual(res.outcome, "needs_review")
         self.assertEqual(res.config["fields"], ["a"])
         self.assertIn("unanswered", res.abstentions[0]["reason"])
         self.assertEqual(self.counter.runs["critique"], 1)      # re-validated by code, NOT re-critiqued

@@ -30,13 +30,13 @@ def jtool(name, args=None):
 # ---- 2: outcomes are defined by who ended the run ---------------------------------------------------------------------
 
 class TestOutcomeByWhoEndedTheRun(Wiring):
-    def test_an_accepted_finish_is_validated_config_even_with_abstentions_and_unanswered_blocking_issues(self):
+    def test_an_accepted_finish_with_unanswered_blocking_issues_is_needs_review_after_two_refusals(self):
         issues = [{"field": "entity.legal_name", "severity": "blocking", "problem": "p", "suggested_fix": "f"}]
         with mock.patch("src.part2_agent.agent_hooks.llm.call", FakeCritic(issues)):
             res = self.agent(front() + [t("validate", {"config": good_config()}), t("critique", {"config": good_config()}),
-                                        t("finish", {"outcome": "validated_config", "config": good_config(),
-                                                     "abstentions": [{"field": "entity.abn<-ABN", "reason": "r"}]})]).run()
-        self.assertEqual(res.outcome, "validated_config")
+                                        *[t("finish", {"outcome": "validated_config", "config": good_config(),
+                                                       "abstentions": [{"field": "entity.abn<-ABN", "reason": "r"}]})] * 3]).run()
+        self.assertEqual(res.outcome, "needs_review")
         self.assertIsNone(res.forced_by)
         self.assertEqual(len(res.config["fields"]), 3)                           # legal_name removed by code
         self.assertTrue(any("blocking critique issue unanswered" in a["reason"] for a in res.abstentions))

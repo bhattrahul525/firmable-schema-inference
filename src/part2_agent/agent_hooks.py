@@ -798,6 +798,7 @@ def write_agent_outputs(result, *, source_id: str, work_dir: Path, model: str | 
         issues = [i for c in critiques for i in c.get("issues", [])]
         cfg, report = finalise_config(result.config, source_id, work_dir, model, code_version, result.abstentions, issues)
         result.config = cfg
+        cfg["validation_summary"]["outcome"] = result.outcome   # approve.py reads this to refuse needs_review
         ap = target_dir / f"{source_id}.approval.json"
         if ap.exists() and json.loads(ap.read_text()).get("status") == "approved" and not allow_overwrite:
             target_dir = work_dir / "proposed"   # never overwrite an approved config silently

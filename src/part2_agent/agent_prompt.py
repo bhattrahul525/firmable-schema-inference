@@ -81,7 +81,8 @@ OUTCOMES (end with `finish`; the outcome is decided by who ended the run)
   could_not_read         the file cannot be read (give the reason). The harness needs evidence it can verify: two failed
                          read_table calls, a failed download, or a sniff / list_members result that classifies the file as not
                          tabular. Your own statement is not enough.
-  (If the harness ends the run first, because of turns, dollars, time or repeated refusals, it records partial_config or
+  (A finish with a BLOCKING critique issue still open is refused, twice at most; the third is accepted as needs_review, which a
+  human must override to approve. You never declare it. If the harness ends the run first, because of turns, dollars, time or repeated refusals, it records partial_config or
   incomplete itself. You never declare those.)
 
 ONTOLOGY (a contract: use these exact field names; fields not listed here do not exist):
