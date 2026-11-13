@@ -28,6 +28,9 @@ REGISTER = Path("data/raw/reference/business_names_202611.zip")
 REGISTER_ID = "asic_business_names"
 CACHE = Path("data/cache/bn_token_counts.json")  # git-ignored (.gitignore: data/cache/)
 KEEP_WHERE = ("BN_STATUS", "Registered")  # same rule as the row filter: current names only
+# R5: a name whose summed token weight is below this is "generic" (never linked on the name alone). Set ONCE to the
+# 5th percentile of the weights of the 5,224 distinct mention names, before any labels were viewed (DECISIONS.md, 7b1).
+GENERIC_MIN_WEIGHT = 14.02
 
 
 def tokens(name: str | None) -> set[str]:
@@ -40,6 +43,12 @@ class Idf:
 
     def idf(self, token: str) -> float:
         return math.log((self.n + 1) / (self.df.get(token, 0) + 1))
+
+    def name_weight(self, name: str | None) -> float:
+        return sum(self.idf(t) for t in tokens(name))
+
+    def is_generic(self, name: str | None) -> bool:
+        return self.name_weight(name) < GENERIC_MIN_WEIGHT
 
     def overlap(self, a: str | None, b: str | None) -> float:
         ta, tb = tokens(a), tokens(b)

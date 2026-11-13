@@ -10,9 +10,34 @@ import json
 import re
 from pathlib import Path
 
+import yaml
+
 from src.common.names import ATF, SUFFIX_TOKENS, name_core  # noqa: F401  (re-exported; moved in step 7a)
 
 OBS_DIR = Path("outputs/observations")
+REFERENCE_CONFIG = Path("configs/reference_sources.yaml")
+
+
+def reference_sources() -> dict[str, dict]:
+    """{source_id: entry} for sources with role: reference (registers used as evidence, never as mentions)."""
+    entries = yaml.safe_load(REFERENCE_CONFIG.read_text())["sources"]
+    return {e["id"]: e for e in entries if e.get("role") == "reference"}
+
+
+# Trailing "STATE 1234" or ", 1234" (WA tender addresses end in a bare postcode). No state is inferred from a postcode.
+_ADDR_STATE_PC = re.compile(r"\b(NSW|VIC|QLD|SA|WA|TAS|NT|ACT)\b[\s,]+(\d{4})\s*$", re.I)
+_ADDR_PC = re.compile(r",\s*(\d{4})\s*$")
+
+
+def derive_state_postcode(address_full: str | None) -> tuple[str | None, str | None]:
+    """(state, postcode) read from the end of a free-text address, or None for what is not stated there (L1)."""
+    if not address_full:
+        return None, None
+    m = _ADDR_STATE_PC.search(address_full)
+    if m:
+        return m.group(1).upper(), m.group(2)
+    m = _ADDR_PC.search(address_full)
+    return None, (m.group(1) if m else None)
 
 # A name with none of these, made of 2-4 plain words, looks like a person ("Michael William Argus").
 BUSINESS_WORDS = {
@@ -51,14 +76,15 @@ def containment(a: str, b: str) -> float:
 
 def load_mentions(sources: list[str]) -> list[dict]:
     mentions: dict[str, dict] = {}
-    for sid in sources:
+    for sid in [x for x in sources if x not in reference_sources()]:
         for line in (OBS_DIR / f"{sid}.jsonl").open():
             o = json.loads(line)
             mid = f"{sid}|{o['entity_ref']}"
             m = mentions.setdefault(mid, {
                 "mention_id": mid, "source_id": sid, "source_record_id": o["source_record_id"],
                 "entity_ref": o["entity_ref"], "legal_name": None, "trading_names": [], "abn": None,
-                "acn": None, "state": None, "postcode": None, "locality": None, "entity_type": "unknown"})
+                "acn": None, "state": None, "postcode": None, "locality": None, "address_full": None,
+                "entity_type": "unknown"})
             f, v = o["field"], o["value"]
             if f == "entity.legal_name":
                 m["legal_name"] = v
@@ -66,10 +92,14 @@ def load_mentions(sources: list[str]) -> list[dict]:
                 m["trading_names"].append(v)
             elif f in ("entity.abn", "entity.acn", "entity.entity_type"):
                 m[f.split(".")[1]] = v
-            elif f in ("address.state", "address.postcode", "address.locality"):
-                m[f.split(".")[1]] = v
+            elif f in ("address.state", "address.postcode", "address.locality", "address.full"):
+                m[f.replace("address.", "address_") if f.endswith("full") else f.split(".")[1]] = v
     out = list(mentions.values())
     for m in out:
+        # fill state / postcode from address.full ONLY where the source did not state them
+        state, pc = derive_state_postcode(m["address_full"])
+        m["state"] = m["state"] or state
+        m["postcode"] = m["postcode"] or pc
         m["core"] = name_core(m["legal_name"])
         m["trading_cores"] = [c for c in (name_core(t) for t in m["trading_names"]) if c]
         m["person_like"] = bool(m["legal_name"]) and person_like(m["legal_name"], m["entity_type"])

@@ -1,7 +1,7 @@
 # Runbook
 
 ## Business Names row filter (step 6)
-`python -m src.engine.row_filter asic_business_names --raw data/raw/reference/business_names_202611.zip --keep-where BN_STATUS=Registered`
+`python -m src.engine.row_filter asic_business_names` (file path and keep_where BN_STATUS=Registered come from configs/reference_sources.yaml; `--raw` and `--keep-where` override)
 
 Full 247 MB register (zip read, streamed, no LLM): **16.9 s** (an earlier identical run: 18.9 s), on the dev laptop,
 2026-11-13. Rows kept / total: **3,867 / 3,312,255** (Registered rows whose ABN or name key is in the six sources'

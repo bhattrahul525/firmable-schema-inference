@@ -6,10 +6,10 @@ Streams the register one row at a time (iter_table, so the 247 MB file is never 
 The ABN and name columns come from the register's agent-generated config (fields mapped to entity.abn and
 entity.trading_name / entity.legal_name). The name key is the matcher's own `name_core`, so filter and matcher agree.
 
-keep_where is read from the config's `keep_where:` if present; otherwise it must be passed (--keep-where COL=VALUE).
-Configs are written only by the agent, so the condition is given on the command line, not hand-added to the config.
+keep_where and the file path come from configs/reference_sources.yaml (hand-written; agent configs are never edited);
+--keep-where COLUMN=VALUE overrides.
 
-CLI:  python -m src.engine.row_filter <ref_source_id> --raw <file> --keep-where BN_STATUS=Registered
+CLI:  python -m src.engine.row_filter <ref_source_id> [--raw <file>] [--keep-where BN_STATUS=Registered]
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from src.common.ids import normalise_abn
 from src.engine.config import config_path, load_config_file
 from src.engine.readers import iter_table
 from src.common.names import name_core
-from src.part3_resolve.features import load_mentions
+from src.part3_resolve.features import load_mentions, reference_sources
 from src.part3_resolve.run import SOURCES
 
 OUT_DIR = Path("data/reference")
@@ -52,9 +52,7 @@ def filter_rows(rows, keep_where: dict, abn_col: str, name_col: str, abns: set, 
 
 def run(ref_id: str, raw: Path, keep_where: dict | None) -> dict:
     cfg = load_config_file(config_path(ref_id))
-    keep_where = keep_where or cfg.get("keep_where")
-    if not keep_where:
-        raise SystemExit("no keep_where: pass --keep-where COLUMN=VALUE (or have it in the config)")
+    keep_where = keep_where or reference_sources()[ref_id]["keep_where"]  # CLI flag overrides
     by_canon = {f["canonical"]: f["source"] for f in cfg["fields"]}
     abn_col, name_col = by_canon["entity.abn"], by_canon["entity.trading_name"]
     abns, names = mention_keys(load_mentions(SOURCES))
@@ -85,14 +83,14 @@ def run(ref_id: str, raw: Path, keep_where: dict | None) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("ref_id")
-    ap.add_argument("--raw", required=True)
+    ap.add_argument("--raw", help="default: path in configs/reference_sources.yaml")
     ap.add_argument("--keep-where", help="COLUMN=VALUE")
     a = ap.parse_args()
     kw = None
     if a.keep_where:
         c, _, v = a.keep_where.partition("=")
         kw = {"column": c, "equals": v}
-    print(run(a.ref_id, Path(a.raw), kw))
+    print(run(a.ref_id, Path(a.raw or reference_sources()[a.ref_id]["path"]), kw))
 
 
 if __name__ == "__main__":
