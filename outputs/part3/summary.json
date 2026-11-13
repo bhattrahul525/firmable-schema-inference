@@ -14,13 +14,13 @@
   },
   "links_by_band": {
     "accepted": 562,
-    "loose": 466
+    "loose": 464
   },
   "links_by_tier_and_band": {
     "T1_abn_equal|accepted": 49,
     "T1_register_abn|accepted": 511,
     "T1r_abn_equal_bn_name|accepted": 2,
-    "T3_register_name|loose": 465,
+    "T3_register_name|loose": 463,
     "T4_name_postcode|loose": 1
   },
   "links_by_source_pair": {
@@ -28,7 +28,7 @@
     "act_notifiable_invoices | qld_health_contracts_2023_24": 25,
     "act_notifiable_invoices | asic_credit_licensee": 3,
     "qbcc_licensed_contractors | wa_tenders_awards_2023_24": 1,
-    "asic_business_names | asic_credit_licensee": 270,
+    "asic_business_names | asic_credit_licensee": 268,
     "asic_business_names | qbcc_licensed_contractors": 23,
     "asic_business_names | qld_health_contracts_2023_24": 47,
     "asic_business_names | wa_tenders_awards_2023_24": 50,
@@ -44,6 +44,7 @@
     "similar_name_not_exact": 1,
     "name_match_but_locations_differ": 1,
     "name_match_but_different_abns": 88,
+    "register_bridge_different_abns": 2,
     "name_matches_more_than_one_holder": 13
   },
   "mentions_with_abn_in_no_accepted_link": 2121,

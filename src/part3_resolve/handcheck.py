@@ -2,6 +2,7 @@
 
   python -m src.part3_resolve.handcheck make    -> handcheck/part3_link_check.csv   (fill in 'label')
   python -m src.part3_resolve.handcheck score   -> handcheck/part3_link_result.json
+  python -m src.part3_resolve.handcheck step8   -> handcheck/step8_sheet.csv (blind) + step8_key.csv
 
 Sampling: the 266+ accepted links are mostly repeats of ~40 businesses (a supplier appears on many invoice
 rows), so we sample DISTINCT UNITS = (canonical entity key or name pair, source pair), one link per unit,
@@ -159,5 +160,73 @@ def score() -> None:
     print(json.dumps({k: v for k, v in res.items() if k != "labelling_rule"}, indent=2))
 
 
+# ---- step 8: blind sheet over the m2.0 graph ------------------------------------------------------------------
+STEP8_SEED = 7  # NOT seed 2 (the final benchmark draw)
+STEP8_SHEET = Path("handcheck/step8_sheet.csv")
+STEP8_KEY = Path("handcheck/step8_key.csv")
+STEP8_COLUMNS = ["check_id"] + [c for c in COLUMNS if c.startswith(("a_", "b_"))] + ["label", "notes"]  # no tier / band / confidence / key / matched_on
+STEP8_ASK = {"register_bridged_loose": 6, "register_bridged_accepted": 4, "no_abn": 4, "t1r": 99, "sole_trader": 2}
+
+
+def step8_strata(edges: list[dict], nodes: dict, sole_trader_ids: set[str]) -> dict[str, list[dict]]:
+    """Candidate same_as edges per stratum. Sampling order (in make_step8) is: loose bridge, accepted register, T1r,
+    sole trader, then no-ABN, and an edge is used once (a later stratum skips edges an earlier one took)."""
+    same = sorted((e for e in edges if e["type"] == "same_as"), key=lambda e: e["edge_id"])
+    no_abn = lambda e: not nodes[e["from"]].get("abn") or (nodes[e["to"]]["type"] != "register" and not nodes[e["to"]].get("abn"))
+    return {
+        "register_bridged_loose": [e for e in same if e["tier"] == "T3_register_name"],
+        "register_bridged_accepted": [e for e in same if e["tier"] == "T1_register_abn"],
+        "t1r": [e for e in same if e["tier"].startswith("T1r")],
+        "sole_trader": [e for e in same if e["from"] in sole_trader_ids or e["to"] in sole_trader_ids],
+        "no_abn": [e for e in same if no_abn(e) and not e["evidence"].get("abn_equal")],
+    }
+
+
+def make_step8() -> None:
+    from src.part3_resolve.labels import pair_id
+    from src.part3_resolve.registers import bn_record_id, load_business_names
+
+    edges = [json.loads(l) for l in Path("outputs/part3/graph_edges.jsonl").open()]
+    nodes = {n["node_id"]: n for n in map(json.loads, Path("outputs/part3/graph_nodes.jsonl").open())}
+    mentions = {m["mention_id"]: m for m in load_mentions(SOURCES)}
+    bn = load_business_names()
+    bn_rows = {bn_record_id(r): r for rows in bn.by_name.values() for r in rows}
+    sole = {nid for nid, m in mentions.items() if m["person_like"] and m["abn"]}
+    strata = step8_strata(edges, nodes, sole)
+    rng = random.Random(STEP8_SEED)
+    chosen, used, counts = [], set(), {}
+    for name in ("register_bridged_loose", "register_bridged_accepted", "t1r", "sole_trader", "no_abn"):
+        pool = [e for e in strata[name] if e["edge_id"] not in used]
+        take = pool if len(pool) <= STEP8_ASK[name] else rng.sample(pool, STEP8_ASK[name])
+        counts[name] = (len(take), STEP8_ASK[name] if name != "t1r" else len(pool), len(pool))
+        used |= {e["edge_id"] for e in take}
+        chosen += [(name, e) for e in take]
+    rng.shuffle(chosen)  # mixed order so the labeller is not primed by stratum
+
+    def side(node_id: str) -> dict:
+        n = nodes[node_id]
+        if n["type"] == "register":
+            r = bn_rows[n["source_record_id"]]
+            return {"source": n["source_id"], "record_id": n["source_record_id"], "legal_name": r["BN_NAME"], "trading_names": "",
+                    "abn": r["abn"] or "", "acn": "", "address": f"(register: registered in {r['BN_STATE_OF_REG'] or 'unknown state'})"}
+        m = mentions[node_id]
+        return {"source": m["source_id"], "record_id": m["source_record_id"], "legal_name": m["legal_name"] or "",
+                "trading_names": " | ".join(m["trading_names"]), "abn": m["abn"] or "", "acn": m["acn"] or "", "address": addr(m)}
+
+    STEP8_SHEET.parent.mkdir(parents=True, exist_ok=True)
+    with STEP8_SHEET.open("w", newline="", encoding="utf-8-sig") as fs, STEP8_KEY.open("w", newline="", encoding="utf-8-sig") as fk:
+        ws = csv.DictWriter(fs, fieldnames=STEP8_COLUMNS)
+        wk = csv.DictWriter(fk, fieldnames=["check_id", "pair_id", "stratum", "tier", "band", "link_confidence"])
+        ws.writeheader()
+        wk.writeheader()
+        for i, (name, e) in enumerate(chosen, 1):
+            a, b = side(e["from"]), side(e["to"])
+            ws.writerow({"check_id": i, **{f"{p}_{k}": v for p, d in (("a", a), ("b", b)) for k, v in d.items()}, "label": "", "notes": ""})
+            ra, rb = ({"source_id": d["source"], "source_record_id": d["record_id"]} for d in (a, b))
+            wk.writerow({"check_id": i, "pair_id": pair_id(ra, rb), "stratum": name, "tier": e["tier"], "band": e["band"],
+                         "link_confidence": e["link_confidence"]})
+    print(f"wrote {STEP8_SHEET} and {STEP8_KEY}: {len(chosen)} rows; per stratum (taken, asked, available):", counts)
+
+
 if __name__ == "__main__":
-    {"make": make, "score": score}[sys.argv[1] if len(sys.argv) > 1 else "make"]()
+    {"make": make, "score": score, "step8": make_step8}[sys.argv[1] if len(sys.argv) > 1 else "make"]()

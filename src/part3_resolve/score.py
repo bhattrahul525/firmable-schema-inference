@@ -105,6 +105,8 @@ def _tiers_m2_0(f: dict) -> tuple[float, str, str | None]:
             return 0.0, "T3_register_name", "name_match_but_different_abns"
         if f["abn_equal"]:  # only generated when the names agree
             return 0.98, "T1_register_abn", None
+        if f.get("bridge_abn_conflict"):  # a blank-ABN register record bridging mentions with different valid ABNs
+            return 0.0, "T3_register_name", "register_bridge_different_abns"
         if f["holders"] > 1:
             return 0.0, "T3_register_name", "name_matches_more_than_one_holder"
         if f["person_like"]:

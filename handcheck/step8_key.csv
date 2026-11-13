@@ -1,0 +1,19 @@
+﻿check_id,pair_id,stratum,tier,band,link_confidence
+1,act_notifiable_invoices#row-yevi~7xjx~xzr9 <-> asic_business_names#bn-hash:88cd6ce56dbf,register_bridged_accepted,T1_register_abn,accepted,0.98
+2,asic_business_names#bn-hash:a700b66032a1 <-> qld_health_contracts_2023_24#h:8fe2ce6959bf3ea6,sole_trader,T1_register_abn,accepted,0.98
+3,asic_business_names#bn-hash:41ebf64432ec <-> vic_liquor_licences#32261880,no_abn,T3_register_name,loose,0.65
+4,act_notifiable_invoices#row-u82x-9uga.4abr <-> qld_health_contracts_2023_24#h:19d84b53f50e7ae8,t1r,T1r_abn_equal_bn_name,accepted,0.95
+5,asic_business_names#bn:VIC:B1946245V <-> vic_liquor_licences#31959511,register_bridged_loose,T3_register_name,loose,0.65
+6,act_notifiable_invoices#row-5zbz-n3tx~w86e <-> qbcc_licensed_contractors#179420,t1r,T1r_abn_equal_bn_name,accepted,0.95
+7,asic_business_names#bn-hash:f1c7ff0b52b9 <-> vic_liquor_licences#32363226,register_bridged_loose,T3_register_name,loose,0.65
+8,asic_business_names#bn-hash:3c5b29e6c1d2 <-> vic_liquor_licences#32386062,no_abn,T3_register_name,loose,0.65
+9,asic_business_names#bn-hash:0b01f7ae61c3 <-> vic_liquor_licences#32314382,no_abn,T3_register_name,loose,0.65
+10,act_notifiable_invoices#row-jn45_crkr-2g6e <-> asic_business_names#bn-hash:95c1a95b9921,register_bridged_accepted,T1_register_abn,accepted,0.98
+11,asic_business_names#bn-hash:e6f2e663a566 <-> vic_liquor_licences#32355532,register_bridged_loose,T3_register_name,loose,0.65
+12,act_notifiable_invoices#row-d7yz-5wq2_q5hn <-> asic_business_names#bn-hash:becf45b2ce2a,register_bridged_accepted,T1_register_abn,accepted,0.98
+13,act_notifiable_invoices#row-bfq6-bpcv-sb4j <-> asic_business_names#bn-hash:6cac39f4790e,register_bridged_accepted,T1_register_abn,accepted,0.98
+14,asic_business_names#bn-hash:fa3b5529844d <-> wa_tenders_awards_2023_24#h:8120553e12208606,register_bridged_loose,T3_register_name,loose,0.65
+15,asic_business_names#bn-hash:b9f51d6b66f3 <-> vic_liquor_licences#31962776,register_bridged_loose,T3_register_name,loose,0.65
+16,asic_business_names#bn:VIC:B2466799W <-> vic_liquor_licences#32317144,register_bridged_loose,T3_register_name,loose,0.65
+17,asic_business_names#bn-hash:5ffc4cfb15fc <-> wa_tenders_awards_2023_24#h:ba443860ab3a8ab1,no_abn,T3_register_name,loose,0.65
+18,act_notifiable_invoices#row-pzhe.qai7.tvtd <-> qld_health_contracts_2023_24#h:4f9bc3c444b16a14,sole_trader,T1_abn_equal,accepted,0.98

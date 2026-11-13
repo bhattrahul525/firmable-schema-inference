@@ -8,7 +8,6 @@
     "single_source_register_confirmed|loose": 418
   },
   "components_skipped": {
-    "more_than_one_abn": 1,
     "person_only_or_no_type": 1
   },
   "fields_with_tie_none_chosen": 2

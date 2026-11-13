@@ -78,6 +78,28 @@ def nominee_edges(mentions: list[dict]) -> list[dict]:
     return out
 
 
+def abn_offenders(edges: list[dict], nodes: dict) -> list[dict]:
+    """Components of same_as edges of ANY band that hold more than one ABN."""
+    allp: dict[str, str] = {}
+
+    def afind(x):
+        allp.setdefault(x, x)
+        while allp[x] != x:
+            allp[x] = allp[allp[x]]
+            x = allp[x]
+        return x
+
+    for e in edges:
+        if e["type"] == "same_as":
+            allp[afind(e["from"])] = afind(e["to"])
+    groups = defaultdict(list)
+    for x in list(allp):
+        groups[afind(x)].append(x)
+    return [{"members": [(nodes[m]["name"], nodes[m]["abn"]) for m in ms],
+             "abns": sorted({nodes[m]["abn"] for m in ms if nodes[m].get("abn")})}
+            for ms in groups.values() if len({nodes[m]["abn"] for m in ms if nodes[m].get("abn")}) > 1]
+
+
 def main() -> None:
     mentions = load_mentions(SOURCES)
     links = [json.loads(l) for l in (OUT / "links.jsonl").open()]
@@ -146,6 +168,9 @@ def main() -> None:
             eid = "entity:" + hashlib.sha1("|".join(members).encode()).hexdigest()[:12]
             nodes[eid] = {"node_id": eid, "type": "entity", "members": members, "abns": abns}
 
+    offenders = abn_offenders(edges, nodes)  # ABN check over ALL same_as edges (accepted and loose); reports, never a silent zero
+    (OUT / "graph_checks.json").write_text(json.dumps({"components_with_more_than_one_abn_all_same_as_edges": offenders}, indent=2))
+
     with (OUT / "graph_nodes.jsonl").open("w") as f:
         for n in nodes.values():
             f.write(json.dumps(n) + "\n")
@@ -155,6 +180,7 @@ def main() -> None:
     print(json.dumps({"nodes": dict(Counter(n["type"] for n in nodes.values())),
                       "edges": dict(Counter(e["type"] for e in edges)),
                       "edges_by_band": {f"{t}|{b}": c for (t, b), c in Counter((e["type"], e["band"]) for e in edges).items()},
+                      "components_with_more_than_one_abn_all_edges": len(offenders),
                       "entities_with_more_than_one_abn": sum(1 for n in nodes.values() if n["type"] == "entity" and len(n["abns"]) > 1),
                       "labelled_edges": sum(1 for e in edges if e["human_label"])}, indent=2, default=str))
 

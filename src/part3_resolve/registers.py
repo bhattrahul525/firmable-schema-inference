@@ -78,7 +78,7 @@ def register_links(mentions: list[dict], bn: BusinessNames, idf) -> list[dict]:
                 "abn_equal": bool(m["abn"] and m["abn"] == row["abn"]),
                 "abn_differ": bool(m["abn"] and row["abn"] and m["abn"] != row["abn"]),
                 "holders": holders, "person_like": m["person_like"], "generic_name": idf.is_generic(name),
-                "abn_unverified": m["abn_unverified"], "state_a": m["state"], "state_b": row.get("BN_STATE_OF_REG"),
+                "abn_unverified": m["abn_unverified"], "abn_a": m["abn"], "state_a": m["state"], "state_b": row.get("BN_STATE_OF_REG"),
                 "register_holder_abn": row["abn"]}}
 
         if m["abn"] and bn.by_abn.get(m["abn"]):  # route 1: best-agreeing register name under the same ABN
@@ -98,4 +98,14 @@ def register_links(mentions: list[dict], bn: BusinessNames, idf) -> list[dict]:
             seen.add((m["mention_id"], bn_record_id(row)))
             out.append(make(row, "register_name", n, len({r["holder"] for r in rows})))
             break  # one register candidate per mention
+    # A register record with NO ABN may bridge mentions only if their valid ABNs do not differ. Stored on each link as a
+    # feature (not a cross-link lookup at scoring time), so the scorer stays a pure function and rescore can apply it.
+    by_record = defaultdict(list)
+    for c in out:
+        if not c["evidence"]["register_holder_abn"]:
+            by_record[bn_record_id(c["bn_row"])].append(c)
+    for group in by_record.values():
+        if len({c["evidence"]["abn_a"] for c in group if c["evidence"]["abn_a"]}) > 1:
+            for c in group:
+                c["evidence"]["bridge_abn_conflict"] = True
     return out
