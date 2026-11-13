@@ -31,11 +31,11 @@ pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15    # full suite; no key or
 Everything under `outputs/` is committed, so results can be read without running anything. Raw data is git-ignored.
 
 ## Onboard an unseen dataset (needs the API key; model is the `LLM_MODEL` setting in `src/llm.py`)
-`--mode pipeline` (the round-1 fixed pipeline) is still the default. **Pass `--mode agent` for the round-2 agent.**
+`--mode agent` (the round-2 agent) is the default and the flag is optional. `--mode pipeline` runs the round-1 fixed pipeline.
 ```bash
-python -m src.part2_agent.onboard --mode agent nsw:find-by-lia-band      # <portal>:<ckan dataset name>
-python -m src.part2_agent.onboard --mode agent https://data.gov.au/...   # a URL, or a local file path
-python -m src.part2_agent.onboard --mode agent my_data.csv --source-id my_data --max-dollars 0.5
+python -m src.part2_agent.onboard nsw:find-by-lia-band      # <portal>:<ckan dataset name>
+python -m src.part2_agent.onboard https://data.gov.au/...   # a URL, or a local file path
+python -m src.part2_agent.onboard my_data.csv --source-id my_data --max-dollars 0.5
 ```
 Useful flags: `--resource-index N` (pin a resource), `--model`, `--max-turns` (default 40), `--max-dollars` (default 1.00),
 `--overwrite` (replace an approved config). The trace is `logs/agent_runs/<source_id>/trace.jsonl`; running the same

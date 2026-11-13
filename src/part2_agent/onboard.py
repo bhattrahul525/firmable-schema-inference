@@ -13,8 +13,8 @@ Steps (each checkpointed in logs/agent_runs/<source_id>/, so a re-run resumes):
   8 gate      human    `python -m src.part2_agent.approve <source_id>`; rejection comments come back
                         here on the next run of this command (a human-feedback revise round)
 
-This is the round-1 PIPELINE (`--mode pipeline`, the default). `--mode agent` runs the round-2 tool-using agent instead
-(onboard_agent below; design in ARCHITECTURE.md). The pipeline code is unchanged.
+This is the round-1 PIPELINE (`--mode pipeline`, now an explicit option). The default `--mode agent` runs the round-2
+tool-using agent (onboard_agent below; design in ARCHITECTURE.md). The pipeline code is unchanged.
 """
 
 from __future__ import annotations
@@ -377,8 +377,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Onboard one source with the Part 2 agent.")
     ap.add_argument("source", nargs="?", help="pipeline: a downloaded source_id or <portal>:<ckan dataset>; agent: a "
                     "<portal>:<ckan dataset>, an http(s) URL or a file path")
-    ap.add_argument("--mode", choices=("pipeline", "agent"), default="pipeline",
-                    help="pipeline = the round-1 fixed pipeline (default); agent = the round-2 tool-using agent")
+    ap.add_argument("--mode", choices=("pipeline", "agent"), default="agent",
+                    help="agent = the round-2 tool-using agent (default); pipeline = the round-1 fixed pipeline")
     ap.add_argument("--file", help="onboard a local file instead (pipeline: csv/tsv/xlsx/json copied in; agent: any path)")
     ap.add_argument("--licence", default="unknown", help="pipeline: licence of a local file (default: unknown, flagged)")
     ap.add_argument("--resource-contains", help="pipeline, CKAN: only consider resources whose name contains this")

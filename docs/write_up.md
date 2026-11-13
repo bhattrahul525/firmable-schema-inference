@@ -115,6 +115,8 @@ is a pure function over stored evidence and refuses to write if a human Y would 
 in round 1: m1.1 touched one labelled link, a Y, and was rejected (`DECISIONS.md`). Consequence of the same design: the 420
 round-1 (m1.2) links cannot be rescored to m2.0 because they lack the features it needs (DECISIONS.md, step 7c).
 
+Post-benchmark change: the default mode was switched from pipeline to agent; the benchmark itself ran with --mode agent.
+
 ## 8. Next
 Run the human review of the final benchmark. Label 15 rows per stratum, loose T3 first, and promote or drop it. Build
 the Companies register and name history. Build the sandbox only if the benchmark shows G is needed.
