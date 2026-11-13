@@ -20,3 +20,5 @@ data/raw/
 logs/agent_runs/bench_*/
 outputs/benchmark/dev_seed1/pass_*/configs/
 outputs/benchmark/dev_seed1/pass_*/logs/
+*.round1
+logs/agent_runs/*.round1/

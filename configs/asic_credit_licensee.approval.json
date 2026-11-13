@@ -9,8 +9,18 @@
       "n_fields": 8,
       "wrong": [],
       "general_comment": ""
+    },
+    {
+      "round": 2,
+      "reviewed_at": "2026-11-13T01:18:08+00:00",
+      "reviewer": "rahul",
+      "config_version": 1,
+      "config_sha256": "ee7dc6e2cbcb34b4cc23db645dd8565dc818d109ac2a11ae1a6565f0e059fefe",
+      "n_fields": 7,
+      "wrong": [],
+      "general_comment": ""
     }
   ],
   "status": "approved",
-  "config_sha256": "9015a50196ef8af082351152aca94e6ac78f3f816b4a132a2deb8c6be6753726"
+  "config_sha256": "ee7dc6e2cbcb34b4cc23db645dd8565dc818d109ac2a11ae1a6565f0e059fefe"
 }

@@ -1,15 +1,13 @@
-source_id: act_notifiable_invoices
-config_version: 2
-what_it_is: 'ACT Government Notifiable Invoices Register: a JSON export of invoices/payments made by ACT government
-  agencies to suppliers above the notification threshold.'
-one_row_is: one notified invoice payment from an ACT government reporting entity to a supplier
+what_it_is: ACT government notifiable invoices (payments over threshold to suppliers) published on data.act.gov.au
+one_row_is: one notifiable invoice/payment by an ACT government reporting entity to a supplier
 reader:
   format: json
   encoding: utf-8
+  skip_rows: 0
+  header_rows: 1
 record_id:
   from:
   - :id
-record_id_reason: Column :id has 127437 distinct values across 127437 rows, so it uniquely identifies each row.
 observed_at:
   from_metadata: resource_last_modified
 fields:
@@ -19,11 +17,12 @@ fields:
   - name: clean_whitespace
     arg: null
   group: main
-  mapping_confidence: 0.85
-  reason: Supplier name on a government payment register. The data says it is the supplier name, which we treat
-    as the registered name. Not verified against a company register, so confidence is below 0.9.
-  proposal_agreement: agreed
-  field_confidence: 0.85
+  mapping_confidence: 0.8
+  reason: Supplier name on a payment record; the supplier is the entity, and the column is the supplier's name as
+    stated in the source.
+  field_confidence: 0.8
+  evidence: held_out
+  transform_level: W
   validation:
     held_out_rows: 300
     blank: 0
@@ -31,37 +30,19 @@ fields:
     skipped_not_applicable: 0
     rejected: 0
     parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
 - source: supplier_abn
   canonical: entity.abn
   transforms:
   - name: abn
     arg: null
   group: main
-  mapping_confidence: 0.85
-  reason: Column is named supplier_abn and about 99.6 percent of values are 11-digit numbers. Values are space-grouped
-    (e.g. 83 121 852 088); spaced values were observed to produce valid entity.abn observations in tested rows (e.g.
-    11 000 013 098 gives 11000013098). Non-ABN values such as International are skipped by the abn transform and
-    remain unmapped. Checksum validation is applied.
-  proposal_agreement: agreed
-  field_confidence: 0.85
-  validation:
-    held_out_rows: 300
-    blank: 0
-    ok: 298
-    skipped_not_applicable: 2
-    rejected: 0
-    parse_rate: 1.0
-- source: supplier_name
-  canonical: entity.entity_type
-  transforms:
-  - name: entity_type_from_suffix
-    arg: null
-  group: main
-  mapping_confidence: 0.6
-  reason: The source has no explicit entity-type column, so the suffix rule on the supplier name is used. Names
-    without a company suffix, such as trusts and bodies, resolve to unknown.
-  proposal_agreement: agreed
-  field_confidence: 0.6
+  mapping_confidence: 0.95
+  reason: Supplier ABN column, checksum-validated.
+  field_confidence: 0.95
+  evidence: held_out
+  transform_level: W
   validation:
     held_out_rows: 300
     blank: 0
@@ -69,73 +50,65 @@ fields:
     skipped_not_applicable: 0
     rejected: 0
     parse_rate: 1.0
+    evidence: held_out
+    whole_file: null
 unmapped:
 - source: reporting_entity
-  reason: Government buyer (ACT agency or directorate reporting the payment), not the supplier. Not mapped per rule
-    4.
+  reason: government buyer (ACT agency reporting the payment), not the supplier
 - source: publish_description
-  reason: Describes the purchase or expense category, not the supplier's industry. No canonical field matches. Not
-    translated to ANZSIC.
+  reason: description of the goods/services purchased, not an industry code
 - source: date_invoice_received
-  reason: Invoice receipt date is a transaction date, not a registration or licence validity date. No canonical
-    field matches. Sparsely filled at about 85 percent.
+  reason: date of a transaction the row records; not when the supplier's identity became true
 - source: payment_date
-  reason: Payment transaction date. No canonical field matches, and it does not state when a supplier's status or
-    licence started or ended.
+  reason: date of a payment event
 - source: payment_amount
-  reason: Transaction amount. No canonical amount field exists in this ontology subset.
+  reason: transaction amount; no canonical field
 - source: contract_number
-  reason: Contract reference for the payment. No canonical field matches. Mostly blank, with N/A values.
+  reason: contract reference of the transaction, not an entity identifier
 - source: :version
-  reason: System or export revision identifier. Not a claim about the entity.
+  reason: source record revision metadata
 - source: :created_at
-  reason: System export timestamp. Not the statement date of the claim, which is covered by observed_at from resource_last_modified.
+  reason: source system timestamp, not the claim date
 - source: :updated_at
-  reason: System export timestamp. Not the statement date of the claim, which is covered by observed_at from resource_last_modified.
+  reason: source system timestamp, not the claim date
 needs_transform: []
 source_reliability:
-  identity: 0.6
+  identity: 0.7
   address: 0.5
   classification: 0.4
-  contact: 0.5
-source_reliability_basis: Statutory ACT government disclosure of payments above the notification threshold. Supplier
-  names and ABNs come from government accounts-payable records, not a verified register, so identity is moderate.
-  There is no address or contact data. Classification is weak because publish_description describes spend, not the
-  supplier's industry. Licence is listed as Other and flagged, so it is not a clear open licence.
-meaning_check_responses:
-- check_id: needs_transform.supplier_abn
-  action: changed
-  reason: 'The warning is correct: the needs_transform entry is stale. Spaced ABNs produce valid entity.abn observations
-    in the tested rows, so the entry was removed and the field reason updated. The abn transform still skips non-11-digit
-    values such as International, which stay unmapped. A larger-sample confirmation is advisable but does not change
-    this config.'
-revision_history:
-- round: critique
-  changes:
-  - what: Removed the needs_transform entry for supplier_abn and rewrote the supplier_abn field reason to state
-      that space-grouped ABNs are handled by the abn transform.
-    why: Reviewer raw rows show space-grouped values such as 11 000 013 098 and 83 072 293 880 producing valid entity.abn
-      observations (11000013098, 83072293880), so the spacing risk recorded in the earlier config is not present.
-      The entry was stale and contradicted the working output. Non-AU International values remain unmapped as before.
+  contact: 0.3
+source_reliability_basis: Government payment disclosure of ACT agencies; supplier names and ABNs are as reported
+  by agencies and not independently verified, so identity moderate; no classification or contact data.
+meaning_check_responses: []
+source_id: act_notifiable_invoices
+config_version: 1
 validation_summary:
   held_out_rows: 300
-  observations_in_held_out: 898
-  abstained: []
-  warnings: []
-  infos: []
+  observations_in_held_out: 900
+  unanswered_meaning_warnings: []
+  abstentions:
+  - field: observed_at
+    reason: 'Critique advisory c-5c1dd88a: observed_at uses dataset-level resource_last_modified, not a per-row
+      statement date; kept as the best available metadata date and flagged.'
   critique_issues:
-  - field: needs_transform
-    problem: The needs_transform entry says the abn transform may reject space-grouped ABNs and a whitespace-stripping
-      transform may be needed. The examples show space-grouped values such as '11 000 013 098' and '83 072 293 880'
-      producing valid entity.abn observations ('11000013098', '83072293880'), so the risk appears to be resolved.
-      The entry is stale and contradicts the working output.
-    suggested_fix: Confirm the abn transform strips internal spaces on a larger sample, then remove the needs_transform
-      entry or change it to a note that spaced values are handled. Keep the non-AU 'International' values unmapped
-      as the config already states.
-  proposal_disagreements:
-    only_A: []
-    only_B: []
+  - id: c-5c1dd88a
+    field: observed_at
+    problem: observed_at comes from resource_last_modified, which is a dataset-level timestamp. The rows carry :created_at
+      and :updated_at, which the config treats as system timestamps, so the claim date is not stated per row. The
+      envelope's 2026-09-30 is therefore a metadata date, not a date the payment record states.
+    severity: advisory
+    suggested_fix: Keep from_metadata if the dataset-level date is the best available statement date, and note in
+      the source documentation that observed_at is the publication/modification date rather than a claim date.
+  - id: c-5b9ec2a9
+    field: record_id
+    problem: The config takes record_id from :id but does not show a check_unique result. The sample :id values
+      look unique, but the config does not confirm it.
+    severity: advisory
+    suggested_fix: Record the check_unique result for :id, or use hash_row=true if uniqueness fails.
 generated_by:
-  agent_version: 0.1.0
+  agent: round2-tool-agent
+  agent_version: 2.1.0
+  engine_version: 0.1.0
   model: claude-haiku-5-5
-  generated_at: '2026-11-11T13:22:17+00:00'
+  code_version: e6626bda1af5
+  generated_at: '2026-11-13T00:29:05+00:00'
