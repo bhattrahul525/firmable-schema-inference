@@ -98,7 +98,6 @@ Demo model: Haiku (`reviews/step9_results.md`).
 - **Loose T3 precision is weak:** 4 Y / 5 N / 1 U, precision 0.444, CI 0.189 to 0.733 (`reviews/step8_results.md`). 463 of 464
   loose links are T3. The loose band is not safe to treat as correct, and 418 single-source profiles are in the loose band.
 - **Only some entities from a new source are register-confirmed.** The trimmed register is the Business Names register only (the Companies register was cut). In a 121-row rehearsal sample, 3 profiles resulted.
-- **Rule 20 was added after the final benchmark** to fix the asic-smsf auditor-register errors, and was not re-measured.
 - **Rejecting a field in agent mode did not reach the re-onboard** (found in a rehearsal). This was fixed afterwards and is covered by tests, but was not re-benchmarked.
 - **Adding a source shifts the word-rarity (IDF) counts,** so existing links can move when resolve is re-run.
 - **Cosmetic:** the config packet header still says v1 after a revision.
@@ -107,9 +106,9 @@ Demo model: Haiku (`reviews/step9_results.md`).
 - **Sampled extraction:** extraction is capped at 1,000 rows per source by default (`outputs/part3/summary.json` mentions: 1,000 for five sources,
   191 for QLD Health). Profiles and links describe the sample, not the files.
 - **Labels are not independent** (ABN Lookup shows ASIC business names; registers are matcher features) and some were model-assisted.
-- **Final benchmark hand check is field-level only:** Haiku 20 of 22 fields right, Sonnet 21 of 24; every error is on `asic-smsf` (SMSF auditors: person-level status and date mapped to the entity). Rule 20 was added afterwards to fix this and was not re-measured. Haiku's lower W count (13 against 17) and higher P count (9 against 4) may mean weaker evidence.
-- **n = 15, one run each.** Self-agreement between runs of one model was imperfect on the dev draw (Haiku 10 of 11 on outcome, 6 of 11 on outcome and fields, d to e; ARCHITECTURE.md section e).
-- **Source reliability numbers are model judgements** (round 1, `README`/`WRITEUP.md`).
+- **Final benchmark hand check is field-level only:** Haiku 20 of 22 fields right, Sonnet 21 of 24; every error is on `asic-smsf` (a register of SMSF auditors: a person-level status and registration date mapped to the entity). Mapping rule 20 was added after the final benchmark to fix exactly these errors and was not re-measured. Haiku's lower W count (13 against 17) and higher P count (9 against 4) may mean weaker evidence.
+- **n = 15, one run each.** Runs of one model did not fully agree with each other on the dev draw. Between Haiku passes d and e, 10 of 11 datasets had the same outcome, and only 6 of 11 had the same outcome and the same fields (ARCHITECTURE.md section e).
+- **Source reliability numbers are model judgements** (round 1, `WRITEUP.md`).
 - **Open critic risk:** the critic can share the agent's blind spots (ARCHITECTURE.md section k, item 2).
 - **Reproducibility:** QBCC is a live register; a fresh download differs from the committed one (round 1, `DECISIONS.md`).
 
@@ -122,5 +121,13 @@ round-1 (m1.2) links cannot be rescored to m2.0 because they lack the features i
 Post-benchmark change: the default mode was switched from pipeline to agent; the benchmark itself ran with --mode agent.
 
 ## 8. Next
-Run the human review of the final benchmark. Label 15 rows per stratum, loose T3 first, and promote or drop it. Build
-the Companies register and name history. Build the sandbox only if the benchmark shows G is needed.
+- Re-benchmark after rule 20 and the reviewer-feedback fix, and label the result.
+- Add a `trustee_for` edge, or an ABN entity-type check, to fix the loose T3 precision problem.
+- Build the Companies register and name history.
+- Add a parent-of relationship edge. The Modern Slavery Statements data carries ParentName and GroupSubmission, which the current graph cannot express.
+- Build the sandbox only if the benchmark shows level G is needed.
+
+## 9. Status against the feedback from Chath
+- **Model-driven ingestion with guardrails in code: done.** The tool-using agent loop with held-out validation, critique gate, budgets and human approval in code (ARCHITECTURE.md section b); the fixed sequence is kept as `--mode pipeline`.
+- **ABR as the reference spine: partly done.** The Business Names register is the only reference register built. ABR lookup, the Companies register, name history and trading-name handling are not built (T1r confirms one side only).
+- **An agent that investigates uncertain pairs, and more relationship types as edges: partly done.** Edges built: `same_as` and `nominee_of`. `trustee_for`, `renamed_to` and parent-of are not built. Matching is deterministic; no agent investigates uncertain pairs.
