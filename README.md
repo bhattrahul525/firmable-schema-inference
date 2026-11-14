@@ -55,7 +55,7 @@ python -m src.part3_resolve.graph
 python -m src.part4_profiles.profiles
 python -m src.part4_profiles.show <id>
 ```
-Timings: TBD (to be measured). Resolve, graph and profiles read every approved, extracted source (six base sources plus
+Timings (MacBook, Haiku 5.5 agent, 121-row Australian modern slavery sample, 2026-11-15): onboard 31-45 s ($0.007); re-onboard after a rejection 31 s ($0.007); extract 0.08 s; register row filter 17 s (streams the full register zip once); resolve 0.8 s; graph 0.3 s; profiles 0.2 s; show 0.03 s. Machine time for the whole path is about one minute; the approval step is human time. Resolve, graph and profiles read every approved, extracted source (six base sources plus
 others; `src/part3_resolve/sources.py`); reference registers are excluded. Without extra sources the six-source results are
 unchanged. Skip `--out` and `BN_TRIMMED` to overwrite the tracked trimmed file (the default). Re-running resolve with a new
 source also shifts the name-rarity counts, so existing links can move; commit the outputs only if you mean to.

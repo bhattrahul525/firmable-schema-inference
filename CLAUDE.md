@@ -9,6 +9,7 @@
 
 ## Model rule
 - Planning and costly decisions are made on Fable 5.2. Building is done on Sonnet 5.5. Reviews are done on Opus 5.5 in a fresh session.
+- Labels: builds are Sonnet 5.5 medium; reviews are Opus 5.5 high in a fresh session; expensive planning is Fable 5.2 high. Never mix labels in one prompt.
 - If you are building and reach a decision that changes the design, a gate, an outcome definition or ARCHITECTURE.md, stop. Say "This needs a planning decision" and describe the options. Do not decide it yourself.
 - Small implementation choices (names, file layout, test structure) are yours to make. Log them in your report.
 
@@ -150,6 +151,7 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
 - Max 2 tests per changed rule; only rules the code enforces.
 - During build: run only affected test files. Full suite once at the end.
 - Always: pytest -q -x --tb=line -p no:warnings 2>&1 | tail -15
+- Run with `.venv/bin/python -m pytest -q` (unittest discover undercounts). While building, run only the tests for the files you touched; full suite once at the end. Never write tests for trivial code.
 - Never paste full test output into reports; give count + pass/fail + first failure line.
 
 ## Cleanup rule (end of every build)
@@ -161,3 +163,5 @@ logs/               # llm_calls.jsonl, agent run state/checkpoints
 - If unsure whether to keep a file, keep it and list it under "UNSURE" in the report.
 - Report one line: "Removed: <files>. Kept new: <files>. UNSURE: <files>."
 - Never run git add, commit, push, rm, or any command that changes the repo. The user does all git steps.
+- Builds only: remove only files you created that are not worth keeping; report "Removed / Kept new / UNSURE". Never delete the user's files.
+- Review sessions never modify, delete or commit anything (except the one review file they are told to write). No git commands in any prompt.

@@ -97,6 +97,11 @@ Demo model: Haiku (`reviews/step9_results.md`).
 ## 6. Limitations
 - **Loose T3 precision is weak:** 4 Y / 5 N / 1 U, precision 0.444, CI 0.189 to 0.733 (`reviews/step8_results.md`). 463 of 464
   loose links are T3. The loose band is not safe to treat as correct, and 418 single-source profiles are in the loose band.
+- **Only some entities from a new source are register-confirmed.** The trimmed register is the Business Names register only (the Companies register was cut). In a 121-row rehearsal sample, 3 profiles resulted.
+- **Rule 20 was added after the final benchmark** to fix the asic-smsf auditor-register errors, and was not re-measured.
+- **Rejecting a field in agent mode did not reach the re-onboard** (found in a rehearsal). This was fixed afterwards and is covered by tests, but was not re-benchmarked.
+- **Adding a source shifts the word-rarity (IDF) counts,** so existing links can move when resolve is re-run.
+- **Cosmetic:** the config packet header still says v1 after a revision.
 - **Few labels:** m2.0 precision rests on 18 new labels. Only 2 of the 50 round-1 labels carried over
   (counted with `src/part3_resolve/labels.py`: 2 of the 50 round-1 labels are scored by m2.0, and 1 of 50 is still a link; the other is refused and allow-listed). Accepted-band precision is 8 of 8 on a small sample; it is not a measure of the 562 accepted links.
 - **Sampled extraction:** extraction is capped at 1,000 rows per source by default (`outputs/part3/summary.json` mentions: 1,000 for five sources,

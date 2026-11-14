@@ -24,12 +24,12 @@ goal from ARCHITECTURE.md; "not measured" means nobody timed it yet, so time it 
 ## Steps
 | # | Command | Time | Fallback |
 |---|---|---|---|
-| 1 Onboard | `python -m src.part2_agent.onboard <url, nsw:dataset-name or file> --max-dollars 0.5` | Target 4 min excluding download. Measured: 40-83 s per source on the six re-onboards (reviews/step5_summary.md); 28.6 s mean over 15 unseen datasets (reviews/step9_results.md); 200.3 s for the 72 MB register incl. download (reviews/step6_summary.md) | Run the same command again: it replays `logs/agent_runs/<id>/trace.jsonl` with no model call. If the portal is down, onboard a local file. If the file is unreadable, `could_not_read` is a valid, honest outcome (two datasets ended this way in the final draw because of a host error and an HTML-only dataset, reviews/step9_results.md). No key or internet: show the committed traces |
+| 1 Onboard | `python -m src.part2_agent.onboard <url, nsw:dataset-name or file> --max-dollars 0.5` | Target 4 min excluding download. Measured on the 121-row sample: 31-45 s, $0.007 (re-onboard after a rejection 31 s). Earlier: 40-83 s per source on the six re-onboards (reviews/step5_summary.md); 28.6 s mean over 15 unseen datasets (reviews/step9_results.md); 200.3 s for the 72 MB register incl. download (reviews/step6_summary.md) | Run the same command again: it replays `logs/agent_runs/<id>/trace.jsonl` with no model call. If the portal is down, onboard a local file. If the file is unreadable, `could_not_read` is a valid, honest outcome (two datasets ended this way in the final draw because of a host error and an HTML-only dataset, reviews/step9_results.md). No key or internet: show the committed traces |
 | 2 Review | open `configs/<source_id>.review.md` | 1-2 min, human (target) | If the outcome is `needs_review`, code has already abstained the fields with open blocking issues; show them. `approve` refuses it unless `--allow-needs-review` is passed |
 | 3 Approve | `python -m src.part2_agent.approve <source_id>` | 1 min (target) | Never hand-edit the config. If wrong, fix the agent or re-onboard |
-| 4 Extract | `python -m src.engine.extract <source_id>` | Target under 10 s. Not measured | Refuses an unapproved or changed config; approve again. Show `outputs/observations/` from a six-source run |
-| 5 Resolve | `python -m src.part3_resolve.run`, then `python -m src.part3_resolve.graph` | Not measured as a whole. Parts: register row filter 16.9 s; IDF token cache 15.5 s once, 0.3 s afterwards (docs/runbook.md) | Without the full register zip the new source links by identifier and name only; say so. Offline: show `outputs/part3/summary.json` |
-| 6 Profile | `python -m src.part4_profiles.profiles` (reads the graph from step 5), then `python -m src.part4_profiles.show <source_id>` | `show` target under 2 s. Not measured; the build step is not measured either | Show `outputs/profiles/graph_profiles.jsonl` for a committed source |
+| 4 Extract | `python -m src.engine.extract <source_id>` | Measured 0.08 s (121-row sample) | Refuses an unapproved or changed config; approve again. Show `outputs/observations/` from a six-source run |
+| 5 Resolve | `python -m src.part3_resolve.run`, then `python -m src.part3_resolve.graph` | Measured on the 121-row sample: resolve 0.8 s, graph 0.3 s, row filter 17 s. Parts: register row filter 16.9 s; IDF token cache 15.5 s once, 0.3 s afterwards (docs/runbook.md) | Without the full register zip the new source links by identifier and name only; say so. Offline: show `outputs/part3/summary.json` |
+| 6 Profile | `python -m src.part4_profiles.profiles` (reads the graph from step 5), then `python -m src.part4_profiles.show <source_id>` | Measured: profiles 0.2 s, `show` 0.03 s | Show `outputs/profiles/graph_profiles.jsonl` for a committed source |
 
 Resolve needs `data/raw/reference/business_names_202611.zip` (it stops with an error naming it). Resolve, profiles and show take no flags: `--help` runs them.
 
@@ -47,7 +47,7 @@ python -m src.part3_resolve.graph
 python -m src.part4_profiles.profiles
 python -m src.part4_profiles.show <id>
 ```
-Timings: TBD (to be measured). Resolve, graph and profiles read every approved, extracted source (six base sources plus
+Timings (MacBook, Haiku 5.5 agent, 121-row Australian modern slavery sample, 2026-11-15): onboard 31-45 s ($0.007); re-onboard after a rejection 31 s ($0.007); extract 0.08 s; register row filter 17 s (streams the full register zip once); resolve 0.8 s; graph 0.3 s; profiles 0.2 s; show 0.03 s. Machine time for the whole path is about one minute; the approval step is human time. Resolve, graph and profiles read every approved, extracted source (six base sources plus
 others; `src/part3_resolve/sources.py`); reference registers are excluded. Without extra sources the six-source results are
 unchanged. Skip `--out` and `BN_TRIMMED` to overwrite the tracked trimmed file (the default). Re-running resolve with a new
 source also shifts the name-rarity counts, so existing links can move; commit the outputs only if you mean to.
