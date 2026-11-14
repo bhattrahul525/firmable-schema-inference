@@ -33,12 +33,13 @@ Everything under `outputs/` is committed, so results can be read without running
 ## Onboard an unseen dataset (needs the API key; model is the `LLM_MODEL` setting in `src/llm.py`)
 `--mode agent` (the round-2 agent) is the default and the flag is optional. `--mode pipeline` runs the round-1 fixed pipeline.
 ```bash
-python -m src.part2_agent.onboard nsw:find-by-lia-band      # <portal>:<ckan dataset name>
+python -m src.part2_agent.onboard nsw:find-by-lia-band --source-id find_by_lia_band_demo   # <portal>:<ckan dataset name>
 python -m src.part2_agent.onboard https://data.gov.au/...   # a URL, or a local file path
 python -m src.part2_agent.onboard my_data.csv --source-id my_data --max-dollars 0.5
 ```
 Useful flags: `--resource-index N` (pin a resource), `--model`, `--max-turns` (default 40), `--max-dollars` (default 1.00),
-`--overwrite` (replace an approved config). The trace is `logs/agent_runs/<source_id>/trace.jsonl`; running the same
+`--overwrite` (replace an approved config). If `approve` rejects fields, it prints the exact command to re-run: the
+reviewer comments go into the new run's task, and the old trace is kept as `trace.round<N>.jsonl` (nothing is replayed). The trace is `logs/agent_runs/<source_id>/trace.jsonl`; running the same
 command again replays it without model calls. The config and review packet are written to `configs/<source_id>.yaml`
 and `.review.md`.
 
@@ -46,11 +47,14 @@ and `.review.md`.
 ```bash
 python -m src.part2_agent.approve <source_id>            # the human gate; stores the config SHA-256
 python -m src.engine.extract <source_id> [--limit N]     # default 1000 rows; refuses an unapproved config
-python -m src.part3_resolve.run                          # links, unlinked queue, graph -> outputs/part3/
+python -m src.part3_resolve.run                          # links, unlinked queue -> outputs/part3/ (needs the full register zip, below)
+python -m src.part3_resolve.graph                        # graph nodes/edges -> outputs/part3/ (profiles read these)
 python -m src.part3_resolve.rescore --to m1.1            # re-score stored links only (no sources, no model)
 python -m src.part4_profiles.profiles                    # builds outputs/profiles/graph_profiles.jsonl
 python -m src.part4_profiles.show <source_id>            # profiles containing a mention from that source
 ```
+Order: onboard, approve, extract, resolve, graph, profiles, show. `resolve`, `profiles` and `show` take no flags, so `--help`
+runs them (and rewrites the committed outputs).
 `approve` refuses a `needs_review` outcome unless `--allow-needs-review` is passed. `rescore` refuses to write if a
 human-labelled Y would be demoted or an N promoted. `src.part4_profiles.build` is the round-1 profile builder and
 does not read the m2.0 link shape; do not re-run it as is (DECISIONS.md, step 7d).
@@ -62,7 +66,9 @@ python -m src.part1_triage.download      # six source files (~140 MB); warns if 
 then `extract` on the six source ids in `configs/` (approved, agent-written). QBCC is a live register, so a fresh
 download differs slightly from the committed one; the committed outputs are the reference (see WRITEUP.md).
 
-## Business Names register (resolve needs it for register-bridged links)
+## Business Names register (resolve needs it: it counts name-word rarity over the full register)
+**`resolve` stops with an error if `data/raw/reference/business_names_202611.zip` is missing.** Download the ASIC Business
+Names zip from https://data.gov.au/data/dataset/asic-business-names (CC BY 3.0 AU) and save it at that path.
 `data/reference/asic_business_names_trimmed.csv` (committed, attribution in `data/reference/ATTRIBUTION.md`) is enough
 for the six sources. For a NEW source, put the full register zip at the path in `configs/reference_sources.yaml`
 (`data/raw/reference/business_names_202611.zip`) and run `python -m src.engine.row_filter asic_business_names`
@@ -75,7 +81,7 @@ python -m src.benchmark.run --draw outputs/benchmark/dev_seed1 --pass a --model 
 python -m src.benchmark.report --dir outputs/benchmark/dev_seed1 --passes a
 ```
 Seed 2 is the final draw and is refused without `--final`. Results: `outputs/benchmark/final_seed2/compare.md` and
-`reviews/step9_results.md`. Human review columns in `handcheck/benchmark_review_fin2{h,s}.csv` are NOT yet filled.
+`reviews/step9_results.md`. Hand check: Haiku 20 of 22 fields right, Sonnet 21 of 24, all errors on `asic-smsf` (SMSF auditors: person-level status and date mapped to the entity). Rule 20 was added afterwards to fix it and was not re-measured.
 
 ## Where things are
 | Area | Code | Outputs |
@@ -89,7 +95,7 @@ Seed 2 is the final draw and is refused without `--final`. Results: `outputs/ben
 
 ## Honest limits (numbers and sources in docs/write_up.md)
 - m2.0 link precision rests on 18 new labels, with wide intervals; the loose band is weak. Labels are not independent.
-- The final benchmark has no human check yet: only automatic outcomes are reported.
+- The final benchmark hand check is field-level only (20/22 Haiku, 21/24 Sonnet); rule 20 was added after it and not re-measured.
 - Companies register, ABR lookup, `renamed_to` / `trustee_for` edges and the level-G sandbox are designed, not built.
 - Sampled extraction (default 1,000 rows per source), not full files.
 - Source licences: carried in each observation; an `unknown` licence is flagged. ACT's is "Other". Check terms before reuse.

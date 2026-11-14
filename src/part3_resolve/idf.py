@@ -70,6 +70,12 @@ def mention_counts() -> tuple[Counter, int]:
 
 def register_counts(raw: Path = REGISTER, cache: Path = CACHE) -> tuple[Counter, int]:
     """Token counts over the full register: one streamed pass, then cached (re-built if the file changes)."""
+    if not raw.exists():
+        raise SystemExit(
+            f"The full ASIC Business Names register is missing: {raw}\n"
+            "resolve needs it once, to count name-word rarity (IDF) over all registered names.\n"
+            "Download business_names_202611.zip (CC BY 3.0 AU) from https://data.gov.au/data/dataset/asic-business-names\n"
+            f"(the Business Names dataset page), save it as {raw}, then run resolve again. See README.md, 'Business Names register'.")
     stamp = {"file": raw.name, "size": raw.stat().st_size}
     if cache.exists():
         c = json.loads(cache.read_text())

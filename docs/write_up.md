@@ -71,7 +71,7 @@ are the owner's." By tier: T3_register_name 10 rows, 4 Y, 5 N, 1 U (0.444); T1_r
 
 Same outcome on 14 of 15 datasets. The two `could_not_read` cases are a host network error and an HTML-only dataset, the
 same for both models. Same outcome with different mapping on the QLD supplier directory (Haiku `legal_name`, Sonnet `abn`);
-one of them is probably wrong (`reviews/step9_results.md`), and the human columns (`handcheck/benchmark_review_fin2{h,s}.csv`) are not filled.
+neither is marked wrong in the hand check (`handcheck/benchmark_review_fin2{h,s}.csv`).
 Dev draw (seed 1) validated 7 of 11 in the last Haiku pass (`outputs/benchmark/dev_seed1/compare.md`, via ARCHITECTURE.md section e).
 Demo model: Haiku (`reviews/step9_results.md`).
 
@@ -98,12 +98,11 @@ Demo model: Haiku (`reviews/step9_results.md`).
 - **Loose T3 precision is weak:** 4 Y / 5 N / 1 U, precision 0.444, CI 0.189 to 0.733 (`reviews/step8_results.md`). 463 of 464
   loose links are T3. The loose band is not safe to treat as correct, and 418 single-source profiles are in the loose band.
 - **Few labels:** m2.0 precision rests on 18 new labels. Only 2 of the 50 round-1 labels carried over
-  (figure from the step 10 brief; my own count of the round-1 pair ids present in `outputs/part3/links.jsonl` found 1 of 50,
-  so check this before quoting either). Accepted-band precision is 8 of 8 on a small sample; it is not a measure of the 562 accepted links.
+  (counted with `src/part3_resolve/labels.py`: 2 of the 50 round-1 labels are scored by m2.0, and 1 of 50 is still a link; the other is refused and allow-listed). Accepted-band precision is 8 of 8 on a small sample; it is not a measure of the 562 accepted links.
 - **Sampled extraction:** extraction is capped at 1,000 rows per source by default (`outputs/part3/summary.json` mentions: 1,000 for five sources,
   191 for QLD Health). Profiles and links describe the sample, not the files.
 - **Labels are not independent** (ABN Lookup shows ASIC business names; registers are matcher features) and some were model-assisted.
-- **No human check of the final benchmark yet.** Haiku's lower W count (13 against 17) and higher P count (9 against 4) may mean weaker evidence.
+- **Final benchmark hand check is field-level only:** Haiku 20 of 22 fields right, Sonnet 21 of 24; every error is on `asic-smsf` (SMSF auditors: person-level status and date mapped to the entity). Rule 20 was added afterwards to fix this and was not re-measured. Haiku's lower W count (13 against 17) and higher P count (9 against 4) may mean weaker evidence.
 - **n = 15, one run each.** Self-agreement between runs of one model was imperfect on the dev draw (Haiku 10 of 11 on outcome, 6 of 11 on outcome and fields, d to e; ARCHITECTURE.md section e).
 - **Source reliability numbers are model judgements** (round 1, `README`/`WRITEUP.md`).
 - **Open critic risk:** the critic can share the agent's blind spots (ARCHITECTURE.md section k, item 2).

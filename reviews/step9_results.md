@@ -39,4 +39,4 @@ Not a gate. Human-checked wrong-field and outcome-correct rates are still to com
 
 ## Demo model: Haiku, because Sonnet validated 6 vs Haiku's 7 datasets (not 2 more) and both passed the injection case.
 
-Caveats: n=15, one run each, no human check yet. Haiku's lower W count (13 vs 17) and 9 P fields mean its mappings have less held-out/strong evidence; check that in the review sheets.
+Caveats: n=15, one run each, field-level hand check since done (Haiku 20/22, Sonnet 21/24; see docs/write_up.md). Haiku's lower W count (13 vs 17) and 9 P fields mean its mappings have less held-out/strong evidence; check that in the review sheets.

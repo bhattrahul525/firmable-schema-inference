@@ -1,8 +1,8 @@
 # Architecture (round 2)
 
 Status: APPROVED
-Version: 2.15
-Last updated: 2026-11-13
+Version: 2.16
+Last updated: 2026-11-14
 
 Round 1's design (fixed 8-step agent, whitelisted engine, ABN/name matcher) stays described in WRITEUP.md and
 DECISIONS.md. This document is the round-2 design that answers the CTO's feedback: a tool-using agent that can
@@ -29,6 +29,8 @@ the Part 1 outputs. Building starts in a new session; no hour budget applies (ti
 terminal outcome. The request uses `tool_choice` auto with parallel calls disabled (Sonnet 5.5 returns 400 for forced
 tool use); a reply with no tool call gets one nudge, and a second in a row ends the run. `finish` is owned by the
 harness: a tool registry cannot define it. The round-1 pipeline stays available as `--mode pipeline` (fallback).
+
+**Reviewer rejection (v2.16).** `approve` writes `feedback_pending` (`wrong`: field and comment; `general`) to `approval.json` and prints the re-run command, built from the original reference in the trace header plus `--source-id`. `onboard_agent` reads `feedback_pending`, archives the old trace as `trace.round<N>.jsonl`, starts a new run and puts the comments in the task text as authoritative; the packet hook clears `feedback_pending` when the revised config is written.
 
 **Trace.** `logs/agent_runs/<source>/trace.jsonl`. Line 1 is a header: source id, reference, input file SHA-256, model,
 code version (the four core files plus the modules the tools and hooks come from), the limits, and a hash of the
@@ -73,7 +75,7 @@ spend never changes the round-1 figures quoted in the first submission.
 | `check_unique` | Uniqueness of named columns over training rows (streamed; 128-bit key digests, so a collision is not a practical concern) | one answer |
 | `sample` / `search` | Rows by strategy (head, spread, random, by_column) or regex, from the training partition only | 30 / 10 rows |
 | `try_transform` | Real engine on up to 1,000 TRAINING rows (spread): parse rate and rejects. Levels W and P (step 4a; optional `when`); level G is step 4 | 5 examples |
-| `define_transform` | Level-G generated transform (section c) | 40 lines of code |
+| `define_transform` (NOT BUILT) | Level-G generated transform (section c); no such tool exists in `src/` | 40 lines of code |
 | `validate` | Structural, held-out and meaning checks on the held-out rows through the config's own reader, plus two checks over the WHOLE file (unaccounted columns, `record_id` uniqueness), an EVIDENCE state per mapped field and envelope setting (`held_out` / `training` / `unverified`; step 3b item C — see below), and meaning warnings when an ABN / ACN field fails its checksum on more than 2% of judged values (a column mixing real identifiers with look-alikes of the same length), when a MAPPED column has a generated placeholder header (`_blank_N`, `Unnamed`: the header rows may be misread; the text names `skip_rows`, `header_rows` and `skip_rows_after_header`), and when `header_rows` is 0 and the first data row looks like a misread header (`header_like_first_row`: distinct all-text cells, most columns below them numeric or date-like) | 6,000 chars; at most 6 calls per run; example values on the first call only, counts after |
 | `critique` | Separate model call, fresh context: raw rows beside their observations, reviewed against the SAME mapping rules text the agent has (`agent_prompt.MAPPING_RULES`). The config summary it sees includes `valid_from` / `valid_to` / `needs_transform` (step 3b item D2); for a field with no populated example among the sampled rows, up to 2 populated TRAINING rows are added, marked as such | 10 examples |
 | `ask_human` | Question goes into the packet. On a terminal the run waits for the answer (the wait is excluded from the time budget and traced as `human_wait_seconds`); without a human the model is told so. The answer is data in a `<data>` block, never approval: only `approve` approves | 1 per run |
@@ -245,7 +247,7 @@ first read). A plain JSON array and an .xls workbook cannot be streamed and are 
 and any .xls are capped at 200 MB. Decompressed bytes of a zip or gz member are capped at 1 GB while counting. Not in the core: PDF, HTML, parquet, XML, reshape. One run onboards one table; cross-
 table joins are out of scope.
 
-**Sandbox for level G: defence in depth, not a security boundary.**
+**Sandbox for level G: NOT BUILT (no `sandbox.py` or `custom.py`); the text below is the design. Defence in depth, not a security boundary.**
 - *Static check.* One function `transform(value)`. Allowlist of AST node types and of every name and attribute
   name. Forbidden: `import`, `while`, `lambda`, `*` and `**`, any attribute starting with `_`, `.format`,
   `format_map`, and anything not listed.
@@ -295,7 +297,7 @@ matcher version is bumped and the promotion plus its evidence is recorded in DEC
 | Tier | Evidence | Confidence |
 |---|---|---|
 | T1 | Equal ABN or ACN, names agree by rarity-weighted overlap | 0.98 |
-| T1r (not built) | Equal identifier, names differ, a register or ABR name history confirms both names | 0.95 |
+| T1r (built weaker: the register confirms ONE name only) | Equal identifier, names differ, a register or ABR name history confirms both names (as designed) | 0.95 |
 | T2 | ACN inside ABN, names agree | 0.88 |
 | T3c (disabled, not built) | No-ABN record bridges to exactly one registered current holder AND a second independent hit agrees (licensee to Companies, trading name to Business Names, same ABN) | 0.70, loose until promoted (0.88 after) |
 | T3 | Single uncorroborated register hit on a unique registered current name | 0.65 (loose) |
@@ -309,7 +311,7 @@ name, different ABNs, person-like on both sides without an equal ABN. Address ev
 | | |
 |---|---|
 | Nodes | mention, register record, entity (derived), person, trust |
-| Edges | `same_as` (the link table), `renamed_to` (register or ABR name history), `trustee_for` (ATF patterns), `nominee_of` (person listed under a company's ABN, the QBCC pattern) |
+| Edges | `same_as` (the link table), `renamed_to` (NOT BUILT; register or ABR name history), `trustee_for` (NOT BUILT; ATF patterns), `nominee_of` (person listed under a company's ABN, the QBCC pattern) |
 | Each edge stores | stable `edge_id` (endpoints + type, not the version), tier, band, `relation_confidence` / `link_confidence`, raw evidence features, evidence sources with dates, `matcher_version`, thresholds, `previous`, `human_label` |
 
 **Rescore** stays a pure function over stored evidence (no sources, no extractor, no model). New: it refuses to
@@ -363,6 +365,8 @@ mapped and abstained, open critique issues, sandbox capabilities (empty until st
 field (three raw to value examples, level, "wrong?"), plus "outcome correct?" and "key field missed?". About 5
 minutes per dataset. Non-business verdicts are spot-checked.
 
+**Final-draw hand check (field level only; `handcheck/benchmark_review_fin2{h,s}.csv`):** Haiku 20 of 22 fields right, Sonnet 21 of 24; every wrong field is on `asic-smsf` (SMSF auditors: person-level status and date mapped to the entity). Rule 20 was added afterwards to fix this and was not re-measured. "Outcome correct?" and "key field missed?" were not labelled.
+
 **Published (final draw only, dev rate beside it):** validated; validated with 0 wrong fields on review; key field
 missed; non-business correctly declared; could not read by reason; injection pass or fail.
 
@@ -409,7 +413,7 @@ measurements; "to measure" is filled in during the build.
 `transforms.py`, `config.py`, `extract.py`: row hash, row filter, streaming); `src/part3_resolve/` (`features.py`,
 `score.py`, `run.py`, `rescore.py`, `handcheck.py`); `src/part4_profiles/build.py`; `requirements.txt` (`xlrd`).
 
-**New:** `src/part2_agent/` (`loop.py`, `tools.py`, `guard.py`, `agent_tools.py`, `agent_table.py`, `agent_hooks.py`, `agent_prompt.py`); `src/engine/` (`sandbox.py`, `custom.py`);
+**New (not built: `sandbox.py`, `custom.py`, `abr.py`, `docs/abr_terms.txt`):** `src/part2_agent/` (`loop.py`, `tools.py`, `guard.py`, `agent_tools.py`, `agent_table.py`, `agent_hooks.py`, `agent_prompt.py`); `src/engine/` (`sandbox.py`, `custom.py`);
 `src/common/names.py`; `src/part3_resolve/` (`idf.py`, `registers.py`, `graph.py`, `abr.py`);
 `src/part4_profiles/show.py`; `src/benchmark/`; `demo/RUNBOOK.md`; `docs/abr_terms.txt`; new tests.
 
@@ -491,3 +495,4 @@ unchanged final draw, the hand-judged no-ABN stratum, the human gate.
 | 2026-11-13 | 2.13 | Step 4a (reviews/step4a_plan.md) built: `regex_replace`, `template`, `constant` and the per-field `when` condition; regex safety (200 chars, compile check, 1 s per-value timer, switch-off after 20, `bad_pattern` instead of a crash); literal text in `template` / `repl` is separators only; template with a blank part is rejected; `constant` capped at 0.5 (was 0.6) with evidence `asserted`; `try_transform` takes `when`; rule 19; scope: all four items are 4a (section i), step 4 keeps level G | Owner decisions 1-5 on the 4a plan |
 | 2026-11-13 | 2.14 | Blocking-issue finish gate: a finish with an open BLOCKING critique issue is refused with the issue text (2 per run, not counted toward "refused twice in a row"); the next is accepted as outcome `needs_review` (fields abstained by code, `validation_summary.outcome` stored); `approve` refuses `needs_review` unless `--allow-needs-review` | Step 5 re-runs ended `validated_config` with blocking issues still in the config |
 | 2026-11-13 | 2.15 | Step 6 reduced scope: only the Business Names register; row filter built with explicit `keep_where`; Companies register, T1r, T3c designed-not-built (T3c disabled); offline fallback = Business Names only | Companies register cut (cut order item 4); owner decisions 1=B, 2=B, 3=A, 4=A on reviews/step6_plan.md |
+| 2026-11-14 | 2.16 | Submission-review fixes: agent-mode reviewer feedback reaches the next run (new run, old trace archived, comments in the task); `approve` prints a working re-run command; `resolve` stops with a clear error when the full Business Names zip is missing; graph step added to the documented order; final-benchmark hand check recorded; unbuilt parts (`define_transform`, sandbox, `renamed_to`, `trustee_for`, ABR) marked NOT BUILT; T1r marked built weaker | Review `reviews/submission_review.md` B1, B3, B4, B5, S4 |

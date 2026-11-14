@@ -95,7 +95,18 @@ TRANSFORMS (the only ones available; whitelisted):
 {MAPPING_RULES}"""
 
 
-def make_task(reference: str, source_id: str, pinned_index: int | None = None) -> str:
+def feedback_text(feedback: dict) -> str:
+    """A human reviewer's rejection (approval.json `feedback_pending`), as task text. It comes from the owner at the
+    approval gate, not from the dataset, so it is authoritative; dataset content never reaches this text."""
+    lines = ["A HUMAN REVIEWER REJECTED THE PREVIOUS CONFIG. Their comments are authoritative: fix or drop these mappings."]
+    lines += [f"- {w['field']}: {w.get('comment') or '(no comment)'}" for w in feedback.get("wrong", [])]
+    if feedback.get("general"):
+        lines.append(f"General comment: {feedback['general']}")
+    return "\n".join(lines)
+
+
+def make_task(reference: str, source_id: str, pinned_index: int | None = None, feedback: dict | None = None) -> str:
     pin = (f"\nA human pinned resource {pinned_index} for this run: fetch that one." if pinned_index is not None else "")
+    fb = ("\n\n" + feedback_text(feedback)) if feedback else ""
     return (f"Onboard the dataset whose reference is: {reference}\n"
-            f"Its source id is {source_id}. Investigate it with the tools and end with `finish`.{pin}")
+            f"Its source id is {source_id}. Investigate it with the tools and end with `finish`.{pin}{fb}")

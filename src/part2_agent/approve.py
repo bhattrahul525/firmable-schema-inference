@@ -15,10 +15,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from datetime import datetime, timezone
 
 from src.engine.config import approval_path, config_path, load_config_file, sha256_of
 from src.part2_agent.packet import _src, _t
+
+
+def rerun_command(sid: str) -> str:
+    """The command that re-onboards `sid` with the reviewer's comments. An agent run saved its original reference (a
+    file path, URL or CKAN id) in line 1 of its trace; `onboard <source_id>` alone would be a different reference."""
+    from src.part2_agent.loop import RUNS_DIR
+    trace = RUNS_DIR / sid / "trace.jsonl"
+    try:
+        ref = json.loads(trace.read_text().splitlines()[0])["reference"]
+    except (OSError, IndexError, KeyError, ValueError):
+        return f"python -m src.part2_agent.onboard <the original file, URL or portal:dataset> --source-id {sid}"
+    return f"python -m src.part2_agent.onboard {shlex.quote(ref)} --source-id {sid}"
 
 
 def main() -> None:
@@ -67,7 +80,7 @@ def main() -> None:
     })
     if wrong:
         approval.update(status="rejected", config_sha256=None, feedback_pending={"wrong": wrong, "general": general})
-        print(f"\nRejected {len(wrong)} field(s). Now run: python -m src.part2_agent.onboard {sid}")
+        print(f"\nRejected {len(wrong)} field(s). Now run: {rerun_command(sid)}")
     else:
         approval.update(status="approved", config_sha256=sha)
         approval.pop("feedback_pending", None)

@@ -5,8 +5,8 @@ Notable design decisions and why. Feeds WRITEUP.md.
 ## Setup
 
 - **LLM provider: Claude API (official `anthropic` SDK).** Planned: dev on `claude-haiku-5-5`, final runs on
-  `claude-sonnet-5-5`. **What actually happened: every config, the seventh-source test and all other model calls used
-  `claude-haiku-5-5`; Sonnet was never run.** The model is one setting in `src/llm.py` (`LLM_MODEL`). All provider code lives in `src/llm.py`; nothing else imports `anthropic`,
+  `claude-sonnet-5-5`. **What actually happened in round 1: every config and the seventh-source test used
+  `claude-haiku-5-5`. In round 2 Sonnet ran in dev passes s, t and g and in the final benchmark.** The model is one setting in `src/llm.py` (`LLM_MODEL`). All provider code lives in `src/llm.py`; nothing else imports `anthropic`,
   so swapping providers means one new class, not touching the agent.
 - **One LLM wrapper, one log.** Every call appends to `logs/llm_calls.jsonl` with a `step` and
   `source_id` tag, so per-source cost, step count and wall-clock time come straight from the log

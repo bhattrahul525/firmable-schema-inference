@@ -340,6 +340,17 @@ def default_source_id(reference: str) -> str:
     return slug(Path(leaf).stem or leaf) or "source"
 
 
+def archive_trace(work_dir: Path, n: int) -> Path | None:
+    """Move trace.jsonl to trace.round<N>.jsonl (next free N if taken). Returns the new path, or None if no trace."""
+    trace = work_dir / "trace.jsonl"
+    if not trace.exists():
+        return None
+    n = max(n, 1)
+    while (work_dir / f"trace.round{n}.jsonl").exists():
+        n += 1
+    return trace.rename(work_dir / f"trace.round{n}.jsonl")
+
+
 def onboard_agent(reference: str, *, source_id: str | None = None, model: str | None = None, limits=None,
                   overwrite: bool = False, say=print, config_dir: str | None = None,
                   resource_index: int | None = None) -> dict:
@@ -354,9 +365,16 @@ def onboard_agent(reference: str, *, source_id: str | None = None, model: str | 
     files = [m.__file__ for m in (agent_hooks, agent_prompt, agent_table, agent_tools, _extract, _readers, _config, _transforms)]
     version = loop.code_version(files)
     work_dir = loop.RUNS_DIR / sid
+    # a reviewer's rejection (written by approve.py) starts a NEW run with their comments in the task; the old trace is
+    # kept as trace.round<N>.jsonl, so nothing is replayed and nothing is lost
+    approval = json.loads(ap.read_text()) if ap.exists() else {}
+    feedback = approval.get("feedback_pending")
+    if feedback:
+        archived = archive_trace(work_dir, len(approval.get("rounds", [])))
+        say(f"reviewer feedback found: starting a new run" + (f" (old trace kept as {archived.name})" if archived else ""))
     kit = agent_tools.AgentKit(sid, work_dir, model=model, code_version=version, allow_overwrite=overwrite,
                               config_dir=Path(config_dir) if config_dir else None)
-    run = loop.AgentRun(source_id=sid, reference=reference, task=agent_prompt.make_task(reference, sid, resource_index),
+    run = loop.AgentRun(source_id=sid, reference=reference, task=agent_prompt.make_task(reference, sid, resource_index, feedback),
                         tools=kit.tools, hooks=kit.hooks, system=agent_prompt.SYSTEM_TASK, model=model,
                         limits=limits or guard.Limits(), code_version=version, say=say,
                         fetcher=guard.FetchGuard(reference, pinned_index=resource_index))
