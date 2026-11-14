@@ -141,6 +141,8 @@ def build_profile(members: list[dict], edges: list[dict], obs_by_m: dict, reg_cl
 
 
 def main() -> None:
+    from src.part3_resolve.sources import announce_sources
+    announce_sources()  # profiles describe the graph on disk; this shows which sources the NEXT resolve would use
     nodes = {n["node_id"]: n for n in map(json.loads, (PART3 / "graph_nodes.jsonl").open())}
     edges = [e for e in map(json.loads, (PART3 / "graph_edges.jsonl").open()) if e["type"] == "same_as"]
     obs_by_m = load_observations()

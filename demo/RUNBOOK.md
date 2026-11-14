@@ -35,6 +35,23 @@ Resolve needs `data/raw/reference/business_names_202611.zip` (it stops with an e
 
 Dataset B stops after step 1 with `no_business_entities` and the evidence the agent cited.
 
+## Demo command sequence (new source, end to end)
+```bash
+python -m src.part2_agent.onboard <file, URL or portal:dataset> --source-id <id> --max-dollars 0.5
+python -m src.part2_agent.approve <id>
+python -m src.engine.extract <id>                      # resolve only reads approved AND extracted sources
+python -m src.engine.row_filter asic_business_names --out data/reference/demo_trimmed.csv   # needs the full register zip
+export BN_TRIMMED=data/reference/demo_trimmed.csv      # resolve, graph, profiles read this instead of the tracked file
+python -m src.part3_resolve.run                        # prints "sources (N): ..." first: check your id is listed
+python -m src.part3_resolve.graph
+python -m src.part4_profiles.profiles
+python -m src.part4_profiles.show <id>
+```
+Timings: TBD (to be measured). Resolve, graph and profiles read every approved, extracted source (six base sources plus
+others; `src/part3_resolve/sources.py`); reference registers are excluded. Without extra sources the six-source results are
+unchanged. Skip `--out` and `BN_TRIMMED` to overwrite the tracked trimmed file (the default). Re-running resolve with a new
+source also shifts the name-rarity counts, so existing links can move; commit the outputs only if you mean to.
+
 ## Things to say out loud
 - Costs and timings above are from the logs, not estimates (`logs/llm_calls.jsonl`, `outputs/benchmark/final_seed2/`).
 - A `single_source_register_confirmed` profile rests on one register match, not a second source. Its band

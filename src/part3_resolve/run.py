@@ -24,10 +24,10 @@ from src.part3_resolve.idf import load_idf
 from src.part3_resolve.registers import REGISTER_ID, bn_record_id, load_business_names, register_links
 from src.common.names import name_core
 from src.part3_resolve.keys import name_key, rekey_conflicting_name_links
+from src.part3_resolve.sources import BASE, announce_sources
 from src.part3_resolve.score import ACCEPT, KEY_RULE_VERSIONS, LOOSE, MATCHER_VERSION, SCORERS, band
 
-SOURCES = ["asic_credit_licensee", "qbcc_licensed_contractors", "qld_health_contracts_2023_24",
-           "wa_tenders_awards_2023_24", "vic_liquor_licences", "act_notifiable_invoices"]
+SOURCES = BASE  # the six round-1 ids; the commands read active_sources() (src/part3_resolve/sources.py)
 OUT = Path("outputs/part3")
 MAX_BLOCK = 300  # a name shared by more mentions than this is too generic to trust
 
@@ -101,7 +101,7 @@ def rec(m: dict) -> dict:
 
 
 def main() -> None:
-    mentions = load_mentions(SOURCES)
+    mentions = load_mentions(announce_sources())
     by_id = {m["mention_id"]: m for m in mentions}
     cand, queue = block_pairs(mentions)
     ctx = {"idf": load_idf(), "bn": load_business_names()}

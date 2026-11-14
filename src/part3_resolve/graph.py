@@ -26,7 +26,7 @@ import yaml
 
 from src.part3_resolve.features import load_mentions
 from src.part3_resolve.labels import load_labels, pair_id
-from src.part3_resolve.run import SOURCES
+from src.part3_resolve.sources import active_sources, announce_sources
 
 OUT = Path("outputs/part3")
 OBS = Path("outputs/observations")
@@ -45,7 +45,7 @@ def node_id(rec: dict) -> str:
 
 def observed_dates() -> dict[tuple, dict]:
     out = {}
-    for sid in SOURCES:
+    for sid in active_sources():
         for line in (OBS / f"{sid}.jsonl").open():
             o = json.loads(line)
             out.setdefault((sid, o["source_record_id"]), {"observed_at": o["observed_at"], "ingested_at": o["ingested_at"]})
@@ -101,7 +101,7 @@ def abn_offenders(edges: list[dict], nodes: dict) -> list[dict]:
 
 
 def main() -> None:
-    mentions = load_mentions(SOURCES)
+    mentions = load_mentions(announce_sources())
     links = [json.loads(l) for l in (OUT / "links.jsonl").open()]
     labels = load_labels()
     dates = observed_dates()

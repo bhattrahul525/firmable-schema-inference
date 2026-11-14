@@ -57,10 +57,10 @@ class Idf:
 
 def mention_counts() -> tuple[Counter, int]:
     """Document frequency over distinct normalised names per source."""
-    from src.part3_resolve.run import SOURCES  # here, not at the top: run.py imports this module
+    from src.part3_resolve.sources import active_sources
 
     names = set()
-    for m in load_mentions(SOURCES):
+    for m in load_mentions(active_sources()):
         for c in [m["core"], *m["trading_cores"]]:
             if c:
                 names.add((m["source_id"], c))

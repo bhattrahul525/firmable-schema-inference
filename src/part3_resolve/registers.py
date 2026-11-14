@@ -7,6 +7,7 @@ A name with more than one holder is REFUSED, never resolved loosely.
 
 from __future__ import annotations
 
+import os
 import csv
 import hashlib
 from collections import defaultdict
@@ -15,7 +16,8 @@ from pathlib import Path
 from src.common.ids import normalise_abn
 from src.common.names import name_core
 
-TRIMMED = Path("data/reference/asic_business_names_trimmed.csv")
+# env BN_TRIMMED: use a re-filtered register (row_filter --out) instead of the tracked file, e.g. for a demo run
+TRIMMED = Path(os.getenv("BN_TRIMMED", "data/reference/asic_business_names_trimmed.csv"))
 
 
 class BusinessNames:
